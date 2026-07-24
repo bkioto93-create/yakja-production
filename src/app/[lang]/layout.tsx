@@ -28,6 +28,8 @@ import { DesktopHeader } from "@/components/layout/DesktopHeader";
 import { LangHtmlSync } from "@/components/layout/LangHtmlSync";
 import { DisclaimerModal } from "@/components/layout/DisclaimerModal";
 import { DISCLAIMER_COOKIE_NAME } from "@/lib/disclaimer/constants";
+import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { PWA_INSTALL_COOKIE_NAME } from "@/lib/pwaInstall/constants";
 
 export async function generateMetadata({
   params,
@@ -67,10 +69,17 @@ export default async function LangLayout({
   const cookieStore = await cookies();
   const disclaimerAcknowledged = cookieStore.get(DISCLAIMER_COOKIE_NAME)?.value === "1";
 
+  // پیشنهاد نصب PWA — بررسی اینکه آیا کاربر پیش‌تر «شاید بعداً» را زده یا نه (کوکی ۳۰ روزه،
+  // src/lib/pwaInstall/constants.ts). این مقدار فقط برای جلوگیری از چشمک‌زدن اولیه به کامپوننت
+  // پاس داده می‌شود؛ تشخیص «آیا اصلاً قابل‌نصب است؟» (نصب‌شده یا نه، اندروید یا iOS) کاملاً سمت
+  // کلاینت انجام می‌شود، چون این اطلاعات فقط در مرورگر در دسترس است.
+  const pwaInstallDismissed = cookieStore.get(PWA_INSTALL_COOKIE_NAME)?.value === "1";
+
   return (
     <ToastProvider>
       <LangHtmlSync lang={resolvedParams.lang} />
       <DisclaimerModal initiallyAcknowledged={disclaimerAcknowledged} dict={dict.disclaimer} />
+      <InstallPrompt initiallyDismissed={pwaInstallDismissed} dict={dict.pwaInstall} />
       <DesktopHeader lang={resolvedParams.lang} dict={dict} />
       {/* جدا کردن فضاسازی پایینی برای BottomNav در موبایل با `pb-bottom-nav` (پویا و آگاه از
           Safe Area، تسک ۶ فاز ۰۸)؛ در دسکتاپ چون BottomNav مخفی است، فقط یک فاصله‌ی معمولی
