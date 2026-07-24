@@ -1,0 +1,94 @@
+<!-- مسیر فایل: public/offline.html -->
+<!-- تسک ۲ فاز ۰۸ — صفحه‌ی سبک نمایش‌داده‌شده توسط public/sw.js وقتی کاربر آفلاین است و صفحه‌ی
+     درخواستی هیچ‌وقت قبلاً کش نشده. عمداً یک فایل استاتیک ساده و مستقل از Next.js است (نه یک
+     مسیر داخل src/app) چون باید در حالت کاملاً آفلاین، بدون هیچ درخواست تازه‌ای به سرور، به‌تنهایی
+     قابل نمایش باشد؛ به همین دلیل هر دو زبان (دری/پښتو) هم‌زمان و بدون وابستگی به دیکشنری پروژه
+     نوشته شده‌اند — دقیقاً همان استثنای مستندشده در src/app/select-language/page.tsx برای همین
+     دلیل (نبودِ زبان مشخص در این نقطه). -->
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>یکجا — آفلاین</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #f8f8f7;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, sans-serif;
+        text-align: center;
+      }
+      .card {
+        max-width: 360px;
+        width: 100%;
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 32px 24px;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+      }
+      .icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 18px;
+        margin: 0 auto 20px;
+        display: block;
+      }
+      h1 {
+        font-size: 20px;
+        font-weight: 800;
+        color: #171717;
+        margin: 0 0 8px;
+      }
+      p {
+        font-size: 14px;
+        color: #6b7280;
+        line-height: 1.7;
+        margin: 0 0 6px;
+      }
+      .divider {
+        height: 1px;
+        background: #eee;
+        margin: 18px 0;
+      }
+      button {
+        width: 100%;
+        margin-top: 8px;
+        padding: 13px 16px;
+        border: none;
+        border-radius: 14px;
+        background: #171717;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      button:active {
+        transform: scale(0.97);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img class="icon" src="/icons/yakja-icon-192.png" alt="یکجا" />
+      <h1>اتصال اینترنت برقرار نیست</h1>
+      <p>این صفحه پیش‌تر روی این دستگاه بازدید نشده، پس نمی‌توان بدون اینترنت نمایشش داد.</p>
+      <p>صفحاتی که قبلاً دیده‌اید همچنان بدون اینترنت باز می‌شوند.</p>
+      <div class="divider"></div>
+      <p style="direction: rtl; font-family: inherit;">د انټرنیټ اړیکه نشته</p>
+      <p>دا مخ مخکې پدې ډیوایس کې نه دی لیدل شوی، نو بې له انټرنیټه نه ښودل کیږي.</p>
+      <button onclick="location.reload()">تلاش دوباره — بیا هڅه وکړئ</button>
+    </div>
+  </body>
+</html>

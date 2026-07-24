@@ -1,0 +1,51 @@
+// مسیر فایل: src/app/[lang]/real-estate/page.tsx
+// تسک ۶ فاز ۰۵ — نسخه‌ی نهایی فهرست/جستجوی آگهی‌های ملکِ تاییدشده (جایگزین نسخه‌ی حداقلی تسک ۴)،
+// دقیقاً هم‌الگو با src/app/[lang]/listings/page.tsx (فاز ۰۲، تسک ۷). اولین صفحه‌ی نتایج (بدون
+// نوع ملک/معامله، بدون مکان کاربر، یعنی «جدیدترین‌ها») کاملاً سمت سرور خوانده می‌شود تا حتی پیش
+// از اجرای جاوااسکریپت هم چیزی روی صفحه دیده شود (سازگار با اینترنت ضعیف)؛ فیلتر نوع ملک/معامله،
+// جستجوی دستی شهر/منطقه، و مرتب‌سازی بر اساس نزدیک‌ترین فاصله (GPS) سپس توسط کامپوننت کلاینت
+// RealEstateSearch (با Server Action) انجام می‌شود.
+import Link from "next/link";
+import { getDictionary } from "@/dictionaries/getDictionary";
+import { searchRealEstate } from "@/lib/realEstate/queries";
+import { Button } from "@/components/ui/Button";
+import { Icons } from "@/components/ui/Icons";
+import { RealEstateSearch } from "./RealEstateSearch";
+import { REAL_ESTATE_PAGE_SIZE } from "./actions";
+import type { Locale } from "@/lib/i18n/constants";
+
+export default async function RealEstatePage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  const dict = await getDictionary(lang);
+  const indexDict = dict.realEstate.index;
+
+  const { items, totalCount } = await searchRealEstate({
+    limit: REAL_ESTATE_PAGE_SIZE,
+    offset: 0,
+  });
+
+  return (
+    <div className="flex flex-col gap-5 px-5 md:px-0 pt-8 pb-10 max-w-lg md:max-w-3xl mx-auto w-full">
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-2xl font-extrabold text-text-main">{indexDict.title}</h1>
+        <Link href={`/${lang}/real-estate/new`}>
+          <Button variant="primary">
+            <Icons.Home className="w-5 h-5 ml-2" />
+            {indexDict.postAdButton}
+          </Button>
+        </Link>
+      </div>
+
+      <RealEstateSearch
+        lang={lang as Locale}
+        dict={dict.realEstate}
+        initialItems={items}
+        initialTotalCount={totalCount}
+      />
+    </div>
+  );
+}

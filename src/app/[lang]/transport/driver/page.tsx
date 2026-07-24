@@ -1,0 +1,58 @@
+// مسیر فایل: src/app/[lang]/transport/driver/page.tsx
+// تسک ۴ فاز ۰۳ — صفحه‌ی ثبت/ویرایش پروفایل راننده. دقیقاً هم‌الگو با
+// src/app/[lang]/listings/new/page.tsx (فاز ۰۲، تسک ۴): برای کاربر مهمان (بدون نشست)، به‌جای
+// فرم، کارت دعوت به ورود نمایش داده می‌شود چون ثبت پروفایل راننده نیازمند owner_id واقعی است.
+// برخلاف آنجا، اینجا اگر کاربر قبلاً پروفایل راننده داشته باشد (existingProfile غیر null)،
+// همان فرم با مقادیر فعلی پر می‌شود و در «حالت ویرایش» نمایش داده می‌شود — طبق عنوان تسک ۴:
+// «ثبت/ویرایش پروفایل راننده».
+import Link from "next/link";
+import { getDictionary } from "@/dictionaries/getDictionary";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getMyDriverProfile } from "@/lib/transport/driverQueries";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Icons } from "@/components/ui/Icons";
+import { DriverProfileClient } from "./DriverProfileClient";
+
+export default async function DriverProfilePage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  const dict = await getDictionary(lang);
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return (
+      <div className="flex flex-col min-h-[70vh] items-center justify-center px-6 py-10">
+        <Card className="p-6 flex flex-col items-center text-center gap-3 max-w-sm w-full">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+            <Icons.User className="w-8 h-8" />
+          </div>
+          <h2 className="font-extrabold text-text-main">{dict.transport.driverProfile.loginRequiredTitle}</h2>
+          <p className="text-sm text-text-muted">{dict.transport.driverProfile.loginRequiredDesc}</p>
+          <Link href={`/${lang}/auth/login`} className="w-full">
+            <Button variant="primary" fullWidth>
+              {dict.transport.driverProfile.loginRequiredButton}
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  const existingProfile = await getMyDriverProfile(user.id);
+
+  return (
+    <div className="flex flex-col px-4 md:px-0 py-6 max-w-lg md:max-w-xl mx-auto w-full gap-4">
+      <h1 className="text-xl font-extrabold text-text-main">{dict.transport.driverProfile.title}</h1>
+      <p className="text-sm text-text-muted -mt-2">{dict.transport.driverProfile.subtitle}</p>
+      <DriverProfileClient
+        dict={dict}
+        defaultContactPhone={user.phoneNumber}
+        existingProfile={existingProfile}
+      />
+    </div>
+  );
+}

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/deactivate-stale-drivers",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+// مسیر فایل: src/lib/marketplace/images.ts
+// تسک ۶ فاز ۰۲ — ساخت آدرس عمومی (Public URL) تصاویر آگهی از روی مسیر ذخیره‌شده در ستون
+// listings.images (مثلاً "owner-uuid/167000_0.jpg"). چون باکت listings-images از فاز ۰۰
+// «عمومی» (public) تعریف شده، این آدرس بدون نیاز به هیچ Sign کردنی، مستقیماً در مرورگر باز
+// می‌شود. این تابع عمداً بدون وابستگی به کلاینت Supabase نوشته شده (فقط رشته‌سازی ساده با
+// NEXT_PUBLIC_SUPABASE_URL) تا هم در کامپوننت‌های سرور و هم کلاینت بدون مشکل قابل استفاده باشد.
+const LISTINGS_BUCKET = "listings-images";
+
+export function getListingImageUrl(path: string): string {
+  const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  return `${baseUrl}/storage/v1/object/public/${LISTINGS_BUCKET}/${path}`;
+}

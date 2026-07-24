@@ -1,0 +1,132 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pinBody" x1="300" y1="150" x2="750" y2="880" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4FE0D6"/>
+      <stop offset="45%" stop-color="#1CB8B0"/>
+      <stop offset="100%" stop-color="#0B7C77"/>
+    </linearGradient>
+
+    <linearGradient id="pinRim" x1="260" y1="180" x2="720" y2="860" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7CF0E6"/>
+      <stop offset="100%" stop-color="#0A6E69"/>
+    </linearGradient>
+
+    <radialGradient id="creamCircle" cx="45%" cy="38%" r="65%">
+      <stop offset="0%" stop-color="#FFFDF8"/>
+      <stop offset="70%" stop-color="#FFF4E4"/>
+      <stop offset="100%" stop-color="#FCE6CC"/>
+    </radialGradient>
+
+    <linearGradient id="orangeRing" x1="330" y1="300" x2="620" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFC98A"/>
+      <stop offset="55%" stop-color="#FF9E4D"/>
+      <stop offset="100%" stop-color="#F07A2E"/>
+    </linearGradient>
+
+    <linearGradient id="tealRing" x1="420" y1="280" x2="700" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#8CF3E9"/>
+      <stop offset="55%" stop-color="#2AC6BC"/>
+      <stop offset="100%" stop-color="#0F8F87"/>
+    </linearGradient>
+
+    <radialGradient id="glossHighlight" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.85"/>
+      <stop offset="60%" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="ambientGlow" cx="50%" cy="42%" r="60%">
+      <stop offset="0%" stop-color="#4FE0D6" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#4FE0D6" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="18"/>
+      <feOffset dy="26" result="off"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.35"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="smallBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+
+    <filter id="softerBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+
+    <mask id="ringMaskA">
+      <rect x="-118" y="-64" width="236" height="128" rx="64" fill="#FFFFFF"/>
+      <rect x="-80" y="-26" width="160" height="52" rx="26" fill="#000000"/>
+    </mask>
+    <mask id="ringMaskB">
+      <rect x="-118" y="-64" width="236" height="128" rx="64" fill="#FFFFFF"/>
+      <rect x="-80" y="-26" width="160" height="52" rx="26" fill="#000000"/>
+    </mask>
+  </defs>
+
+  <!-- ambient cinematic glow behind the mark -->
+  <circle cx="512" cy="470" r="420" fill="url(#ambientGlow)"/>
+
+  <!-- pin group with soft cast shadow -->
+  <g filter="url(#softShadow)">
+    <!-- outer plump pin silhouette -->
+    <path d="M512,158
+             C 668,158 792,278 792,428
+             C 792,548 706,650 620,742
+             C 570,796 530,842 512,878
+             C 494,842 454,796 404,742
+             C 318,650 232,548 232,428
+             C 232,278 356,158 512,158 Z"
+          fill="url(#pinBody)"/>
+
+    <!-- subtle rim light along the edge -->
+    <path d="M512,158
+             C 668,158 792,278 792,428
+             C 792,548 706,650 620,742
+             C 570,796 530,842 512,878
+             C 494,842 454,796 404,742
+             C 318,650 232,548 232,428
+             C 232,278 356,158 512,158 Z"
+          fill="none" stroke="url(#pinRim)" stroke-width="4" opacity="0.55"/>
+  </g>
+
+  <!-- creamy inner disc, the pin's "eye" -->
+  <circle cx="512" cy="424" r="192" fill="url(#creamCircle)"/>
+  <circle cx="512" cy="424" r="192" fill="none" stroke="#F4D9B8" stroke-width="2" opacity="0.6"/>
+
+  <!-- interlocking knot: two linked rings symbolizing "together" -->
+  <g>
+    <!-- back ring (orange), tilted -->
+    <g transform="translate(452,412) rotate(-32)">
+      <rect x="-118" y="-64" width="236" height="128" rx="64" fill="url(#orangeRing)" mask="url(#ringMaskA)"/>
+    </g>
+
+    <!-- cream gap so the front ring reads as passing over -->
+    <g transform="translate(452,412) rotate(-32)">
+      <path d="M 20,-64 L 100,-64 A 64,64 0 0 1 100,64 L 20,64" fill="none" stroke="#FFF4E4" stroke-width="6" opacity="0"/>
+    </g>
+    <ellipse cx="560" cy="404" rx="46" ry="40" fill="#FFF4E4" transform="rotate(22 560 404)"/>
+
+    <!-- front ring (teal), tilted the other way, interlocking through the orange ring -->
+    <g transform="translate(572,436) rotate(32)">
+      <rect x="-118" y="-64" width="236" height="128" rx="64" fill="url(#tealRing)" mask="url(#ringMaskB)"/>
+    </g>
+  </g>
+
+  <!-- soft glossy highlight sweeping across the pin's upper-left -->
+  <ellipse cx="400" cy="300" rx="230" ry="150" fill="url(#glossHighlight)"
+           transform="rotate(-28 400 300)" filter="url(#softerBlur)"/>
+
+  <!-- small crisp specular dot for that ceramic pop -->
+  <ellipse cx="368" cy="256" rx="34" ry="20" fill="#FFFFFF" opacity="0.75"
+           transform="rotate(-24 368 256)" filter="url(#smallBlur)"/>
+
+  <!-- gentle bottom-tip glow for depth -->
+  <ellipse cx="512" cy="820" rx="60" ry="34" fill="#0B7C77" opacity="0.25" filter="url(#smallBlur)"/>
+</svg>
