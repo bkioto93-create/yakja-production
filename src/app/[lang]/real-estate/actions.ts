@@ -11,7 +11,7 @@ import { searchRealEstate, type RealEstateSummary } from "@/lib/realEstate/queri
 import { isValidPropertyType } from "@/lib/realEstate/propertyTypes";
 import { isValidDealType } from "@/lib/realEstate/dealTypes";
 
-export const REAL_ESTATE_PAGE_SIZE = 12;
+import { REAL_ESTATE_PAGE_SIZE } from "./constants";
 const MAX_QUERY_LENGTH = 80;
 
 export async function searchRealEstateAction(input: {

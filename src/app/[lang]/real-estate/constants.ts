@@ -1,0 +1,1 @@
+export const REAL_ESTATE_PAGE_SIZE = 12;

@@ -11,7 +11,7 @@ import { searchRealEstate } from "@/lib/realEstate/queries";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { RealEstateSearch } from "./RealEstateSearch";
-import { REAL_ESTATE_PAGE_SIZE } from "./actions";
+import { REAL_ESTATE_PAGE_SIZE } from "./constants";
 import type { Locale } from "@/lib/i18n/constants";
 
 export default async function RealEstatePage({
