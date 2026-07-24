@@ -5,6 +5,13 @@
 // یک تاخیر کوتاه (ضددستپاچگی تایپ) و از طریق Server Action «searchListingsAction» یک جستجوی تازه
 // می‌سازد؛ صفحه‌بندی با دکمه‌ی «نمایش موارد بیشتر» (نه اسکرول بی‌نهایت خودکار) انجام می‌شود تا
 // روی اینترنت ۲G/۳G مصرف داده کاملاً زیر کنترل کاربر بماند.
+//
+// **به‌روزرسانی UX (چیپ‌های دسته‌بندی):** هم‌راستا با تغییری که در صفحه‌ی خدمات
+// (src/app/[lang]/services/ActiveServiceProvidersList.tsx) انجام شد، چیپ‌های دسته‌بندی از حالت
+// اسکرول افقی تک‌ردیفه (overflow-x-auto) به چیدمان چندردیفه‌ی «wrap» تغییر کردند — با اسکرول
+// افقی بخشی از دسته‌ها همیشه بیرون از دید کاربر می‌ماند و او باید حدس می‌زد باید کنار بکشد. در
+// چیدمان جدید همه‌ی دسته‌ها همزمان و بدون نیاز به هیچ تعامل اضافه (نه اسکرول، نه دراپ‌داون) قابل
+// مشاهده و لمس هستند.
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -160,12 +167,13 @@ export function ListingsSearch({
         </p>
       </div>
 
-      {/* چیپ‌های دسته‌بندی — همیشه یک دسته یا «همه» انتخاب‌شده است (بدون انتخاب چندگانه) */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      {/* چیپ‌های دسته‌بندی — چیدمان چندردیفه (wrap)، نه اسکرول افقی: همه‌ی دسته‌ها همزمان و
+          بدون نیاز به هیچ تعامل اضافه (اسکرول یا باز کردن منو) دیده و لمس می‌شوند. */}
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => setCategory(null)}
-          className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition-colors ${
+          className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition-colors ${
             category === null
               ? "bg-primary text-white border-primary"
               : "bg-white text-text-main border-slate-200"
@@ -181,7 +189,7 @@ export function ListingsSearch({
               type="button"
               key={cat.id}
               onClick={() => handleCategoryClick(cat.id)}
-              className={`shrink-0 flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition-colors ${
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-bold border transition-colors ${
                 active ? "bg-primary text-white border-primary" : "bg-white text-text-main border-slate-200"
               }`}
             >
