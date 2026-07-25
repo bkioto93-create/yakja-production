@@ -1,42 +1,24 @@
 // مسیر فایل: src/components/ui/Spinner.tsx
-// اسپینر یکپارچه‌ی کل اپ. عمداً به هیچ آیکون یا فایل دیگری وابسته نیست (فقط یک SVG خام) تا با
-// خیال راحت هرجای پروژه — داخل دکمه‌ها، صفحات لودینگ، هرجای دیگر — بدون ریسکِ به‌هم‌خوردنِ
-// importها استفاده شود. رنگش از currentColor می‌آید، یعنی با کلاس‌های text-white / text-primary
-// و... به‌راحتی رنگش عوض می‌شود.
+// اسپینر یکپارچه‌ی کل اپ — یک حلقه‌ی چرخان با CSS خالص (بدون SVG یا وابستگی بیرونی)، که از قبل
+// در چند نقطه‌ی پروژه (Button.tsx و ویزاردهای ثبت آگهی/ملک/راننده/ارائه‌دهنده‌ی خدمات) استفاده
+// می‌شده. رنگش از currentColor می‌آید (با کلاس‌هایی مثل text-white / text-primary قابل تغییره).
+//
+// prop اختیاری label برای دسترسی‌پذیری است: چون خود اسپینر فقط یک شکل چرخانِ بی‌متن است، بدون
+// label یک کاربر با صفحه‌خوان اصلاً متوجه نمی‌شود «در حال بارگذاری» است — این متن با sr-only فقط
+// برای صفحه‌خوان خوانده می‌شود و در ظاهر دیده نمی‌شود.
 export function Spinner({
-  size = 20,
-  strokeWidth = 3,
   className = "",
+  label,
 }: {
-  size?: number;
-  strokeWidth?: number;
   className?: string;
+  label?: string;
 }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      width={size}
-      height={size}
-      className={`animate-spin shrink-0 ${className}`}
-      role="status"
-      aria-hidden="true"
-    >
-      <circle
-        cx="12"
-        cy="12"
-        r="10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        strokeOpacity="0.18"
+    <span role="status" className="inline-flex items-center justify-center">
+      <span
+        className={`animate-spin inline-block w-6 h-6 border-[3px] border-current border-t-transparent text-primary rounded-full ${className}`}
       />
-      <path
-        d="M22 12a10 10 0 0 0-10-10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-      />
-    </svg>
+      {label ? <span className="sr-only">{label}</span> : null}
+    </span>
   );
 }
