@@ -81,6 +81,18 @@ export const Icons = {
       <line x1="3" y1="18" x2="21" y2="18"></line>
     </svg>
   ),
+  // --- افزوده‌شده جهت آکاردئون بخش «پرسش‌های پرتکرار» صفحه‌ی اصلی ---
+  ChevronDown: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" {...props}>
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  ),
+  // --- افزوده‌شده جهت دکمه‌ی «دانلود از گوگل‌پلی» در فوتر (بخش دانلود اپلیکیشن موبایل) ---
+  Android: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
+      <path d="M17.6 9.48l1.84-3.18a.5.5 0 0 0-.86-.5l-1.86 3.22a10.5 10.5 0 0 0-8.44 0L6.42 5.8a.5.5 0 0 0-.86.5L7.4 9.48A9.35 9.35 0 0 0 3 17h18a9.35 9.35 0 0 0-3.4-7.52M8 14.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2m8 0a1 1 0 1 1 0-2 1 1 0 0 1 0 2"></path>
+    </svg>
+  ),
 
   // --- افزوده‌شده در فاز ۰۲ (تسک ۱) — آیکون دسته‌بندی‌های ماژول خرید و فروش کالا ---
   CategoryFood: (props: React.SVGProps<SVGSVGElement>) => (
