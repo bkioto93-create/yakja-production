@@ -29,6 +29,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
+import { Spinner } from "@/components/ui/Spinner";
 import { ReportButton } from "@/components/reports/ReportButton";
 import { VEHICLE_TYPES } from "@/lib/transport/vehicleTypes";
 import { getDriverImageUrl } from "@/lib/transport/images";
@@ -168,9 +169,11 @@ export function ActiveDriversList({
           variant={locationStatus === "granted" ? "secondary" : "outline"}
           onClick={handleUseMyLocation}
           disabled={locationStatus === "locating"}
+          loading={locationStatus === "locating"}
+          loadingLabel={dict.locatingButton}
         >
           <Icons.LocateFixed className="w-5 h-5 ml-2" />
-          {locationStatus === "locating" ? dict.locatingButton : dict.useMyLocationButton}
+          {dict.useMyLocationButton}
         </Button>
 
         {locationStatus === "denied" && (
@@ -182,6 +185,12 @@ export function ActiveDriversList({
         </p>
       </div>
 
+      {isPending && items.length > 0 && (
+        <div className="flex items-center justify-center gap-2 text-xs font-bold text-text-muted py-1">
+          <Spinner className="w-3.5 h-3.5" />
+          {dict.loadingButton}
+        </div>
+      )}
       {items.length === 0 && !isPending ? (
         <Card className="p-6 flex flex-col items-center text-center gap-2">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">

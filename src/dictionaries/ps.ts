@@ -361,6 +361,12 @@ export default {
     "laterButton": "شاید وروسته",
     "closeLabel": "تړل"
   },
+  "notFound": {
+    "title": "دا پاڼه ونه موندل شوه",
+    "message": "هغه لینک چې تاسو یې لټوئ، یا ړنګ شوی یا له پیله غلط و. مه اندېښنه کوئ، له دې ځایه کولی شئ سمې لارې ته ستانه شئ.",
+    "backHomeButton": "اصلي پاڼې ته ستنېدل",
+    "backButton": "شاته ستنېدل"
+  },
   "contact": {
     "title": "له موږ سره اړیکه",
     "phoneLabel": "د ملاتړ شمیره",
@@ -437,7 +443,8 @@ export default {
       "services": "خدمتونه",
       "reports": "راپورونه",
       "providers": "موټر چلوونکي او متخصصین",
-      "logout": "وتل"
+      "logout": "وتل",
+      "menuLabel": "مینو"
     },
     "users": {
       "title": "د کاروونکو مدیریت",
@@ -666,3 +673,4 @@ export default {
     }
   }
 };
+

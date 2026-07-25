@@ -351,6 +351,12 @@ export default {
     "laterButton": "شاید بعداً",
     "closeLabel": "بستن"
   },
+  "notFound": {
+    "title": "این صفحه پیدا نشد",
+    "message": "لینکی که دنبالش بودید یا حذف شده یا از اول اشتباه بوده. نگران نباشید، از اینجا می‌تونید به مسیر درست برگردید.",
+    "backHomeButton": "بازگشت به صفحه اصلی",
+    "backButton": "بازگشت به صفحه قبل"
+  },
   "contact": {
     "title": "تماس با ما",
     "phoneLabel": "شماره پشتیبانی سیستم",
@@ -427,7 +433,8 @@ export default {
       "services": "خدمات",
       "reports": "گزارش‌ها",
       "providers": "رانندگان و متخصصین",
-      "logout": "خروج"
+      "logout": "خروج",
+      "menuLabel": "منو"
     },
     "users": {
       "title": "مدیریت کاربران",
@@ -656,3 +663,4 @@ export default {
     }
   }
 };
+

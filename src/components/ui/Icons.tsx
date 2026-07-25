@@ -73,6 +73,14 @@ export const Icons = {
       <rect x="3" y="16" width="7" height="5"></rect>
     </svg>
   ),
+  // --- افزوده‌شده جهت دکمه‌ی منوی موبایل نویگیشن پنل ادمین (نسخه‌ی واکنش‌گرا) ---
+  Menu: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" {...props}>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  ),
 
   // --- افزوده‌شده در فاز ۰۲ (تسک ۱) — آیکون دسته‌بندی‌های ماژول خرید و فروش کالا ---
   CategoryFood: (props: React.SVGProps<SVGSVGElement>) => (

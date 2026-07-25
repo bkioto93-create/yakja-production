@@ -1,9 +1,15 @@
 "use client";
 // مسیر فایل: src/app/[lang]/admin/users/UsersTable.tsx
-// تسک ۲ فاز ۰۷ — بخش تعاملی جدول «مدیریت کاربران»: دقیقاً هم‌الگو با جدول
-// src/app/[lang]/admin/sms/page.tsx (ساختار table/thead/tbody) از نظر نمایش، و هم‌الگو با
+// تسک ۲ فاز ۰۷ — بخش تعاملی «مدیریت کاربران»: هم‌الگو با
 // src/app/[lang]/admin/reports/ReportsQueueTable.tsx (useTransition + بروزرسانی خوش‌بینانه‌ی
 // state محلی پس از موفقیت اکشن) از نظر تعامل.
+//
+// **به‌روزرسانی اصلاح UX موبایل:** پیش از این یک جدول HTML خام (thead/tbody) با شش ستون بود که
+// داخل overflow-x-auto قرار داشت — یعنی روی گوشی برای دیدن ستون‌های آخر (وضعیت/دکمه) باید افقی
+// اسکرول می‌شد و متن/دکمه‌ها ریز و کم‌فاصله بودند. حالا دقیقاً هم‌الگو با
+// ReportsQueueTable.tsx/ProvidersTable.tsx به فهرست کارتی عمودی تبدیل شده: هر کاربر یک Card با
+// تمام اطلاعات به‌صورت خوانا زیر هم، و دکمه‌ی مسدودسازی/رفع مسدودی با ارتفاع حداقل ۴۸px برای لمس
+// راحت. هیچ داده، منطق، یا مسیر Server Action‌ای تغییر نکرد.
 //
 // دکمه‌ی مسدودسازی/رفع مسدودی برای ردیف‌های role='admin' عمداً اصلاً نمایش داده نمی‌شود — هم‌سو
 // با محافظت سمت سرور در actions.ts (cannotBlockAdmin/cannotBlockSelf)؛ یعنی حتی نیاز به کلیک و
@@ -12,6 +18,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Icons } from "@/components/ui/Icons";
+import { Spinner } from "@/components/ui/Spinner";
 import { setUserBlockedAction } from "./actions";
 import type { AdminUserRow } from "@/lib/users/adminUserQueries";
 
@@ -63,80 +70,72 @@ export function UsersTable({
   }
 
   return (
-    <Card className="p-0">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-bg-base text-text-muted text-right">
-              <th className="px-4 py-3 font-bold">{dict.colName}</th>
-              <th className="px-4 py-3 font-bold">{dict.colPhone}</th>
-              <th className="px-4 py-3 font-bold">{dict.colRole}</th>
-              <th className="px-4 py-3 font-bold">{dict.colJoined}</th>
-              <th className="px-4 py-3 font-bold">{dict.colStatus}</th>
-              <th className="px-4 py-3 font-bold"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => {
-              const rowIsPending = isPending && pendingId === row.id;
-              return (
-                <tr key={row.id} className="border-t border-slate-100">
-                  <td className="px-4 py-3 font-bold text-text-main">
-                    <Link
-                      href={`/${lang}/users/${row.id}`}
-                      className="hover:text-primary hover:underline"
-                    >
-                      {row.name || dict.noNameLabel}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-text-muted" dir="ltr">
-                    {row.phoneNumber}
-                  </td>
-                  <td className="px-4 py-3 text-text-muted">
-                    {dict.roleLabels[row.role] ?? row.role}
-                  </td>
-                  <td className="px-4 py-3 text-text-muted">
-                    {new Date(row.createdAt).toLocaleDateString(locale)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`font-bold ${
-                        row.isBlocked ? "text-red-500" : "text-emerald-600"
-                      }`}
-                    >
-                      {row.isBlocked ? dict.statusBlocked : dict.statusActive}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    {row.role === "admin" ? null : (
-                      <button
-                        type="button"
-                        disabled={rowIsPending}
-                        onClick={() => handleToggle(row.id, !row.isBlocked)}
-                        className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-60 transition-colors ${
-                          row.isBlocked
-                            ? "bg-emerald-50 text-emerald-600"
-                            : "bg-red-50 text-red-500"
-                        }`}
-                      >
-                        {row.isBlocked ? (
-                          <Icons.UserCheck className="w-4 h-4" />
-                        ) : (
-                          <Icons.UserX className="w-4 h-4" />
-                        )}
-                        {row.isBlocked ? dict.unblockButton : dict.blockButton}
-                      </button>
-                    )}
-                    {errorId === row.id && (
-                      <p className="text-xs text-red-500 mt-1">{dict.updateError}</p>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </Card>
+    <div className="flex flex-col gap-3">
+      {rows.map((row) => {
+        const rowIsPending = isPending && pendingId === row.id;
+
+        return (
+          <Card key={row.id} className="p-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-1 min-w-0">
+                <Link
+                  href={`/${lang}/users/${row.id}`}
+                  className="font-bold text-text-main hover:text-primary hover:underline truncate"
+                >
+                  {row.name || dict.noNameLabel}
+                </Link>
+                <span className="text-sm text-text-muted" dir="ltr">
+                  {row.phoneNumber}
+                </span>
+              </div>
+              <span className="text-xs font-bold text-text-muted bg-bg-base rounded-full px-2 py-1 whitespace-nowrap shrink-0">
+                {dict.roleLabels[row.role] ?? row.role}
+              </span>
+            </div>
+
+            <div className="text-xs text-text-muted">
+              {dict.colJoined}: {new Date(row.createdAt).toLocaleDateString(locale)}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+              <span
+                className={`font-bold text-sm ${
+                  row.isBlocked ? "text-red-500" : "text-emerald-600"
+                }`}
+              >
+                {row.isBlocked ? dict.statusBlocked : dict.statusActive}
+              </span>
+
+              {row.role === "admin" ? null : (
+                <button
+                  type="button"
+                  disabled={rowIsPending}
+                  onClick={() => handleToggle(row.id, !row.isBlocked)}
+                  className={`flex items-center gap-1.5 rounded-xl px-4 min-h-[44px] text-sm font-bold disabled:opacity-60 transition-colors ${
+                    row.isBlocked
+                      ? "bg-emerald-50 text-emerald-600 active:bg-emerald-100"
+                      : "bg-red-50 text-red-500 active:bg-red-100"
+                  }`}
+                >
+                  {rowIsPending ? (
+                    <Spinner
+                      className="w-4 h-4"
+                      label={row.isBlocked ? dict.unblockButton : dict.blockButton}
+                    />
+                  ) : row.isBlocked ? (
+                    <Icons.UserCheck className="w-4 h-4" />
+                  ) : (
+                    <Icons.UserX className="w-4 h-4" />
+                  )}
+                  {row.isBlocked ? dict.unblockButton : dict.blockButton}
+                </button>
+              )}
+            </div>
+
+            {errorId === row.id && <p className="text-xs text-red-500">{dict.updateError}</p>}
+          </Card>
+        );
+      })}
+    </div>
   );
 }

@@ -25,6 +25,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Icons } from "@/components/ui/Icons";
 import { Button } from "@/components/ui/Button";
 import { dismissPwaInstallAction } from "@/lib/pwaInstall/actions";
+import { useAsyncClick } from "@/lib/hooks/useAsyncClick";
 
 type PwaInstallDict = {
   installTitle: string;
@@ -119,7 +120,10 @@ export function InstallPrompt({
     void dismissPwaInstallAction();
   }, []);
 
-  const handleInstallClick = useCallback(async () => {
+  // useAsyncClick هم وضعیت لودینگ دکمه را مدیریت می‌کند (تا زمانی که کاربر در پنجره‌ی رسمی
+  // مرورگر تصمیم بگیرد، دکمه اسپینر نشان می‌دهد و غیرفعال است)، هم جلوی زدن دوباره‌ی دکمه را
+  // می‌گیرد — چون prompt() مرورگر را فقط می‌شود یک‌بار روی هر رویداد صدا زد.
+  const { isLoading: isInstalling, run: handleInstallClick } = useAsyncClick(async () => {
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     const choice = await deferredPrompt.userChoice;
@@ -129,7 +133,7 @@ export function InstallPrompt({
     if (choice.outcome !== "accepted") {
       void dismissPwaInstallAction();
     }
-  }, [deferredPrompt]);
+  });
 
   if (!visible || mode === "none") return null;
 
@@ -171,7 +175,13 @@ export function InstallPrompt({
             </div>
           </div>
         ) : (
-          <Button variant="primary" fullWidth onClick={handleInstallClick}>
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={handleInstallClick}
+            loading={isInstalling}
+            loadingLabel={dict.installButton}
+          >
             {dict.installButton}
           </Button>
         )}

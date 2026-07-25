@@ -1,6 +1,8 @@
 // مسیر فایل: src/app/[lang]/admin/sms/page.tsx
 // تسک ۵ فاز ۰۱ + بند ۸.۲/۸.۳ سند راهبردی — نمایش کدهای OTP اخیر برای تست داخلی توسط مدیر،
 // تا زمانی‌که پنل پیامک واقعی خریداری و متصل شود.
+// **به‌روزرسانی اصلاح UX موبایل:** جدول HTML شش‌ستونه (نیازمند اسکرول افقی روی گوشی) به فهرست
+// کارتی عمودی تبدیل شد؛ هیچ کوئری یا داده‌ای تغییر نکرد.
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import { Card } from "@/components/ui/Card";
@@ -32,64 +34,57 @@ export default async function AdminSmsPage({
         <p className="text-sm text-text-main font-semibold">{dict.admin.sms.notice}</p>
       </Card>
 
-      <Card className="p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-bg-base text-text-muted text-right">
-                <th className="px-4 py-3 font-bold">{dict.admin.sms.colPhone}</th>
-                <th className="px-4 py-3 font-bold">{dict.admin.sms.colCode}</th>
-                <th className="px-4 py-3 font-bold">{dict.admin.sms.colCreated}</th>
-                <th className="px-4 py-3 font-bold">{dict.admin.sms.colExpires}</th>
-                <th className="px-4 py-3 font-bold">{dict.admin.sms.colAttempts}</th>
-                <th className="px-4 py-3 font-bold">{dict.admin.sms.colStatus}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(codes ?? []).map((row) => {
-                const isExpired = new Date(row.expires_at).getTime() < now;
-                const status = row.is_used
-                  ? dict.admin.sms.statusUsed
-                  : isExpired
-                  ? dict.admin.sms.statusExpired
-                  : dict.admin.sms.statusActive;
-                const statusColor = row.is_used
-                  ? "text-slate-400"
-                  : isExpired
-                  ? "text-red-500"
-                  : "text-emerald-600";
+      {(codes ?? []).length === 0 ? (
+        <Card className="p-8 text-center text-text-muted text-sm">{dict.admin.sms.empty}</Card>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {(codes ?? []).map((row) => {
+            const isExpired = new Date(row.expires_at).getTime() < now;
+            const status = row.is_used
+              ? dict.admin.sms.statusUsed
+              : isExpired
+              ? dict.admin.sms.statusExpired
+              : dict.admin.sms.statusActive;
+            const statusColor = row.is_used
+              ? "text-slate-400"
+              : isExpired
+              ? "text-red-500"
+              : "text-emerald-600";
 
-                return (
-                  <tr key={row.id} className="border-t border-slate-100">
-                    <td className="px-4 py-3 font-mono" dir="ltr">
-                      {row.phone_number}
-                    </td>
-                    <td className="px-4 py-3 font-mono font-bold tracking-widest" dir="ltr">
-                      {row.code}
-                    </td>
-                    <td className="px-4 py-3 text-text-muted">
-                      {new Date(row.created_at).toLocaleString(locale)}
-                    </td>
-                    <td className="px-4 py-3 text-text-muted">
-                      {new Date(row.expires_at).toLocaleString(locale)}
-                    </td>
-                    <td className="px-4 py-3">{row.attempts}</td>
-                    <td className={`px-4 py-3 font-bold ${statusColor}`}>{status}</td>
-                  </tr>
-                );
-              })}
+            return (
+              <Card key={row.id} className="p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="font-mono font-bold text-text-main" dir="ltr">
+                    {row.phone_number}
+                  </span>
+                  <span className={`font-bold text-sm whitespace-nowrap ${statusColor}`}>
+                    {status}
+                  </span>
+                </div>
 
-              {(codes ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-text-muted">
-                    {dict.admin.sms.empty}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                <div className="flex items-center justify-between gap-3 bg-bg-base rounded-xl px-3 py-2">
+                  <span className="text-xs text-text-muted">{dict.admin.sms.colCode}</span>
+                  <span className="font-mono font-extrabold tracking-widest text-lg text-primary" dir="ltr">
+                    {row.code}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-1 text-xs text-text-muted">
+                  <span>
+                    {dict.admin.sms.colCreated}: {new Date(row.created_at).toLocaleString(locale)}
+                  </span>
+                  <span>
+                    {dict.admin.sms.colExpires}: {new Date(row.expires_at).toLocaleString(locale)}
+                  </span>
+                  <span>
+                    {dict.admin.sms.colAttempts}: {row.attempts}
+                  </span>
+                </div>
+              </Card>
+            );
+          })}
         </div>
-      </Card>
+      )}
     </div>
   );
 }

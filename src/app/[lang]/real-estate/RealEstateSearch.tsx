@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Icons } from "@/components/ui/Icons";
+import { Spinner } from "@/components/ui/Spinner";
 import { PROPERTY_TYPES } from "@/lib/realEstate/propertyTypes";
 import { DEAL_TYPES, type DealTypeId } from "@/lib/realEstate/dealTypes";
 import { getRealEstateImageUrl } from "@/lib/realEstate/images";
@@ -162,9 +163,11 @@ export function RealEstateSearch({
           variant={locationStatus === "granted" ? "secondary" : "outline"}
           onClick={handleUseMyLocation}
           disabled={locationStatus === "locating"}
+          loading={locationStatus === "locating"}
+          loadingLabel={indexDict.locatingButton}
         >
           <Icons.LocateFixed className="w-5 h-5 ml-2" />
-          {locationStatus === "locating" ? indexDict.locatingButton : indexDict.useMyLocationButton}
+          {indexDict.useMyLocationButton}
         </Button>
 
         {locationStatus === "denied" && (
@@ -239,6 +242,12 @@ export function RealEstateSearch({
       </div>
 
       {/* نتایج */}
+      {isPending && items.length > 0 && (
+        <div className="flex items-center justify-center gap-2 text-xs font-bold text-text-muted py-1">
+          <Spinner className="w-3.5 h-3.5" />
+          {indexDict.loadingButton}
+        </div>
+      )}
       {items.length === 0 && !isPending ? (
         <Card className="p-6 flex flex-col items-center text-center gap-2">
           <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">

@@ -27,12 +27,15 @@
 // با «خدمات»/«گزارش‌ها»: چون همه‌ی امکانات پیش از آن (کاربران، آگهی‌ها) از قبل در جایگاه مصوبِ
 // خودشان قرار داشتند، جابه‌جاکردنشان صرفاً برای هم‌ترازی عددی با شماره‌ی تسک، ریسکِ برخورد بی‌دلیل
 // با تغییرات دیگر را بدون هیچ فایده‌ی کاربری واقعی اضافه می‌کرد.
+// **به‌روزرسانی اصلاح UX موبایل:** بلوک نویگیشن ثابت (۷ لینک افقی + دکمه‌ی خروج، بدون شکست‌خط
+// کنترل‌شده) که روی گوشی به چند خط نامرتب می‌شکست و نشانگر صفحه‌ی فعال نداشت، به کامپوننت مجزای
+// AdminNav.tsx منتقل شد: زیر md یک نوار فشرده + منوی کشویی تمام‌عرض (هدف لمس حداقل ۴۸px)، از md
+// به بالا همان نوار افقی قبلی به‌علاوه‌ی هایلایت صفحه‌ی فعال. هیچ لینک/مسیری حذف یا جابه‌جا نشد.
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { requireAdmin } from "@/lib/auth/session";
-import { Icons } from "@/components/ui/Icons";
 import { logoutAction } from "./actions";
+import { AdminNav } from "./AdminNav";
 
 export default async function AdminLayout({
   children,
@@ -53,66 +56,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex flex-col min-h-[80vh] w-full px-4 md:px-0 py-6">
-      <div className="flex items-center justify-between bg-white border border-slate-100 rounded-2xl px-5 py-4 mb-6 shadow-sm">
-        <div className="flex items-center gap-5 flex-wrap">
-          <Link
-            href={`/${lang}/admin`}
-            className="flex items-center gap-2 font-extrabold text-text-main"
-          >
-            <Icons.LayoutDashboard className="w-5 h-5 text-primary" />
-            {dict.admin.nav.dashboard}
-          </Link>
-          <Link
-            href={`/${lang}/admin/users`}
-            className="flex items-center gap-2 font-bold text-text-muted hover:text-primary"
-          >
-            <Icons.User className="w-5 h-5" />
-            {dict.admin.nav.users}
-          </Link>
-          <Link
-            href={`/${lang}/admin/listings`}
-            className="flex items-center gap-2 font-bold text-text-muted hover:text-primary"
-          >
-            <Icons.CheckCircle className="w-5 h-5" />
-            {dict.admin.nav.listings}
-          </Link>
-          <Link
-            href={`/${lang}/admin/sms`}
-            className="flex items-center gap-2 font-bold text-text-muted hover:text-primary"
-          >
-            <Icons.MessageSquare className="w-5 h-5" />
-            {dict.admin.nav.sms}
-          </Link>
-          <Link
-            href={`/${lang}/admin/services`}
-            className="flex items-center gap-2 font-bold text-text-muted hover:text-primary"
-          >
-            <Icons.Wrench className="w-5 h-5" />
-            {dict.admin.nav.services}
-          </Link>
-          <Link
-            href={`/${lang}/admin/reports`}
-            className="flex items-center gap-2 font-bold text-text-muted hover:text-primary"
-          >
-            <Icons.Flag className="w-5 h-5" />
-            {dict.admin.nav.reports}
-          </Link>
-          <Link
-            href={`/${lang}/admin/providers`}
-            className="flex items-center gap-2 font-bold text-text-muted hover:text-primary"
-          >
-            <Icons.Users className="w-5 h-5" />
-            {dict.admin.nav.providers}
-          </Link>
-        </div>
-
-        <form action={boundLogout}>
-          <button type="submit" className="flex items-center gap-2 font-bold text-red-500 text-sm">
-            <Icons.LogOut className="w-5 h-5" />
-            {dict.admin.nav.logout}
-          </button>
-        </form>
-      </div>
+      <AdminNav lang={lang} dict={dict.admin.nav} logoutAction={boundLogout} />
 
       {children}
     </div>

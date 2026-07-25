@@ -38,12 +38,12 @@ export default async function AdminReportsPage({
         <p className="text-sm text-text-muted">{dict.admin.reports.subtitle}</p>
       </div>
 
-      <div className="flex gap-2 border-b border-slate-100 pb-2">
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 border-b border-slate-100 pb-2">
         {TABS.map((tab) => (
           <Link
             key={tab}
             href={`/${lang}/admin/reports?status=${tab}`}
-            className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+            className={`px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap shrink-0 ${
               activeStatus === tab
                 ? "bg-primary text-white"
                 : "text-text-muted bg-slate-50 hover:bg-slate-100"

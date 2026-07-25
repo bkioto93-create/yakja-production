@@ -62,12 +62,12 @@ export default async function AdminProvidersPage({
         <p className="text-sm text-text-muted">{dict.admin.providers.subtitle}</p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         {MODULES.map((moduleName) => (
           <Link
             key={moduleName}
             href={hrefFor(moduleName, 1)}
-            className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+            className={`px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap shrink-0 ${
               activeModule === moduleName
                 ? "bg-primary text-white"
                 : "text-text-muted bg-slate-50 hover:bg-slate-100"
