@@ -8,9 +8,15 @@
 // src/lib/home/homeQueries.ts می‌آیند که هرکدام با unstable_cache به‌مدت ۳ دقیقه کش شده‌اند —
 // یعنی حتی اگر ۱۰۰۰ کاربر هم‌زمان صفحه‌ی اصلی را باز کنند، Supabase فقط هر ۳ دقیقه یک‌بار واقعاً
 // فراخوانی می‌شود، نه به‌ازای هر بازدید.
+//
+// **رفع باگ دیپلوی (۲۰۲۶-۰۷-۲۶):** قبلاً "icon: Icons.Box" (خودِ تابع کامپوننت) داخل آرایه‌ی
+// categories گذاشته می‌شد و مستقیم به QuickAccessIcon (که "use client" است) پاس داده می‌شد.
+// Next.js اجازه نمی‌دهد یک تابع از Server Component به Client Component به‌عنوان prop برود
+// (قابل سریالایز نیست) — همین باعث خطای بیلد/رانتایم "Functions cannot be passed directly to
+// Client Components" می‌شد. راه‌حل: فقط اسم آیکون (رشته‌ی ساده) پاس داده می‌شود، و خودِ
+// QuickAccessIcon.tsx (که سمت کلاینت است) آن اسم را به کامپوننت واقعی تبدیل می‌کند.
 import { getDictionary } from "@/dictionaries/getDictionary";
 import Link from "next/link";
-import { Icons } from "@/components/ui/Icons";
 import { Footer } from "@/components/layout/Footer";
 import { HomeFeatures } from "./HomeFeatures";
 import { HomeFaq } from "./HomeFaq";
@@ -48,12 +54,12 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   // تعریف کورت مرکزی پورتال یکجا برپایهِ متغیرهای متصل‌کننده!
   // imageSrc: مسیر تصویر کاوایی/کیوت سه‌بعدی (بعداً توسط کارفرما اضافه می‌شود — رجوع کنید به
   // فایل راهنما برای پرامپت‌ها و مسیر دقیق). تا وقتی فایل موجود نیست، QuickAccessIcon خودکار به
-  // آیکون کلاسیک (icon) برمی‌گردد.
+  // آیکون کلاسیک (iconName) برمی‌گردد.
   const categories = [
-    { id: 'listings', href: `/${lang}/listings`, title: dict.dashboard.categories.listings, icon: Icons.Box, imageSrc: "/images/icons/quick-listings.png", textColor: "text-blue-500", bgColor: "bg-blue-100/60" },
-    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, icon: Icons.Truck, imageSrc: "/images/icons/quick-transport.png", textColor: "text-accent", bgColor: "bg-accent/10" },
-    { id: 'services', href: `/${lang}/services`, title: dict.dashboard.categories.services, icon: Icons.Wrench, imageSrc: "/images/icons/quick-services.png", textColor: "text-emerald-500", bgColor: "bg-emerald-100/60" },
-    { id: 'real-estate', href: `/${lang}/real-estate`, title: dict.dashboard.categories.realEstate, icon: Icons.Home, imageSrc: "/images/icons/quick-realestate.png", textColor: "text-purple-500", bgColor: "bg-purple-100/60" },
+    { id: 'listings', href: `/${lang}/listings`, title: dict.dashboard.categories.listings, iconName: "Box" as const, imageSrc: "/images/icons/quick-listings.png", textColor: "text-blue-500", bgColor: "bg-blue-100/60" },
+    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, iconName: "Truck" as const, imageSrc: "/images/icons/quick-transport.png", textColor: "text-accent", bgColor: "bg-accent/10" },
+    { id: 'services', href: `/${lang}/services`, title: dict.dashboard.categories.services, iconName: "Wrench" as const, imageSrc: "/images/icons/quick-services.png", textColor: "text-emerald-500", bgColor: "bg-emerald-100/60" },
+    { id: 'real-estate', href: `/${lang}/real-estate`, title: dict.dashboard.categories.realEstate, iconName: "Home" as const, imageSrc: "/images/icons/quick-realestate.png", textColor: "text-purple-500", bgColor: "bg-purple-100/60" },
   ];
 
   const trustBadges = [
@@ -136,7 +142,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                       <div className={`w-[75px] h-[75px] md:w-[82px] md:h-[82px] shrink-0 rounded-[22px] flex items-center justify-center shadow-inner ${item.bgColor} ${item.textColor} origin-bottom mx-auto drop-shadow-sm p-3`}>
                          <QuickAccessIcon
                            src={item.imageSrc}
-                           fallbackIcon={item.icon}
+                           fallbackIconName={item.iconName}
                            fallbackClassName="w-[36px] h-[36px] md:w-[40px] md:h-[40px] stroke-[2.2px] shrink-0"
                          />
                       </div>

@@ -9,19 +9,27 @@
 // ابتدا تصویر سفارشی را امتحان می‌کند و اگر لود نشد (onError)، خودکار و بی‌صدا به همان آیکون
 // کلاسیک قبلی (خط‌محور) برمی‌گردد — یعنی صفحه هیچ‌وقت با یک جای خالی/خراب دیده نمی‌شود، چه
 // تصاویر جدید اضافه شده باشند چه نه.
+//
+// **رفع باگ دیپلوی (۲۰۲۶-۰۷-۲۶):** قبلاً این کامپوننت خودِ تابعِ آیکون (مثلاً Icons.Box) را
+// به‌عنوان prop از یک Server Component (page.tsx) می‌گرفت. در Next.js نمی‌شود یک تابع را از
+// Server Component به Client Component پاس داد چون قابل سریالایز نیست؛ نتیجه‌اش خطای
+// "Functions cannot be passed directly to Client Components" روی Vercel بود. حالا به‌جای خودِ
+// تابع، فقط اسمِ آیکون (یک رشته‌ی ساده مثل "Box") پاس داده می‌شود و خودِ این فایل — که سمت
+// کلاینت است — آن اسم را از روی آبجکت Icons پیدا می‌کند.
 import { useState } from "react";
-import type { Icons } from "@/components/ui/Icons";
+import { Icons } from "@/components/ui/Icons";
 
 export function QuickAccessIcon({
   src,
-  fallbackIcon: FallbackIcon,
+  fallbackIconName,
   fallbackClassName,
 }: {
   src: string;
-  fallbackIcon: (typeof Icons)[keyof typeof Icons];
+  fallbackIconName: keyof typeof Icons;
   fallbackClassName: string;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const FallbackIcon = Icons[fallbackIconName];
 
   if (imageFailed) {
     return <FallbackIcon className={fallbackClassName} />;
