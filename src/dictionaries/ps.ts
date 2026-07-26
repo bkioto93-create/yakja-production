@@ -92,7 +92,7 @@ export default {
   "nav": {
     "home": "کور",
     "listings": "توکي",
-    "transport": "لیږدونه",
+    "transport": "بار او مسافر",
     "services": "خدمتونه",
     "profile": "زه"
   },

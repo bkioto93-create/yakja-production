@@ -82,7 +82,7 @@ export default {
   "nav": {
     "home": "خانه",
     "listings": "کالا",
-    "transport": "بار و نفر",
+    "transport": "بار و مسافر",
     "services": "خدمات",
     "profile": "من"
   },

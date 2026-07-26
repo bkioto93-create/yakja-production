@@ -76,34 +76,32 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
          <div className="absolute top-[-70px] left-[-40px] w-[200px] h-[200px] bg-white opacity-[0.06] rounded-full blur-[2px] z-0"></div>
          <div className="absolute -bottom-10 -right-10 w-[160px] h-[160px] bg-white opacity-[0.05] rounded-full blur-[2px] z-0"></div>
 
-         {/* رفع باگ (۲۰۲۶-۰۷-۲۶): قبلاً این بلوکِ موبایل اصلاً آیکونی رندر نمی‌کرد — فقط بلوکِ
-             دسکتاپی پایین‌تر HeroIllustration را نشان می‌داد. الان متن و آیکون در یک ردیف کنار هم
-             قرار گرفته‌اند تا آیکون هم در عرض کامل و هم در حالت موبایل/عرض کوچیک دیده شود. */}
-         <div className="flex items-start justify-between gap-4 relative z-10">
-           <div className="flex-1 min-w-0">
-             <span className="inline-block text-[11px] font-bold bg-white/15 rounded-full px-3 py-1 mb-3">
-                {dict.home.heroBadge}
-             </span>
-
-             <h1 className="text-[28px] font-extrabold drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)] mb-2 leading-tight text-right">
-                 {dict.home.welcome}
-             </h1>
-             <p className="text-[14px] font-semibold opacity-95 leading-relaxed">
-                 {dict.home.slogan}
-             </p>
-           </div>
-
-           <div className="shrink-0 w-[78px] h-[78px] rounded-[24px] bg-white/10 backdrop-blur flex items-center justify-center p-3 mt-1">
+         {/* رفع باگ (۲۰۲۶-۰۷-۲۶): آیکون قبلاً کوچک بود و کنار متن در یک گوشه جا می‌گرفت. الان
+             آیکون کاملاً وسط‌چین است، بلوک مستقل و بزرگ‌تر خودش را می‌گیرد و همه‌ی متن‌ها زیرش
+             قرار می‌گیرند. */}
+         <div className="relative z-10 flex flex-col items-center text-center gap-3">
+           <div className="w-[150px] h-[150px] rounded-[36px] bg-white/10 backdrop-blur flex items-center justify-center p-6">
              <HeroIllustration className="w-full h-full" />
            </div>
-         </div>
 
-         <div className="flex flex-wrap gap-2 mt-4 relative z-10">
-           {trustBadges.map((badge) => (
-             <span key={badge} className="text-[11px] font-bold bg-white/10 rounded-full px-2.5 py-1">
-               {badge}
-             </span>
-           ))}
+           <span className="inline-block text-[11px] font-bold bg-white/15 rounded-full px-3 py-1">
+              {dict.home.heroBadge}
+           </span>
+
+           <h1 className="text-[28px] font-extrabold drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)] leading-tight">
+               {dict.home.welcome}
+           </h1>
+           <p className="text-[14px] font-semibold opacity-95 leading-relaxed">
+               {dict.home.slogan}
+           </p>
+
+           <div className="flex flex-wrap justify-center gap-2 mt-1">
+             {trustBadges.map((badge) => (
+               <span key={badge} className="text-[11px] font-bold bg-white/10 rounded-full px-2.5 py-1">
+                 {badge}
+               </span>
+             ))}
+           </div>
          </div>
       </div>
 
@@ -129,7 +127,8 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
             ))}
           </div>
         </div>
-        <div className="relative z-10 shrink-0 w-[160px] h-[160px] rounded-[36px] bg-white/10 backdrop-blur flex items-center justify-center p-5">
+        {/* رفع باگ (۲۰۲۶-۰۷-۲۶): آیکون خیلی کوچک بود؛ از ۱۶۰px به ۲۴۰px بزرگ‌تر شد */}
+        <div className="relative z-10 shrink-0 w-[240px] h-[240px] rounded-[44px] bg-white/10 backdrop-blur flex items-center justify-center p-6">
           <HeroIllustration className="w-full h-full" />
         </div>
       </div>
@@ -149,12 +148,13 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                   key={item.id}
                   className="block outline-none select-none active:scale-95 md:hover:-translate-y-1 transition-transform origin-center ease-out w-full max-w-[200px] md:max-w-none"
                 >
-                   <div className="bg-white border-[1px] border-slate-100/70 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.02)] md:hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] h-[175px] md:h-[190px] p-[16px] flex flex-col items-center justify-center text-center gap-y-4 relative w-full aspect-auto transition-shadow">
-                      <div className={`w-[75px] h-[75px] md:w-[82px] md:h-[82px] shrink-0 rounded-[22px] flex items-center justify-center shadow-inner ${item.bgColor} ${item.textColor} origin-bottom mx-auto drop-shadow-sm p-3`}>
+                   <div className="bg-white border-[1px] border-slate-100/70 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.02)] md:hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] h-[250px] md:h-[270px] p-[16px] flex flex-col items-center justify-center text-center gap-y-4 relative w-full aspect-auto transition-shadow">
+                      {/* رفع باگ (۲۰۲۶-۰۷-۲۶): اندازه‌ی آیکون (باکس + پدینگ) دقیقاً ۲ برابر شد */}
+                      <div className={`w-[150px] h-[150px] md:w-[164px] md:h-[164px] shrink-0 rounded-[44px] flex items-center justify-center shadow-inner ${item.bgColor} ${item.textColor} origin-bottom mx-auto drop-shadow-sm p-6`}>
                          <QuickAccessIcon
                            src={item.imageSrc}
                            fallbackIconName={item.iconName}
-                           fallbackClassName="w-[36px] h-[36px] md:w-[40px] md:h-[40px] stroke-[2.2px] shrink-0"
+                           fallbackClassName="w-[72px] h-[72px] md:w-[80px] md:h-[80px] stroke-[2.2px] shrink-0"
                          />
                       </div>
                       <span className="text-[13px] md:text-sm font-bold text-slate-800 leading-[18px] max-w-full px-[5px] overflow-hidden overflow-ellipsis break-words flex flex-wrap align-middle inline">
