@@ -87,6 +87,12 @@ export const Icons = {
       <polyline points="6 9 12 15 18 9"></polyline>
     </svg>
   ),
+  // --- افزوده‌شده جهت نمایش آیکون قلب به‌جای نوشتن کلمه‌ی «عشق» در متن فوتر ---
+  Heart: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg fill="currentColor" viewBox="0 0 24 24" {...props}>
+      <path d="M12 21s-6.7-4.35-9.3-8.2C1.02 10.68 1.5 7.6 3.6 5.9a5.4 5.4 0 0 1 7.1.4l1.3 1.3 1.3-1.3a5.4 5.4 0 0 1 7.1-.4c2.1 1.7 2.58 4.78.9 6.9C18.7 16.65 12 21 12 21z"></path>
+    </svg>
+  ),
   // --- افزوده‌شده جهت دکمه‌ی «دانلود از گوگل‌پلی» در فوتر (بخش دانلود اپلیکیشن موبایل) ---
   Android: (props: React.SVGProps<SVGSVGElement>) => (
     <svg fill="currentColor" viewBox="0 0 24 24" {...props}>

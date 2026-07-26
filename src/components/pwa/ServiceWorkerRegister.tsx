@@ -12,6 +12,14 @@
 // این اپ را باز کرده و حالا بیلد جدیدی منتشر شده)، یک‌بار و فقط یک‌بار صفحه به‌صورت خودکار
 // رفرش می‌شود تا کاربر همیشه آخرین نسخه را ببیند — بدون نیاز به هیچ متن/دکمه‌ی تازه‌ای در رابط
 // کاربری (پس نیازی به کلید دیکشنری جدید نبود).
+//
+// **رفع باگ «PWA نصب‌شده نسخه‌ی قدیمی نشان می‌دهد تا رفرش دستی»:** بخش controllerchange پایین از
+// قبل درست بود، اما مرورگر فقط طبق زمان‌بندی داخلی خودش (گاهی هر ۲۴ ساعت یک‌بار) چک می‌کرد که
+// آیا sw.js تغییر کرده یا نه؛ یعنی اگر کاربر درست همان لحظه‌ی باز کردن اپ نصب‌شده در آن بازه‌ی
+// چک نبود، اصلاً controllerchange رخ نمی‌داد. حالا با registration.update() صریح — هم بلافاصله
+// بعد از ثبت، هم هر بار که تب/اپ به حالت «قابل‌مشاهده» برمی‌گردد (visibilitychange؛ دقیقاً همان
+// لحظه‌ای که کاربر روی آیکون نصب‌شده می‌زند) — از مرورگر می‌خواهیم فوراً و بدون معطلی بررسی کند که
+// نسخه‌ی تازه‌تری از sw.js منتشر شده یا نه.
 "use client";
 
 import { useEffect } from "react";
@@ -22,6 +30,7 @@ export function ServiceWorkerRegister() {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
 
     let refreshedOnce = false;
+    let activeRegistration: ServiceWorkerRegistration | null = null;
 
     function handleControllerChange() {
       if (refreshedOnce) return;
@@ -29,16 +38,38 @@ export function ServiceWorkerRegister() {
       window.location.reload();
     }
 
-    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+    function requestUpdateCheck() {
+      activeRegistration?.update().catch(() => {
+        // چک به‌روزرسانی شکست خورد (مثلاً آفلاین) — بی‌اهمیت، دفعه‌ی بعد دوباره امتحان می‌شود.
+      });
+    }
 
-    navigator.serviceWorker.register("/sw.js").catch(() => {
-      // ثبت Service Worker شکست خورد (مثلاً مرورگرهای قدیمی/حالت خصوصی برخی مرورگرها) — اپ باید
-      // دقیقاً مثل قبل از این تسک، بدون هیچ قابلیت آفلاین/کشِ اضافه، به‌درستی کار کند؛ پس خطا
-      // عمداً بی‌صدا نادیده گرفته می‌شود.
-    });
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        requestUpdateCheck();
+      }
+    }
+
+    navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((registration) => {
+        activeRegistration = registration;
+        // بلافاصله بعد از ثبت هم یک‌بار چک کن — پوشش‌دهنده‌ی سناریوی «همین حالا که اپ را باز
+        // کردی، آیا نسخه‌ی تازه‌تری منتشر شده؟».
+        requestUpdateCheck();
+      })
+      .catch(() => {
+        // ثبت Service Worker شکست خورد (مثلاً مرورگرهای قدیمی/حالت خصوصی برخی مرورگرها) — اپ باید
+        // دقیقاً مثل قبل از این تسک، بدون هیچ قابلیت آفلاین/کشِ اضافه، به‌درستی کار کند؛ پس خطا
+        // عمداً بی‌صدا نادیده گرفته می‌شود.
+      });
 
     return () => {
       navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

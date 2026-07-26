@@ -1,13 +1,14 @@
 // مسیر فایل: src/components/layout/Footer.tsx
-// بازطراحی کامل فوتر (درخواست صریح کارفرما: «فوتر خوشگل برای اینکه شماره تماس و اطلاعات
-// پشتیبانی توش باشه» + «وقتی اپلیکیشن موبایل رو ساختیم آیکون یکجا رو بزاریم با آیکون اندروید
-// کنارش که بزنن روش و برن به لینک مستقیمی که بعدا قرار میدیم»).
+// **اصلاح مهم چیدمان دسکتاپ:** نسخه‌ی قبلی این فایل محتوا را داخل `max-w-5xl mx-auto` (یک ستون
+// وسط‌چین با عرض ثابت) می‌گذاشت، در حالی که همه‌جای دیگر سایت — هدر دسکتاپ
+// (src/components/layout/DesktopHeader.tsx) و محتوای اصلی صفحه (src/app/[lang]/page.tsx) — از
+// الگوی «تمام‌عرض + پدینگ کناری» (`px-8`/`md:px-12`, بدون max-width) استفاده می‌کنند. همین
+// ناهماهنگی باعث می‌شد لبه‌ی چپ/راست فوتر با لبه‌ی هدر/محتوای بالای آن هم‌تراز نباشد و در عرض
+// کامل مانیتور «بهم‌ریخته» به‌نظر برسد. حالا فوتر هم دقیقاً همان الگوی تمام‌عرض را می‌گیرد.
 //
-// نکته‌ی مهم درباره‌ی دکمه‌ی دانلود اپلیکیشن: مقدار لینک واقعی از
-// src/lib/config/appLinks.ts (ثابت ANDROID_APP_DOWNLOAD_URL) خوانده می‌شود. تا وقتی آن مقدار
-// خالی است، این بخش خودکار به‌صورت «به‌زودی» (غیرقابل‌کلیک) نمایش داده می‌شود؛ به‌محض این‌که آن
-// یک مقدار در appLinks.ts گذاشته شود، همین دکمه خودکار فعال و لینک‌دار می‌شود — هیچ تغییر دیگری
-// در این فایل لازم نیست.
+// **حذف گوگل‌پلی:** طبق تصمیم صریح کارفرما، اپلیکیشن در گوگل‌پلی منتشر نمی‌شود؛ فقط یک لینک
+// دانلود مستقیم فایل نصب اندروید (APK) بعداً اینجا قرار می‌گیرد. تا وقتی
+// src/lib/config/appLinks.ts خالی است، دکمه به‌صورت «به‌زودی» غیرفعال می‌ماند.
 import Link from "next/link";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import { Icons } from "@/components/ui/Icons";
@@ -26,10 +27,10 @@ export function Footer({ lang, dict }: { lang: string; dict: Dictionary }) {
   ];
 
   return (
-    <footer className="mt-8 border-t border-slate-200 bg-white">
-      <div className="max-w-5xl mx-auto px-4 md:px-0 py-10 grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer className="mt-8 border-t border-slate-200 bg-white w-full">
+      <div className="w-full px-8 md:px-12 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
         {/* درباره‌ی یکجا */}
-        <div className="flex flex-col gap-3 md:col-span-2">
+        <div className="flex flex-col gap-3 sm:col-span-2">
           <div className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icons/yakja-icon-64.png" alt="یکجا" className="w-9 h-9 rounded-xl" />
@@ -75,8 +76,8 @@ export function Footer({ lang, dict }: { lang: string; dict: Dictionary }) {
       </div>
 
       {/* دانلود اپلیکیشن موبایل */}
-      <div className="border-t border-slate-100">
-        <div className="max-w-5xl mx-auto px-4 md:px-0 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="border-t border-slate-100 w-full">
+        <div className="w-full px-8 md:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/icons/yakja-icon-64.png" alt="یکجا" className="w-10 h-10 rounded-xl shrink-0" />
@@ -105,8 +106,12 @@ export function Footer({ lang, dict }: { lang: string; dict: Dictionary }) {
         </div>
       </div>
 
-      <div className="border-t border-slate-100 py-5 text-center flex flex-col items-center gap-1">
-        <span className="text-xs font-semibold text-text-muted">{dict.footer.madeInAfghanistan}</span>
+      <div className="border-t border-slate-100 py-5 text-center flex flex-col items-center gap-1.5">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-text-muted">
+          {dict.footer.madeWithLoveBefore}
+          <Icons.Heart className="w-3.5 h-3.5 text-red-500" />
+          {dict.footer.madeWithLoveAfter}
+        </span>
         <span className="opacity-70 text-xs font-semibold">{dict.footer.copyright}</span>
       </div>
     </footer>

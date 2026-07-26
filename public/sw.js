@@ -7,9 +7,9 @@
 // با فلسفه‌ی بقیه‌ی پروژه (هر جا منطق ساده است، به‌جای افزودن یک وابستگی تازه، دستی نوشته می‌شود).
 //
 // === استراتژی کش (۳ کش جداگانه، هرکدام یک قاعده‌ی متفاوت) ===
-// ۱) PAGES  — سند HTML صفحاتی که قبلاً بازدید شده‌اند: «Stale-While-Revalidate» — بلافاصله از
-//    کش نمایش داده می‌شود (بازدید مجدد = فوری)، هم‌زمان یک درخواست شبکه در پس‌زمینه اجرا و کش
-//    به‌روزرسانی می‌شود برای بازدید بعدی. صفحاتِ خصوصی/فرم (پنل ادمین، فرم پروفایل راننده/متخصص،
+// ۱) PAGES  — سند HTML صفحاتی که قبلاً بازدید شده‌اند: «Network-First با سقف زمانی ۳ ثانیه»
+//    (به‌روزرسانی؛ دلیل تغییر از نسخه‌ی قبلی Stale-While-Revalidate را در یادداشت پایین‌تر
+//    کنار CACHE_VERSION بخوانید). صفحاتِ خصوصی/فرم (پنل ادمین، فرم پروفایل راننده/متخصص،
 //    فرم ثبت آگهی/ملک) عمداً از این کش مستثنا شده‌اند (تابع isCacheableNavigation پایین) — چون
 //    این‌ها یا اطلاعات لحظه‌ای/حساس دارند یا فرم نیمه‌پرشده که کش‌کردنشان می‌تواند گمراه‌کننده باشد.
 // ۲) STATIC — فایل‌های بیلد Next.js زیر /_next/static/... : نام‌فایل‌ها حاوی هش محتوا هستند
@@ -22,7 +22,23 @@
 // درخواست‌های POST/Server Action، مسیرهای /api/*، و هرگونه متد غیر GET هرگز کش نمی‌شوند — این‌ها
 // همیشه باید مستقیم و تازه از سرور باشند.
 
-const CACHE_VERSION = "v1";
+// === رفع باگ «PWA نصب‌شده نسخه‌ی قدیمی/کش‌شده را نشان می‌دهد تا رفرش دستی» ===
+// علت دقیق: استراتژی قبلی («Stale-While-Revalidate») برای صفحات، عمداً همیشه نسخه‌ی کش‌شده را
+// فوراً نمایش می‌داد و آپدیت را فقط در پس‌زمینه برای «بازدید بعدی» ذخیره می‌کرد — یعنی کاربر
+// همیشه یک قدم عقب‌تر از آخرین نسخه‌ی واقعی می‌ماند؛ دقیقاً همان چیزی که گزارش کردید. حالا
+// استراتژی ناوبری صفحات به «Network-First با سقف زمانی» تغییر کرده: ابتدا حداکثر ۳ ثانیه صبر
+// می‌کند تا نسخه‌ی تازه از شبکه برسد (در بیشتر موارد، حتی با اینترنت متوسط، سریع‌تر از این
+// می‌رسد) و همان را نشان می‌دهد؛ فقط اگر شبکه واقعاً کند/قطع باشد (دقیقاً سناریوی اینترنت
+// ضعیف/آفلاین که هدف اصلی این Service Worker است)، به‌جای معطل ماندن، فوراً از کش نمایش می‌دهد.
+// یعنی همان مزیت قبلی (سرعت در اینترنت بد) حفظ شده، ولی وقتی اینترنت طبیعی است، همیشه آخرین
+// نسخه دیده می‌شود، نه نسخه‌ی یک‌قدم-عقب‌تر.
+//
+// نکته‌ی دوم و به‌همان‌اندازه مهم: مرورگر برای تشخیص «آیا Service Worker تازه‌ای منتشر شده؟» باید
+// بتواند خودِ فایل sw.js را بدون کش قدیمی بخواند. اگر هاست (Vercel) این فایل را با هدر کشِ طولانی
+// سرو کند، مرورگر ممکن است مدتی همان نسخه‌ی قدیمیِ sw.js را «تازه» فرض کند و اصلاً متوجه انتشار
+// نسخه‌ی جدید نشود. برای همین، در کنار این فایل، به next.config.ts هم یک بخش headers() اضافه شد
+// که صریحاً Cache-Control: no-cache را برای مسیر /sw.js تنظیم می‌کند.
+const CACHE_VERSION = "v2";
 const PAGES_CACHE = `yakja-pages-${CACHE_VERSION}`;
 const STATIC_CACHE = `yakja-static-${CACHE_VERSION}`;
 const IMAGES_CACHE = `yakja-images-${CACHE_VERSION}`;
@@ -125,38 +141,46 @@ async function cacheFirst(request, cacheName, { trimTo } = {}) {
   }
 }
 
-async function staleWhileRevalidateNavigation(request) {
+const NAVIGATION_NETWORK_TIMEOUT_MS = 3000;
+
+async function networkFirstNavigation(request) {
   const cache = await caches.open(PAGES_CACHE);
-  const cached = await cache.match(request);
 
-  const networkFetch = fetch(request)
-    .then((response) => {
-      if (response && response.ok) {
-        cache.put(request, response.clone());
-      }
-      return response;
-    })
-    .catch(() => null);
+  try {
+    // مسابقه‌ی شبکه در برابر یک تایمر ۳ ثانیه‌ای: هرکدام زودتر جواب داد، همان استفاده می‌شود.
+    const networkResponse = await Promise.race([
+      fetch(request),
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("network-timeout")), NAVIGATION_NETWORK_TIMEOUT_MS);
+      }),
+    ]);
 
-  if (cached) {
-    // نمایش فوری از کش — هدف اصلی تسک ۲. به‌روزرسانی در پس‌زمینه ادامه دارد (networkFetch بدون
-    // await رها شده) تا بازدید بعدی، تازه‌ترین نسخه را ببیند.
-    return cached;
+    if (networkResponse && networkResponse.ok) {
+      // نسخه‌ی تازه با موفقیت رسید — هم همین را نشان بده، هم کش را برای بار بعد (وقتی احتمالاً
+      // آفلاین/کندی است) به‌روزرسانی کن.
+      cache.put(request, networkResponse.clone());
+      return networkResponse;
+    }
+
+    // پاسخ شبکه ناموفق بود (مثلاً ۵۰۰) — اگر کش داریم نشانش بده، وگرنه همان پاسخ ناموفق را برگردان.
+    const cached = await cache.match(request);
+    return cached ?? networkResponse;
+  } catch {
+    // شبکه یا خیلی کند بود (تایم‌اوت) یا اصلاً در دسترس نبود — همان‌جا که این Service Worker
+    // برای‌اش ساخته شده: فوراً از کش نشان بده تا کاربر معطل نماند.
+    const cached = await cache.match(request);
+    if (cached) return cached;
+
+    const offlineCache = await caches.open(OFFLINE_CACHE);
+    const offlineResponse = await offlineCache.match(OFFLINE_URL);
+    return (
+      offlineResponse ??
+      new Response("آفلاین هستید و این صفحه پیش‌تر بازدید نشده است.", {
+        status: 503,
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      })
+    );
   }
-
-  const networkResponse = await networkFetch;
-  if (networkResponse) return networkResponse;
-
-  // نه کش داشتیم، نه شبکه در دسترس بود — صفحه‌ی آفلاین سبک را نشان بده.
-  const offlineCache = await caches.open(OFFLINE_CACHE);
-  const offlineResponse = await offlineCache.match(OFFLINE_URL);
-  return (
-    offlineResponse ??
-    new Response("آفلاین هستید و این صفحه پیش‌تر بازدید نشده است.", {
-      status: 503,
-      headers: { "Content-Type": "text/plain; charset=utf-8" },
-    })
-  );
 }
 
 self.addEventListener("fetch", (event) => {
@@ -173,7 +197,7 @@ self.addEventListener("fetch", (event) => {
   // ۱) ناوبری بین صفحات (بارگذاری کامل سند HTML)
   if (request.mode === "navigate") {
     if (!isCacheableNavigation(url)) return; // اجازه بده مرورگر خودش مستقیم به شبکه برود
-    event.respondWith(staleWhileRevalidateNavigation(request));
+    event.respondWith(networkFirstNavigation(request));
     return;
   }
 
