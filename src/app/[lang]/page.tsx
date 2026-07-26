@@ -76,16 +76,27 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
          <div className="absolute top-[-70px] left-[-40px] w-[200px] h-[200px] bg-white opacity-[0.06] rounded-full blur-[2px] z-0"></div>
          <div className="absolute -bottom-10 -right-10 w-[160px] h-[160px] bg-white opacity-[0.05] rounded-full blur-[2px] z-0"></div>
 
-         <span className="relative z-10 inline-block text-[11px] font-bold bg-white/15 rounded-full px-3 py-1 mb-3">
-            {dict.home.heroBadge}
-         </span>
+         {/* رفع باگ (۲۰۲۶-۰۷-۲۶): قبلاً این بلوکِ موبایل اصلاً آیکونی رندر نمی‌کرد — فقط بلوکِ
+             دسکتاپی پایین‌تر HeroIllustration را نشان می‌داد. الان متن و آیکون در یک ردیف کنار هم
+             قرار گرفته‌اند تا آیکون هم در عرض کامل و هم در حالت موبایل/عرض کوچیک دیده شود. */}
+         <div className="flex items-start justify-between gap-4 relative z-10">
+           <div className="flex-1 min-w-0">
+             <span className="inline-block text-[11px] font-bold bg-white/15 rounded-full px-3 py-1 mb-3">
+                {dict.home.heroBadge}
+             </span>
 
-         <h1 className="text-[28px] font-extrabold drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)] mb-2 leading-tight relative z-10 text-right">
-             {dict.home.welcome}
-         </h1>
-         <p className="text-[14px] font-semibold opacity-95 leading-relaxed relative z-10">
-             {dict.home.slogan}
-         </p>
+             <h1 className="text-[28px] font-extrabold drop-shadow-[0_2px_12px_rgba(0,0,0,0.2)] mb-2 leading-tight text-right">
+                 {dict.home.welcome}
+             </h1>
+             <p className="text-[14px] font-semibold opacity-95 leading-relaxed">
+                 {dict.home.slogan}
+             </p>
+           </div>
+
+           <div className="shrink-0 w-[78px] h-[78px] rounded-[24px] bg-white/10 backdrop-blur flex items-center justify-center p-3 mt-1">
+             <HeroIllustration className="w-full h-full" />
+           </div>
+         </div>
 
          <div className="flex flex-wrap gap-2 mt-4 relative z-10">
            {trustBadges.map((badge) => (
