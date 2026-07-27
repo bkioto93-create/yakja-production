@@ -25,11 +25,19 @@
 // خودش را دارد (دقیقاً هم‌رنگ با کارت‌های همین ماژول‌ها در صفحه‌ی اصلی)، حتی در حالت غیرفعال با
 // کدورت کم یک ردِ رنگی دارد؛ در حالت فعال کاملاً پررنگ می‌شود. هیچ مسیر یا منطق تشخیص فعال/غیرفعال
 // تغییر نکرد.
+//
+// **رفع باگ (۲۰۲۶-۰۷-۲۷) — بازخورد: «آیکون‌های nav bar افتضاحن»:** آیکون‌های قبلی (Icons.Home،
+// Icons.Box، Icons.Truck، Icons.Wrench، Icons.User) دست‌ساز و داخل src/components/ui/Icons.tsx
+// بودند — پروژه هیچ کتابخانه‌ی آیکون حرفه‌ای نصب نداشت. حالا از lucide-react استفاده می‌شود:
+// یک کتابخانه‌ی بسیار معروف، سبک (فقط همون آیکون‌هایی که import می‌کنی داخل باندل می‌ره، نه کل
+// ست) و با طراحی یکدست خط‌محور (Stroke-based) که دقیقاً با استایل قبلی پروژه (stroke-[Xpx])
+// هماهنگه، پس فقط با تغییر import، ظاهر خیلی حرفه‌ای‌تر شد؛ هیچ منطق/مسیر/رنگی تغییر نکرد.
+// نیاز به نصب: `npm install lucide-react` (به package.json هم اضافه شد).
 "use client";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icons } from "@/components/ui/Icons";
+import { Home, Package, Truck, Wrench, User } from "lucide-react";
 
 export function BottomNav({
   labels,
@@ -43,11 +51,11 @@ export function BottomNav({
   const pureModuleRoot = segments[2] || "";
 
   const navItems = [
-    { id: "home", href: `/${currentLang}`, icon: Icons.Home, label: labels.home, pattern: "", activeText: "text-primary", activeBg: "bg-primary/10", inactiveText: "text-primary/40" },
-    { id: "listings", href: `/${currentLang}/listings`, icon: Icons.Box, label: labels.listings, pattern: "listings", activeText: "text-blue-500", activeBg: "bg-blue-500/10", inactiveText: "text-blue-400/50" },
-    { id: "transport", href: `/${currentLang}/transport`, icon: Icons.Truck, label: labels.transport, pattern: "transport", activeText: "text-accent", activeBg: "bg-accent/10", inactiveText: "text-accent/40" },
-    { id: "services", href: `/${currentLang}/services`, icon: Icons.Wrench, label: labels.services, pattern: "services", activeText: "text-emerald-500", activeBg: "bg-emerald-500/10", inactiveText: "text-emerald-400/50" },
-    { id: "profile", href: `/${currentLang}/profile`, icon: Icons.User, label: labels.profile, pattern: "profile", activeText: "text-purple-500", activeBg: "bg-purple-500/10", inactiveText: "text-purple-400/50" },
+    { id: "home", href: `/${currentLang}`, icon: Home, label: labels.home, pattern: "", activeText: "text-primary", activeBg: "bg-primary/10", inactiveText: "text-primary/40" },
+    { id: "listings", href: `/${currentLang}/listings`, icon: Package, label: labels.listings, pattern: "listings", activeText: "text-blue-500", activeBg: "bg-blue-500/10", inactiveText: "text-blue-400/50" },
+    { id: "transport", href: `/${currentLang}/transport`, icon: Truck, label: labels.transport, pattern: "transport", activeText: "text-accent", activeBg: "bg-accent/10", inactiveText: "text-accent/40" },
+    { id: "services", href: `/${currentLang}/services`, icon: Wrench, label: labels.services, pattern: "services", activeText: "text-emerald-500", activeBg: "bg-emerald-500/10", inactiveText: "text-emerald-400/50" },
+    { id: "profile", href: `/${currentLang}/profile`, icon: User, label: labels.profile, pattern: "profile", activeText: "text-purple-500", activeBg: "bg-purple-500/10", inactiveText: "text-purple-400/50" },
   ];
 
   return (
@@ -69,7 +77,8 @@ export function BottomNav({
                 <span className={`absolute top-0 h-[3px] w-7 rounded-full ${item.activeBg.replace("/10", "")}`} />
               )}
               <Icon
-                className={`w-[26px] h-[26px] transition-all ${isActive ? "stroke-[2.5px]" : "stroke-[1.75px]"}`}
+                className="w-[26px] h-[26px] transition-all"
+                strokeWidth={isActive ? 2.5 : 1.75}
               />
               <span
                 className={`text-[10px] sm:text-xs leading-none transition-all ${
