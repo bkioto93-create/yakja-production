@@ -150,7 +150,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                 >
                    <div className="bg-white border-[1px] border-slate-100/70 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.02)] md:hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] h-[250px] md:h-[270px] p-[16px] flex flex-col items-center justify-center text-center gap-y-4 relative w-full aspect-auto transition-shadow">
                       {/* رفع باگ (۲۰۲۶-۰۷-۲۶): اندازه‌ی آیکون (باکس + پدینگ) دقیقاً ۲ برابر شد */}
-                      <div className={`w-[150px] h-[150px] md:w-[164px] md:h-[164px] shrink-0 rounded-[44px] flex items-center justify-center shadow-inner ${item.bgColor} ${item.textColor} origin-bottom mx-auto drop-shadow-sm p-6`}>
+                      <div className={`w-[150px] h-[150px] md:w-[164px] md:h-[164px] shrink-0 rounded-[44px] flex items-center justify-center shadow-inner overflow-hidden ${item.bgColor} ${item.textColor} origin-bottom mx-auto drop-shadow-sm p-6`}>
                          <QuickAccessIcon
                            src={item.imageSrc}
                            fallbackIconName={item.iconName}

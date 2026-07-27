@@ -36,11 +36,14 @@ export function QuickAccessIcon({
   }
 
   return (
+    // رفع باگ (۲۰۲۶-۰۷-۲۶): خودِ تصویر منبع کمی به چپ متمایل بود؛ چون عکس و باکس هر دو مربع‌اند
+    // (بدون فضای خالی برای object-position)، با یک جابه‌جایی افقی خیلی کوچک (۴٪) آن را دقیقاً
+    // در مرکز باکس قرار می‌دهیم. اندازه‌ی تصویر دست‌نخورده می‌ماند، فقط موقعیتش اصلاح شده.
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt=""
-      className="w-full h-full object-contain"
+      className="w-full h-full object-contain translate-x-[4%]"
       onError={() => setImageFailed(true)}
     />
   );
