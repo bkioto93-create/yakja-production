@@ -26,18 +26,33 @@
 // کدورت کم یک ردِ رنگی دارد؛ در حالت فعال کاملاً پررنگ می‌شود. هیچ مسیر یا منطق تشخیص فعال/غیرفعال
 // تغییر نکرد.
 //
-// **رفع باگ (۲۰۲۶-۰۷-۲۷) — بازخورد: «آیکون‌های nav bar افتضاحن»:** آیکون‌های قبلی (Icons.Home،
-// Icons.Box، Icons.Truck، Icons.Wrench، Icons.User) دست‌ساز و داخل src/components/ui/Icons.tsx
-// بودند — پروژه هیچ کتابخانه‌ی آیکون حرفه‌ای نصب نداشت. حالا از lucide-react استفاده می‌شود:
-// یک کتابخانه‌ی بسیار معروف، سبک (فقط همون آیکون‌هایی که import می‌کنی داخل باندل می‌ره، نه کل
-// ست) و با طراحی یکدست خط‌محور (Stroke-based) که دقیقاً با استایل قبلی پروژه (stroke-[Xpx])
-// هماهنگه، پس فقط با تغییر import، ظاهر خیلی حرفه‌ای‌تر شد؛ هیچ منطق/مسیر/رنگی تغییر نکرد.
-// نیاز به نصب: `npm install lucide-react` (به package.json هم اضافه شد).
+// **رفع باگ (۲۰۲۶-۰۷-۲۷) — بازخورد: «آیکون‌های nav bar افتضاحن»:** اول امتحان شد فقط ست آیکون
+// دست‌ساز قبلی با یک ست خط‌محور دیگه (lucide-react) عوض بشه — اما چون هر دو یک‌جور «خط‌محور
+// یکنواخت» بودن، فرق چشمگیری حس نمی‌شد. این‌بار الگوی طراحی هم عوض شد، نه فقط خودِ آیکون‌ها:
+// همون پترنی که توی اکثر اپ‌های حرفه‌ای (اینستاگرام، ایربی‌ان‌بی) می‌بینید — تب غیرفعال «توخالی/
+// خط‌محور» و تب فعال «توپر/رنگی» است. این تضاد بصری، خودش باعث می‌شه نوار خیلی حرفه‌ای‌تر و
+// زنده‌تر به‌نظر برسه، حتی با همون آیکون‌های ساده. برای این کار از @heroicons/react استفاده شد
+// (از سازندگان خودِ Tailwind CSS؛ همون کتابخونه‌ای که این پروژه از قبل باهاش می‌سازه) — چون هر
+// آیکون هم نسخه‌ی outline و هم نسخه‌ی solid داره، دقیقاً مناسب همین الگو.
+// نیاز به نصب: `npm install @heroicons/react` (به package.json هم اضافه شد).
 "use client";
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Package, Truck, Wrench, User } from "lucide-react";
+import {
+  HomeIcon as HomeOutline,
+  ArchiveBoxIcon as ArchiveBoxOutline,
+  TruckIcon as TruckOutline,
+  WrenchScrewdriverIcon as WrenchOutline,
+  UserIcon as UserOutline,
+} from "@heroicons/react/24/outline";
+import {
+  HomeIcon as HomeSolid,
+  ArchiveBoxIcon as ArchiveBoxSolid,
+  TruckIcon as TruckSolid,
+  WrenchScrewdriverIcon as WrenchSolid,
+  UserIcon as UserSolid,
+} from "@heroicons/react/24/solid";
 
 export function BottomNav({
   labels,
@@ -51,19 +66,20 @@ export function BottomNav({
   const pureModuleRoot = segments[2] || "";
 
   const navItems = [
-    { id: "home", href: `/${currentLang}`, icon: Home, label: labels.home, pattern: "", activeText: "text-primary", activeBg: "bg-primary/10", inactiveText: "text-primary/40" },
-    { id: "listings", href: `/${currentLang}/listings`, icon: Package, label: labels.listings, pattern: "listings", activeText: "text-blue-500", activeBg: "bg-blue-500/10", inactiveText: "text-blue-400/50" },
-    { id: "transport", href: `/${currentLang}/transport`, icon: Truck, label: labels.transport, pattern: "transport", activeText: "text-accent", activeBg: "bg-accent/10", inactiveText: "text-accent/40" },
-    { id: "services", href: `/${currentLang}/services`, icon: Wrench, label: labels.services, pattern: "services", activeText: "text-emerald-500", activeBg: "bg-emerald-500/10", inactiveText: "text-emerald-400/50" },
-    { id: "profile", href: `/${currentLang}/profile`, icon: User, label: labels.profile, pattern: "profile", activeText: "text-purple-500", activeBg: "bg-purple-500/10", inactiveText: "text-purple-400/50" },
+    { id: "home", href: `/${currentLang}`, IconOutline: HomeOutline, IconSolid: HomeSolid, label: labels.home, pattern: "", activeText: "text-primary", activeBg: "bg-primary/10", inactiveText: "text-primary/40" },
+    { id: "listings", href: `/${currentLang}/listings`, IconOutline: ArchiveBoxOutline, IconSolid: ArchiveBoxSolid, label: labels.listings, pattern: "listings", activeText: "text-blue-500", activeBg: "bg-blue-500/10", inactiveText: "text-blue-400/50" },
+    { id: "transport", href: `/${currentLang}/transport`, IconOutline: TruckOutline, IconSolid: TruckSolid, label: labels.transport, pattern: "transport", activeText: "text-accent", activeBg: "bg-accent/10", inactiveText: "text-accent/40" },
+    { id: "services", href: `/${currentLang}/services`, IconOutline: WrenchOutline, IconSolid: WrenchSolid, label: labels.services, pattern: "services", activeText: "text-emerald-500", activeBg: "bg-emerald-500/10", inactiveText: "text-emerald-400/50" },
+    { id: "profile", href: `/${currentLang}/profile`, IconOutline: UserOutline, IconSolid: UserSolid, label: labels.profile, pattern: "profile", activeText: "text-purple-500", activeBg: "bg-purple-500/10", inactiveText: "text-purple-400/50" },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-100 pb-safe md:hidden block shadow-[0_-5px_20px_-15px_rgba(0,0,0,0.15)]">
       <div className="flex items-center justify-between h-[65px] px-2 w-full">
         {navItems.map((item) => {
-          const Icon = item.icon;
           const isActive = pureModuleRoot === item.pattern;
+          // تب غیرفعال: نسخه‌ی خط‌محور (Outline) — تب فعال: نسخه‌ی توپر (Solid)
+          const Icon = isActive ? item.IconSolid : item.IconOutline;
 
           return (
             <Link
@@ -76,10 +92,7 @@ export function BottomNav({
               {isActive && (
                 <span className={`absolute top-0 h-[3px] w-7 rounded-full ${item.activeBg.replace("/10", "")}`} />
               )}
-              <Icon
-                className="w-[26px] h-[26px] transition-all"
-                strokeWidth={isActive ? 2.5 : 1.75}
-              />
+              <Icon className="w-[26px] h-[26px] transition-all" />
               <span
                 className={`text-[10px] sm:text-xs leading-none transition-all ${
                   isActive ? "font-extrabold" : "font-semibold"
