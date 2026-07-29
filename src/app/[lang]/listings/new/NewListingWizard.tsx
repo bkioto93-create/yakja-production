@@ -20,6 +20,7 @@ import { sanitizePriceInput, toAsciiDigits } from "@/lib/marketplace/numbers";
 import { normalizeAfghanPhone } from "@/lib/phone";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { createSignedUploadSlotsAction, createListingAction } from "./actions";
+import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { Locale } from "@/lib/i18n/constants";
 
@@ -51,6 +52,7 @@ export function NewListingWizard({
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [address, setAddress] = useState("");
+  const [province, setProvince] = useState<string | null>(null);
   const [contactPhone, setContactPhone] = useState(defaultContactPhone);
   const [description, setDescription] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -124,6 +126,10 @@ export function NewListingWizard({
         showToast(errorText("invalidAddress"), "error");
         return false;
       }
+      if (!province) {
+        showToast(dict.province.fieldError, "error");
+        return false;
+      }
       if (!normalizeAfghanPhone(toAsciiDigits(contactPhone))) {
         showToast(errorText("invalidPhone"), "error");
         return false;
@@ -170,6 +176,7 @@ export function NewListingWizard({
 
       const result = await createListingAction({
         category: category as string,
+        province: province as string,
         title: title.trim(),
         price,
         address: address.trim(),
@@ -291,6 +298,14 @@ export function NewListingWizard({
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
+          <div className="mb-4">
+            <ProvinceSelectField
+              value={province}
+              onChange={setProvince}
+              dict={dict.province}
+              label={dict.province.fieldLabel}
+            />
+          </div>
           <Input
             label={wizardDict.contactPhoneLabel}
             value={contactPhone}
@@ -332,6 +347,15 @@ export function NewListingWizard({
               <span className="font-bold text-text-main">{address}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-text-muted">{dict.province.fieldLabel}</span>
+              <span className="font-bold text-text-main">
+                {/* رفع باگ: dict اینجا تایپ کامل دیکشنری است (نه ProvinceDict)، پس نام‌های
+                    ولایت کلیدهای دقیق و ثابتی دارند؛ برای ایندکس‌کردن با یک متغیر string معمولی
+                    (province) باید صراحتاً cast شود، وگرنه TypeScript خطای ts(7053) می‌دهد. */}
+                {province ? dict.province.names[province as keyof typeof dict.province.names] : ""}
+              </span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-text-muted">{wizardDict.contactPhoneLabel}</span>
               <span className="font-bold text-text-main" dir="ltr">{contactPhone}</span>
             </div>
@@ -350,4 +374,3 @@ export function NewListingWizard({
     </Stepper>
   );
 }
-

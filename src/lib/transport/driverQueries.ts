@@ -18,6 +18,7 @@ export type MyDriverProfile = {
   vehicleType: VehicleTypeId;
   vehicleDetails: string | null;
   contactPhone: string;
+  province: string | null;
   isActive: boolean;
   images: string[];
 };
@@ -27,7 +28,7 @@ export type MyDriverProfile = {
 export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfile | null> {
   const { data, error } = await supabaseAdminClient
     .from("drivers")
-    .select("id, vehicle_type, vehicle_details, contact_phone, is_active, images")
+    .select("id, vehicle_type, vehicle_details, contact_phone, province, is_active, images")
     .eq("owner_id", ownerId)
     .maybeSingle();
 
@@ -38,6 +39,7 @@ export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfi
     vehicleType: data.vehicle_type as VehicleTypeId,
     vehicleDetails: data.vehicle_details,
     contactPhone: data.contact_phone,
+    province: data.province ?? null,
     isActive: data.is_active,
     images: data.images ?? [],
   };
@@ -79,12 +81,15 @@ type RawActiveDriverRow = {
 };
 
 export async function getActiveDrivers(params: {
+  province?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   limit?: number;
   offset?: number;
 }): Promise<{ items: ActiveDriverSummary[]; totalCount: number }> {
   const { data, error } = await supabaseAdminClient.rpc("get_active_drivers", {
+    // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» — بدون فیلتر ولایتی.
+    p_province: params.province ?? null,
     p_lat: params.latitude ?? null,
     p_lng: params.longitude ?? null,
     p_limit: params.limit ?? 20,

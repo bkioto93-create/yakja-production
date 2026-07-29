@@ -9,10 +9,12 @@ import {
   getActiveServiceProviders,
   type ActiveServiceProviderSummary,
 } from "@/lib/services/serviceProviderQueries";
+import { isValidProvince } from "@/lib/provinces";
 import { SERVICE_PROVIDERS_PAGE_SIZE } from "./constants";
 
 export async function searchActiveServiceProvidersAction(input: {
   category?: string | null;
+  province?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   query?: string | null;
@@ -20,6 +22,9 @@ export async function searchActiveServiceProvidersAction(input: {
   offset?: number;
 }): Promise<{ items: ActiveServiceProviderSummary[]; totalCount: number }> {
   const category = typeof input.category === "string" && input.category.length > 0 ? input.category : null;
+
+  // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» (هم اگر صراحتاً انتخاب شده، هم اگر نامعتبر باشد).
+  const province = input.province && isValidProvince(input.province) ? input.province : null;
 
   const latitude =
     typeof input.latitude === "number" && Number.isFinite(input.latitude) ? input.latitude : null;
@@ -38,5 +43,5 @@ export async function searchActiveServiceProvidersAction(input: {
       ? (input.limit as number)
       : SERVICE_PROVIDERS_PAGE_SIZE;
 
-  return getActiveServiceProviders({ category, latitude, longitude, query, limit, offset });
+  return getActiveServiceProviders({ category, province, latitude, longitude, query, limit, offset });
 }

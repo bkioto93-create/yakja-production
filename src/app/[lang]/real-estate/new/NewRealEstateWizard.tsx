@@ -37,6 +37,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { createSignedUploadSlotsAction, createRealEstateListingAction } from "./actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { Locale } from "@/lib/i18n/constants";
+import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 
 type Dict = Awaited<ReturnType<typeof getDictionary>>;
 
@@ -70,6 +71,7 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
   const [isCompressing, setIsCompressing] = useState(false);
   const [price, setPrice] = useState("");
   const [address, setAddress] = useState("");
+  const [province, setProvince] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
@@ -155,6 +157,10 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
         showToast(errorText("invalidAddress"), "error");
         return false;
       }
+      if (!province) {
+        showToast(dict.province.fieldError, "error");
+        return false;
+      }
     }
     return true;
   }
@@ -198,6 +204,7 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
       const result = await createRealEstateListingAction({
         propertyType: propertyType as string,
         dealType: dealType as string,
+        province: province as string,
         price,
         address: address.trim(),
         description,
@@ -338,6 +345,14 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
+          <div className="mb-4">
+            <ProvinceSelectField
+              value={province}
+              onChange={setProvince}
+              dict={dict.province}
+              label={dict.province.fieldLabel}
+            />
+          </div>
           <div className="w-full mb-4">
             <label className="block text-sm font-semibold text-text-main mb-1.5 ml-1">
               {wizardDict.descriptionLabel}
@@ -375,6 +390,13 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
               <span className="text-text-muted">{wizardDict.addressLabel}</span>
               <span className="font-bold text-text-main">{address}</span>
             </div>
+            <div className="flex justify-between">
+              <span className="text-text-muted">{dict.province.fieldLabel}</span>
+              <span className="font-bold text-text-main">
+                {/* رفع باگ: دقیقاً همان دلیل NewListingWizard.tsx — cast صریح لازم است. */}
+                {province ? dict.province.names[province as keyof typeof dict.province.names] : ""}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-4 gap-2">
@@ -390,4 +412,3 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
     </Stepper>
   );
 }
-

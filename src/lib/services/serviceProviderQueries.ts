@@ -22,6 +22,7 @@ export type MyServiceProviderProfile = {
   serviceCategoryId: string;
   contactPhone: string;
   address: string;
+  province: string | null;
   description: string | null;
   isActive: boolean;
   images: string[];
@@ -35,7 +36,7 @@ export async function getMyServiceProviderProfile(
 ): Promise<MyServiceProviderProfile | null> {
   const { data, error } = await supabaseAdminClient
     .from("service_providers")
-    .select("id, service_category_id, contact_phone, address, description, is_active, images")
+    .select("id, service_category_id, contact_phone, address, province, description, is_active, images")
     .eq("owner_id", ownerId)
     .maybeSingle();
 
@@ -46,6 +47,7 @@ export async function getMyServiceProviderProfile(
     serviceCategoryId: data.service_category_id,
     contactPhone: data.contact_phone,
     address: data.address,
+    province: data.province ?? null,
     description: data.description,
     isActive: data.is_active,
     images: data.images ?? [],
@@ -103,6 +105,7 @@ type RawActiveServiceProviderRow = {
 //   به 19_phase_07_service_providers_is_active.sql).
 export async function getActiveServiceProviders(params: {
   category?: string | null;
+  province?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   query?: string | null;
@@ -111,6 +114,8 @@ export async function getActiveServiceProviders(params: {
 }): Promise<{ items: ActiveServiceProviderSummary[]; totalCount: number }> {
   const { data, error } = await supabaseAdminClient.rpc("get_active_service_providers", {
     p_category: params.category ?? null,
+    // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» — بدون فیلتر ولایتی.
+    p_province: params.province ?? null,
     p_lat: params.latitude ?? null,
     p_lng: params.longitude ?? null,
     p_query: params.query ?? null,

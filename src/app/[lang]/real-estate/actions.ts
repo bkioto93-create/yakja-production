@@ -10,6 +10,7 @@
 import { searchRealEstate, type RealEstateSummary } from "@/lib/realEstate/queries";
 import { isValidPropertyType } from "@/lib/realEstate/propertyTypes";
 import { isValidDealType } from "@/lib/realEstate/dealTypes";
+import { isValidProvince } from "@/lib/provinces";
 
 import { REAL_ESTATE_PAGE_SIZE } from "./constants";
 const MAX_QUERY_LENGTH = 80;
@@ -17,6 +18,7 @@ const MAX_QUERY_LENGTH = 80;
 export async function searchRealEstateAction(input: {
   propertyType?: string | null;
   dealType?: string | null;
+  province?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   query?: string | null;
@@ -26,6 +28,9 @@ export async function searchRealEstateAction(input: {
     input.propertyType && isValidPropertyType(input.propertyType) ? input.propertyType : null;
 
   const dealType = input.dealType && isValidDealType(input.dealType) ? input.dealType : null;
+
+  // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» (هم اگر صراحتاً انتخاب شده، هم اگر نامعتبر باشد).
+  const province = input.province && isValidProvince(input.province) ? input.province : null;
 
   const trimmedQuery = input.query?.trim() ?? "";
   const query = trimmedQuery ? trimmedQuery.slice(0, MAX_QUERY_LENGTH) : null;
@@ -43,6 +48,7 @@ export async function searchRealEstateAction(input: {
   return searchRealEstate({
     propertyType,
     dealType,
+    province,
     latitude,
     longitude,
     query,

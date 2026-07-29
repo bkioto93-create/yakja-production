@@ -22,6 +22,7 @@ import { getRealEstateImageUrl } from "@/lib/realEstate/images";
 import { searchRealEstateAction } from "./actions";
 import type { RealEstateSummary } from "@/lib/realEstate/queries";
 import type { Locale } from "@/lib/i18n/constants";
+import type { ProvinceDict } from "@/components/province/ProvincePickerModal";
 
 type RealEstateDict = {
   propertyTypes: Record<string, string>;
@@ -36,11 +37,15 @@ const SEARCH_DEBOUNCE_MS = 400;
 export function RealEstateSearch({
   lang,
   dict,
+  provinceDict,
+  selectedProvince,
   initialItems,
   initialTotalCount,
 }: {
   lang: Locale;
   dict: RealEstateDict;
+  provinceDict: ProvinceDict;
+  selectedProvince: string | null;
   initialItems: RealEstateSummary[];
   initialTotalCount: number;
 }) {
@@ -67,6 +72,7 @@ export function RealEstateSearch({
       const result = await searchRealEstateAction({
         propertyType,
         dealType,
+        province: selectedProvince,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
         query: queryText,
@@ -96,7 +102,7 @@ export function RealEstateSearch({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propertyType, dealType, queryText, coords]);
+  }, [propertyType, dealType, queryText, coords, selectedProvince]);
 
   function handleUseMyLocation() {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
@@ -242,6 +248,12 @@ export function RealEstateSearch({
       </div>
 
       {/* نتایج */}
+      {selectedProvince && (
+        <p className="flex items-center gap-1.5 text-xs font-bold text-text-muted -mb-1">
+          <Icons.MapPin className="w-3.5 h-3.5" />
+          {provinceDict.resultsForLabel}: {provinceDict.names[selectedProvince]}
+        </p>
+      )}
       {isPending && items.length > 0 && (
         <div className="flex items-center justify-center gap-2 text-xs font-bold text-text-muted py-1">
           <Spinner className="w-3.5 h-3.5" />

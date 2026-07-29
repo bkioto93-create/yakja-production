@@ -34,6 +34,7 @@ import { searchActiveServiceProvidersAction } from "./actions";
 import { SERVICE_PROVIDERS_PAGE_SIZE } from "./constants";
 import type { ServiceCategory } from "@/lib/services/serviceCategories";
 import type { ActiveServiceProviderSummary } from "@/lib/services/serviceProviderQueries";
+import type { ProvinceDict } from "@/components/province/ProvincePickerModal";
 
 type ServicesListDict = {
   searchPlaceholder: string;
@@ -62,6 +63,8 @@ export function ActiveServiceProvidersList({
   dict,
   reportButtonLabel,
   categories,
+  provinceDict,
+  selectedProvince,
   initialItems,
   initialTotalCount,
 }: {
@@ -69,6 +72,8 @@ export function ActiveServiceProvidersList({
   dict: ServicesListDict;
   reportButtonLabel: string;
   categories: ServiceCategory[];
+  provinceDict: ProvinceDict;
+  selectedProvince: string | null;
   initialItems: ActiveServiceProviderSummary[];
   initialTotalCount: number;
 }) {
@@ -91,6 +96,7 @@ export function ActiveServiceProvidersList({
     startTransition(async () => {
       const result = await searchActiveServiceProvidersAction({
         category,
+        province: selectedProvince,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
         query: queryText,
@@ -116,7 +122,7 @@ export function ActiveServiceProvidersList({
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, queryText, coords]);
+  }, [category, queryText, coords, selectedProvince]);
 
   useEffect(() => {
     const channel = supabaseBrowserClient
@@ -250,6 +256,12 @@ export function ActiveServiceProvidersList({
         })}
       </div>
 
+      {selectedProvince && (
+        <p className="flex items-center gap-1.5 text-xs font-bold text-text-muted -mb-1">
+          <Icons.MapPin className="w-3.5 h-3.5" />
+          {provinceDict.resultsForLabel}: {provinceDict.names[selectedProvince]}
+        </p>
+      )}
       {isPending && items.length > 0 && (
         <div className="flex items-center justify-center gap-2 text-xs font-bold text-text-muted py-1">
           <Spinner className="w-3.5 h-3.5" />

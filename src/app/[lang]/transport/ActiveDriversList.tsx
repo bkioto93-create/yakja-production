@@ -37,6 +37,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { searchActiveDriversAction } from "./actions";
 import { DRIVERS_PAGE_SIZE } from "./constants";
 import type { ActiveDriverSummary } from "@/lib/transport/driverQueries";
+import type { ProvinceDict } from "@/components/province/ProvincePickerModal";
 
 type TransportListDict = {
   useMyLocationButton: string;
@@ -69,6 +70,8 @@ export function ActiveDriversList({
   dict,
   reportButtonLabel,
   vehicleTypesDict,
+  provinceDict,
+  selectedProvince,
   initialItems,
   initialTotalCount,
 }: {
@@ -76,6 +79,8 @@ export function ActiveDriversList({
   dict: TransportListDict;
   reportButtonLabel: string;
   vehicleTypesDict: Record<string, string>;
+  provinceDict: ProvinceDict;
+  selectedProvince: string | null;
   initialItems: ActiveDriverSummary[];
   initialTotalCount: number;
 }) {
@@ -93,6 +98,7 @@ export function ActiveDriversList({
     const requestId = ++requestIdRef.current;
     startTransition(async () => {
       const result = await searchActiveDriversAction({
+        province: selectedProvince,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
         offset,
@@ -112,8 +118,10 @@ export function ActiveDriversList({
       return;
     }
     runSearch(0, false, Math.max(itemsLengthRef.current, DRIVERS_PAGE_SIZE));
+    // فاز ۱۰: وقتی کاربر از نوار سراسری ولایتش را عوض می‌کند، router.refresh() این prop را
+    // مقدار تازه می‌دهد و همین effect دوباره اجرا می‌شود.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords]);
+  }, [coords, selectedProvince]);
 
   // اشتراک زنده‌ی Realtime — تسک ۸.
   useEffect(() => {
@@ -185,6 +193,12 @@ export function ActiveDriversList({
         </p>
       </div>
 
+      {selectedProvince && (
+        <p className="flex items-center gap-1.5 text-xs font-bold text-text-muted -mb-1">
+          <Icons.MapPin className="w-3.5 h-3.5" />
+          {provinceDict.resultsForLabel}: {provinceDict.names[selectedProvince]}
+        </p>
+      )}
       {isPending && items.length > 0 && (
         <div className="flex items-center justify-center gap-2 text-xs font-bold text-text-muted py-1">
           <Spinner className="w-3.5 h-3.5" />

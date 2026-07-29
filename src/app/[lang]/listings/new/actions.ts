@@ -14,6 +14,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { normalizeAfghanPhone } from "@/lib/phone";
 import { toAsciiDigits } from "@/lib/marketplace/numbers";
 import { isValidListingCategory } from "@/lib/marketplace/categories";
+import { isValidProvince } from "@/lib/provinces";
 
 const LISTINGS_BUCKET = "listings-images";
 const MIN_IMAGES = 1;
@@ -51,6 +52,7 @@ export async function createSignedUploadSlotsAction(
 
 export async function createListingAction(input: {
   category: string;
+  province: string;
   title: string;
   price: string;
   address: string;
@@ -65,6 +67,12 @@ export async function createListingAction(input: {
 
   if (!isValidListingCategory(input.category)) {
     return { success: false as const, error: "invalidCategory" };
+  }
+
+  // فاز ۱۰ — درخواست مستقیم کارفرما: هر آگهی باید دقیقاً به یک ولایت مشخص تعلق داشته باشد (بر
+  // خلاف فیلتر بازدیدکننده که می‌تواند «همه‌ی افغانستان» هم باشد).
+  if (!isValidProvince(input.province)) {
+    return { success: false as const, error: "invalidProvince" };
   }
 
   const title = input.title.trim();
@@ -101,6 +109,7 @@ export async function createListingAction(input: {
   const { error: insertError } = await supabaseAdminClient.from("listings").insert({
     owner_id: user.id,
     category: input.category,
+    province: input.province,
     title,
     price: priceNumber,
     address,

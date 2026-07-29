@@ -27,6 +27,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { toAsciiDigits } from "@/lib/marketplace/numbers";
 import { isValidPropertyType } from "@/lib/realEstate/propertyTypes";
 import { isValidDealType } from "@/lib/realEstate/dealTypes";
+import { isValidProvince } from "@/lib/provinces";
 
 const REAL_ESTATE_BUCKET = "real-estate-images";
 const MIN_IMAGES = 1;
@@ -65,6 +66,7 @@ export async function createSignedUploadSlotsAction(
 export async function createRealEstateListingAction(input: {
   propertyType: string;
   dealType: string;
+  province: string;
   price: string;
   address: string;
   description: string;
@@ -81,6 +83,11 @@ export async function createRealEstateListingAction(input: {
 
   if (!isValidDealType(input.dealType)) {
     return { success: false as const, error: "invalidDealType" };
+  }
+
+  // فاز ۱۰ — درخواست مستقیم کارفرما: هر آگهی ملک باید دقیقاً به یک ولایت مشخص تعلق داشته باشد.
+  if (!isValidProvince(input.province)) {
+    return { success: false as const, error: "invalidProvince" };
   }
 
   const priceNumber = Number(toAsciiDigits(input.price));
@@ -112,6 +119,7 @@ export async function createRealEstateListingAction(input: {
     owner_id: user.id,
     property_type: input.propertyType,
     deal_type: input.dealType,
+    province: input.province,
     price: priceNumber,
     address,
     description,

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ListingsSearch } from "./ListingsSearch";
 import { LISTINGS_PAGE_SIZE } from "./constants";
+import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
 import type { Locale } from "@/lib/i18n/constants";
 
 export default async function ListingsPage({
@@ -22,7 +23,12 @@ export default async function ListingsPage({
   const dict = await getDictionary(lang);
   const indexDict = dict.marketplace.index;
 
+  // فاز ۱۰: اولین صفحه‌ی نتایج (خوانده‌شده سمت سرور) هم باید طبق ولایت انتخابی کاربر فیلتر شده
+  // باشد، نه فقط جستجوهای بعدی سمت کلاینت — وگرنه بار اول همیشه سراسری نشان داده می‌شد.
+  const { province } = await getSelectedProvince();
+
   const { items, totalCount } = await searchListings({
+    province,
     limit: LISTINGS_PAGE_SIZE,
     offset: 0,
   });
@@ -42,6 +48,8 @@ export default async function ListingsPage({
       <ListingsSearch
         lang={lang as Locale}
         dict={dict.marketplace}
+        provinceDict={dict.province}
+        selectedProvince={province}
         initialItems={items}
         initialTotalCount={totalCount}
       />

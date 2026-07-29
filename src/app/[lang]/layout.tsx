@@ -30,6 +30,8 @@ import { DisclaimerModal } from "@/components/layout/DisclaimerModal";
 import { DISCLAIMER_COOKIE_NAME } from "@/lib/disclaimer/constants";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PWA_INSTALL_COOKIE_NAME } from "@/lib/pwaInstall/constants";
+import { ProvinceBar } from "@/components/layout/ProvinceBar";
+import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
 
 export async function generateMetadata({
   params,
@@ -75,11 +77,21 @@ export default async function LangLayout({
   // کلاینت انجام می‌شود، چون این اطلاعات فقط در مرورگر در دسترس است.
   const pwaInstallDismissed = cookieStore.get(PWA_INSTALL_COOKIE_NAME)?.value === "1";
 
+  // فاز ۱۰ — ولایت انتخابی کاربر (برای فیلتر همه‌ی آگهی‌ها/رانندگان/متخصصین/املاک بر اساس شهر،
+  // دقیقاً مثل دیوار). hasChosen=false یعنی کاربر هنوز هیچ ولایتی انتخاب نکرده — در این حالت
+  // ProvinceBar مودال انتخاب را خودش در اولین بازدید باز می‌کند.
+  const { province: selectedProvince, hasChosen: hasChosenProvince } = await getSelectedProvince();
+
   return (
     <ToastProvider>
       <LangHtmlSync lang={resolvedParams.lang} />
       <DisclaimerModal initiallyAcknowledged={disclaimerAcknowledged} dict={dict.disclaimer} />
       <InstallPrompt initiallyDismissed={pwaInstallDismissed} dict={dict.pwaInstall} />
+      <ProvinceBar
+        initialProvince={selectedProvince}
+        hasChosenInitially={hasChosenProvince}
+        dict={dict.province}
+      />
       <DesktopHeader lang={resolvedParams.lang} dict={dict} />
       {/* جدا کردن فضاسازی پایینی برای BottomNav در موبایل با `pb-bottom-nav` (پویا و آگاه از
           Safe Area، تسک ۶ فاز ۰۸)؛ در دسکتاپ چون BottomNav مخفی است، فقط یک فاصله‌ی معمولی

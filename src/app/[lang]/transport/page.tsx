@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ActiveDriversList } from "./ActiveDriversList";
 import { DRIVERS_PAGE_SIZE } from "./constants";
+import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
 
 export default async function TransportPage({
   params,
@@ -24,7 +25,14 @@ export default async function TransportPage({
   const dict = await getDictionary(lang);
   const listDict = dict.transport.list;
 
-  const { items, totalCount } = await getActiveDrivers({ limit: DRIVERS_PAGE_SIZE, offset: 0 });
+  // فاز ۱۰: اولین صفحه‌ی نتایج هم باید طبق ولایت انتخابی کاربر فیلتر شده باشد.
+  const { province } = await getSelectedProvince();
+
+  const { items, totalCount } = await getActiveDrivers({
+    province,
+    limit: DRIVERS_PAGE_SIZE,
+    offset: 0,
+  });
 
   return (
     <div className="flex flex-col gap-5 px-5 md:px-0 pt-8 pb-10 max-w-lg md:max-w-3xl mx-auto w-full">
@@ -44,6 +52,8 @@ export default async function TransportPage({
         dict={listDict}
         reportButtonLabel={dict.reports.reportButtonLabel}
         vehicleTypesDict={dict.transport.vehicleTypes}
+        provinceDict={dict.province}
+        selectedProvince={province}
         initialItems={items}
         initialTotalCount={totalCount}
       />

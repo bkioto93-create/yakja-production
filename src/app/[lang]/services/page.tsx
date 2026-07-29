@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ActiveServiceProvidersList } from "./ActiveServiceProvidersList";
 import { SERVICE_PROVIDERS_PAGE_SIZE } from "./constants";
+import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
 
 export default async function ServicesPage({
   params,
@@ -24,9 +25,12 @@ export default async function ServicesPage({
   const dict = await getDictionary(lang);
   const listDict = dict.services.list;
 
+  // فاز ۱۰: اولین صفحه‌ی نتایج هم باید طبق ولایت انتخابی کاربر فیلتر شده باشد.
+  const { province } = await getSelectedProvince();
+
   const [categories, { items, totalCount }] = await Promise.all([
     getActiveServiceCategories(),
-    getActiveServiceProviders({ limit: SERVICE_PROVIDERS_PAGE_SIZE, offset: 0 }),
+    getActiveServiceProviders({ province, limit: SERVICE_PROVIDERS_PAGE_SIZE, offset: 0 }),
   ]);
 
   return (
@@ -47,6 +51,8 @@ export default async function ServicesPage({
         dict={listDict}
         reportButtonLabel={dict.reports.reportButtonLabel}
         categories={categories}
+        provinceDict={dict.province}
+        selectedProvince={province}
         initialItems={items}
         initialTotalCount={totalCount}
       />

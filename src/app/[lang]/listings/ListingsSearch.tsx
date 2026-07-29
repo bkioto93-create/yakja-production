@@ -26,6 +26,7 @@ import { getListingImageUrl } from "@/lib/marketplace/images";
 import { searchListingsAction } from "./actions";
 import type { ListingSummary } from "@/lib/marketplace/queries";
 import type { Locale } from "@/lib/i18n/constants";
+import type { ProvinceDict } from "@/components/province/ProvincePickerModal";
 
 type MarketplaceDict = {
   categories: Record<string, string>;
@@ -36,14 +37,20 @@ type LocationStatus = "idle" | "locating" | "granted" | "denied";
 
 const SEARCH_DEBOUNCE_MS = 400;
 
+// فاز ۱۰: selectedProvince از کوکی سراسری (ProvinceBar) می‌آید، نه از یک فیلتر داخل همین
+// کامپوننت — تغییرش فقط از طریق نوار بالای صفحه ممکن است؛ اینجا فقط در هر جستجو استفاده می‌شود.
 export function ListingsSearch({
   lang,
   dict,
+  provinceDict,
+  selectedProvince,
   initialItems,
   initialTotalCount,
 }: {
   lang: Locale;
   dict: MarketplaceDict;
+  provinceDict: ProvinceDict;
+  selectedProvince: string | null;
   initialItems: ListingSummary[];
   initialTotalCount: number;
 }) {
@@ -67,6 +74,7 @@ export function ListingsSearch({
     startTransition(async () => {
       const result = await searchListingsAction({
         category,
+        province: selectedProvince,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
         query: queryText,
@@ -95,8 +103,11 @@ export function ListingsSearch({
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
+    // فاز ۱۰: selectedProvince هم به وابستگی‌ها اضافه شد — وقتی کاربر از نوار سراسری بالای صفحه
+    // ولایتش را عوض می‌کند، router.refresh() این prop را مقدار تازه می‌دهد و همین effect دوباره
+    // اجرا می‌شود تا نتایج بدون نیاز به رفرش کامل صفحه به‌روزرسانی شوند.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, queryText, coords]);
+  }, [category, queryText, coords, selectedProvince]);
 
   function handleUseMyLocation() {
     if (typeof navigator === "undefined" || !("geolocation" in navigator)) {
@@ -203,7 +214,13 @@ export function ListingsSearch({
         })}
       </div>
 
-      {/* نتایج */}
+      {/* نتایج — یادآوری کوتاه ولایت جاری (تغییرش فقط از نوار بالای صفحه ممکن است، نه از اینجا) */}
+      {selectedProvince && (
+        <p className="flex items-center gap-1.5 text-xs font-bold text-text-muted -mb-1">
+          <Icons.MapPin className="w-3.5 h-3.5" />
+          {provinceDict.resultsForLabel}: {provinceDict.names[selectedProvince]}
+        </p>
+      )}
       {isPending && items.length > 0 && (
         <div className="flex items-center justify-center gap-2 text-xs font-bold text-text-muted py-1">
           <Spinner className="w-3.5 h-3.5" />

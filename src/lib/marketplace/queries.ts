@@ -201,6 +201,7 @@ export async function getSimilarListings(params: {
 // - totalCount برای تصمیم‌گیری درباره‌ی نمایش دکمه‌ی «نمایش موارد بیشتر» در سمت کلاینت است.
 export async function searchListings(params: {
   category?: string | null;
+  province?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   query?: string | null;
@@ -209,6 +210,8 @@ export async function searchListings(params: {
 }): Promise<{ items: ListingSummary[]; totalCount: number }> {
   const { data, error } = await supabaseAdminClient.rpc("search_listings", {
     p_category: params.category ?? null,
+    // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» — بدون فیلتر ولایتی، دقیقاً مثل category=null.
+    p_province: params.province ?? null,
     p_lat: params.latitude ?? null,
     p_lng: params.longitude ?? null,
     p_query: params.query ?? null,

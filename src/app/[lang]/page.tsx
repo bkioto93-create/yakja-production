@@ -34,6 +34,7 @@ import {
   getNewestListingsForHome,
   getNewestRealEstateForHome,
 } from "@/lib/home/homeQueries";
+import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
 
 const SHOWCASE_ITEM_LIMIT = 10;
 
@@ -42,13 +43,17 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   const lang = resolvedParams.lang;
   const dict = await getDictionary(lang);
 
+  // فاز ۱۰ — درخواست مستقیم کارفرما: بنرهای «جدیدترین‌ها»ی صفحه‌ی اصلی هم باید طبق ولایت
+  // انتخابی کاربر فیلتر شوند، نه سراسری کل افغانستان (دقیقاً مثل صفحه‌ی اصلی دیوار).
+  const { province } = await getSelectedProvince();
+
   // چهار کوئری «جدیدترین‌ها» موازی اجرا می‌شوند تا زمان لود کلی صفحه به کندترین کوئری محدود
   // بماند، نه مجموع هر چهار کوئری.
   const [newestDrivers, newestProviders, newestListings, newestRealEstate] = await Promise.all([
-    getNewestDriversForHome(SHOWCASE_ITEM_LIMIT),
-    getNewestProvidersForHome(SHOWCASE_ITEM_LIMIT),
-    getNewestListingsForHome(SHOWCASE_ITEM_LIMIT),
-    getNewestRealEstateForHome(SHOWCASE_ITEM_LIMIT),
+    getNewestDriversForHome(SHOWCASE_ITEM_LIMIT, province),
+    getNewestProvidersForHome(SHOWCASE_ITEM_LIMIT, province),
+    getNewestListingsForHome(SHOWCASE_ITEM_LIMIT, province),
+    getNewestRealEstateForHome(SHOWCASE_ITEM_LIMIT, province),
   ]);
 
   // تعریف کورت مرکزی پورتال یکجا برپایهِ متغیرهای متصل‌کننده!

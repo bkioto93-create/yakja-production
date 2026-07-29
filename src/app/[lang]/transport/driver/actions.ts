@@ -32,6 +32,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { normalizeAfghanPhone } from "@/lib/phone";
 import { toAsciiDigits } from "@/lib/marketplace/numbers";
 import { isValidVehicleType } from "@/lib/transport/vehicleTypes";
+import { isValidProvince } from "@/lib/provinces";
 
 const DRIVERS_BUCKET = "drivers-images";
 const MAX_IMAGES = 5;
@@ -71,6 +72,7 @@ export async function createDriverSignedUploadSlotsAction(
 
 export async function saveDriverProfileAction(input: {
   vehicleType: string;
+  province: string;
   vehicleDetails: string;
   contactPhone: string;
   imagePaths: string[];
@@ -80,6 +82,11 @@ export async function saveDriverProfileAction(input: {
 
   if (!isValidVehicleType(input.vehicleType)) {
     return { success: false, error: "invalidVehicleType" };
+  }
+
+  // فاز ۱۰ — درخواست مستقیم کارفرما: هر راننده باید دقیقاً به یک ولایت مشخص تعلق داشته باشد.
+  if (!isValidProvince(input.province)) {
+    return { success: false, error: "invalidProvince" };
   }
 
   const contactPhone = normalizeAfghanPhone(toAsciiDigits(input.contactPhone));
@@ -113,6 +120,7 @@ export async function saveDriverProfileAction(input: {
       {
         owner_id: user.id,
         vehicle_type: input.vehicleType,
+        province: input.province,
         vehicle_details: vehicleDetails,
         contact_phone: contactPhone,
         images: input.imagePaths,

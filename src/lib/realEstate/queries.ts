@@ -173,6 +173,7 @@ export async function getSimilarRealEstate(params: {
 export async function searchRealEstate(params: {
   propertyType?: string | null;
   dealType?: string | null;
+  province?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   query?: string | null;
@@ -182,6 +183,8 @@ export async function searchRealEstate(params: {
   const { data, error } = await supabaseAdminClient.rpc("search_real_estate", {
     p_property_type: params.propertyType ?? null,
     p_deal_type: params.dealType ?? null,
+    // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» — بدون فیلتر ولایتی.
+    p_province: params.province ?? null,
     p_lat: params.latitude ?? null,
     p_lng: params.longitude ?? null,
     p_query: params.query ?? null,

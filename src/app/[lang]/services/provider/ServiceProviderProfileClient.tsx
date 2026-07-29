@@ -25,6 +25,7 @@ import type { ServiceCategory } from "@/lib/services/serviceCategories";
 import { saveServiceProviderProfileAction, createServiceProviderSignedUploadSlotsAction } from "./actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { MyServiceProviderProfile } from "@/lib/services/serviceProviderQueries";
+import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 
 type Dict = Awaited<ReturnType<typeof getDictionary>>;
 
@@ -55,6 +56,7 @@ export function ServiceProviderProfileClient({
     existingProfile?.serviceCategoryId ?? ""
   );
   const [address, setAddress] = useState(existingProfile?.address ?? "");
+  const [province, setProvince] = useState<string | null>(existingProfile?.province ?? null);
   const [contactPhone, setContactPhone] = useState(
     existingProfile?.contactPhone ?? defaultContactPhone
   );
@@ -124,6 +126,10 @@ export function ServiceProviderProfileClient({
       showToast(errorText("invalidAddress"), "error");
       return;
     }
+    if (!province) {
+      showToast(dict.province.fieldError, "error");
+      return;
+    }
     if (!contactPhone.trim()) {
       showToast(errorText("invalidPhone"), "error");
       return;
@@ -155,6 +161,7 @@ export function ServiceProviderProfileClient({
 
       const result = await saveServiceProviderProfileAction({
         serviceCategoryId,
+        province: province as string,
         address,
         contactPhone,
         description,
@@ -217,6 +224,14 @@ export function ServiceProviderProfileClient({
           value={address}
           onChange={(e) => setAddress(e.target.value)}
         />
+        <div className="mb-4">
+          <ProvinceSelectField
+            value={province}
+            onChange={setProvince}
+            dict={dict.province}
+            label={dict.province.fieldLabel}
+          />
+        </div>
         <Input
           label={formDict.contactPhoneLabel}
           value={contactPhone}
@@ -338,4 +353,3 @@ export function ServiceProviderProfileClient({
     </div>
   );
 }
-

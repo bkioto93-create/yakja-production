@@ -8,12 +8,14 @@
 
 import { searchListings, type ListingSummary } from "@/lib/marketplace/queries";
 import { isValidListingCategory } from "@/lib/marketplace/categories";
+import { isValidProvince } from "@/lib/provinces";
 import { LISTINGS_PAGE_SIZE } from "./constants";
 
 const MAX_QUERY_LENGTH = 80;
 
 export async function searchListingsAction(input: {
   category?: string | null;
+  province?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   query?: string | null;
@@ -21,6 +23,10 @@ export async function searchListingsAction(input: {
 }): Promise<{ items: ListingSummary[]; totalCount: number }> {
   const category =
     input.category && isValidListingCategory(input.category) ? input.category : null;
+
+  // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» (هم اگر کاربر صراحتاً آن را انتخاب کرده باشد، هم
+  // اگر مقدار ورودی نامعتبر باشد) — دقیقاً هم‌الگو با اعتبارسنجی category بالا.
+  const province = input.province && isValidProvince(input.province) ? input.province : null;
 
   const trimmedQuery = input.query?.trim() ?? "";
   const query = trimmedQuery ? trimmedQuery.slice(0, MAX_QUERY_LENGTH) : null;
@@ -37,6 +43,7 @@ export async function searchListingsAction(input: {
 
   return searchListings({
     category,
+    province,
     latitude,
     longitude,
     query,

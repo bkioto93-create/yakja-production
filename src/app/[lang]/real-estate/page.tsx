@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { RealEstateSearch } from "./RealEstateSearch";
 import { REAL_ESTATE_PAGE_SIZE } from "./constants";
+import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
 import type { Locale } from "@/lib/i18n/constants";
 
 export default async function RealEstatePage({
@@ -23,7 +24,11 @@ export default async function RealEstatePage({
   const dict = await getDictionary(lang);
   const indexDict = dict.realEstate.index;
 
+  // فاز ۱۰: اولین صفحه‌ی نتایج هم باید طبق ولایت انتخابی کاربر فیلتر شده باشد.
+  const { province } = await getSelectedProvince();
+
   const { items, totalCount } = await searchRealEstate({
+    province,
     limit: REAL_ESTATE_PAGE_SIZE,
     offset: 0,
   });
@@ -43,6 +48,8 @@ export default async function RealEstatePage({
       <RealEstateSearch
         lang={lang as Locale}
         dict={dict.realEstate}
+        provinceDict={dict.province}
+        selectedProvince={province}
         initialItems={items}
         initialTotalCount={totalCount}
       />

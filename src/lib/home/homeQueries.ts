@@ -48,13 +48,14 @@ export type HomeDriverPreview = {
   images: string[];
 };
 
-async function fetchNewestDriversForHome(limit: number): Promise<HomeDriverPreview[]> {
-  const { data, error } = await supabaseAdminClient
+async function fetchNewestDriversForHome(limit: number, province: string | null): Promise<HomeDriverPreview[]> {
+  let queryBuilder = supabaseAdminClient
     .from("drivers")
     .select("id, owner_id, vehicle_type, images")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .eq("is_active", true);
+  // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» — بدون فیلتر ولایتی.
+  if (province) queryBuilder = queryBuilder.eq("province", province);
+  const { data, error } = await queryBuilder.order("created_at", { ascending: false }).limit(limit);
 
   if (error || !data || data.length === 0) return [];
 
@@ -73,6 +74,9 @@ async function fetchNewestDriversForHome(limit: number): Promise<HomeDriverPrevi
   }));
 }
 
+// فاز ۱۰: province هم به‌عنوان آرگومان تابع (نه فقط بخشی از آرایه‌ی کلید) پاس داده می‌شود؛
+// unstable_cache خودش آرگومان‌های واقعی فراخوانی را هش کرده و به کلید کش اضافه می‌کند، پس هر
+// ولایت خودکار کش جداگانه‌ی خودش را می‌گیرد، بدون نیاز به تغییر آرایه‌ی کلید.
 export const getNewestDriversForHome = unstable_cache(
   fetchNewestDriversForHome,
   ["home-newest-drivers"],
@@ -93,15 +97,16 @@ export type HomeProviderPreview = {
   images: string[];
 };
 
-async function fetchNewestProvidersForHome(limit: number): Promise<HomeProviderPreview[]> {
-  const { data, error } = await supabaseAdminClient
+async function fetchNewestProvidersForHome(limit: number, province: string | null): Promise<HomeProviderPreview[]> {
+  let queryBuilder = supabaseAdminClient
     .from("service_providers")
     .select("id, owner_id, service_category_id, images")
-    .eq("is_active", true)
-    // 🔶 رجوع کنید به یادداشت بالای فایل: بعد از اجرای SUPABASE_MIGRATION_service_providers_created_at.sql
-    // این خط را به .order("created_at", { ascending: false }) تغییر بده تا واقعاً «جدیدترین‌ها» باشد.
-    .order("id", { ascending: false })
-    .limit(limit);
+    .eq("is_active", true);
+  // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» — بدون فیلتر ولایتی.
+  if (province) queryBuilder = queryBuilder.eq("province", province);
+  // 🔶 رجوع کنید به یادداشت بالای فایل: بعد از اجرای SUPABASE_MIGRATION_service_providers_created_at.sql
+  // این خط را به .order("created_at", { ascending: false }) تغییر بده تا واقعاً «جدیدترین‌ها» باشد.
+  const { data, error } = await queryBuilder.order("id", { ascending: false }).limit(limit);
 
   if (error || !data || data.length === 0) return [];
 
@@ -146,8 +151,8 @@ export const getNewestProvidersForHome = unstable_cache(
 // آگهی‌های تازه‌ی کالا — بازاستفاده‌ی مستقیم از searchListings موجود (فاز ۰۲)، بدون هیچ فیلتر
 // دسته/مکان، که طبق مستندات خودِ آن تابع یعنی مرتب‌سازی بر اساس جدیدترین آگهی.
 // ---------------------------------------------------------------------------
-async function fetchNewestListingsForHome(limit: number): Promise<ListingSummary[]> {
-  const { items } = await searchListings({ limit });
+async function fetchNewestListingsForHome(limit: number, province: string | null): Promise<ListingSummary[]> {
+  const { items } = await searchListings({ limit, province });
   return items;
 }
 
@@ -160,8 +165,8 @@ export const getNewestListingsForHome = unstable_cache(
 // ---------------------------------------------------------------------------
 // آگهی‌های تازه‌ی ملک — دقیقاً همان الگو، بازاستفاده از searchRealEstate موجود (فاز ۰۵).
 // ---------------------------------------------------------------------------
-async function fetchNewestRealEstateForHome(limit: number): Promise<RealEstateSummary[]> {
-  const { items } = await searchRealEstate({ limit });
+async function fetchNewestRealEstateForHome(limit: number, province: string | null): Promise<RealEstateSummary[]> {
+  const { items } = await searchRealEstate({ limit, province });
   return items;
 }
 

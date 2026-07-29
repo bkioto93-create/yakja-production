@@ -29,6 +29,7 @@ import { supabaseAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { normalizeAfghanPhone } from "@/lib/phone";
 import { toAsciiDigits } from "@/lib/marketplace/numbers";
+import { isValidProvince } from "@/lib/provinces";
 
 const FOREIGN_KEY_VIOLATION_CODE = "23503";
 const SERVICE_PROVIDERS_BUCKET = "service-providers-images";
@@ -66,6 +67,7 @@ export async function createServiceProviderSignedUploadSlotsAction(
 
 export async function saveServiceProviderProfileAction(input: {
   serviceCategoryId: string;
+  province: string;
   address: string;
   contactPhone: string;
   description: string;
@@ -79,6 +81,11 @@ export async function saveServiceProviderProfileAction(input: {
   const serviceCategoryId = input.serviceCategoryId.trim();
   if (!serviceCategoryId) {
     return { success: false, error: "invalidCategory" };
+  }
+
+  // فاز ۱۰ — درخواست مستقیم کارفرما: هر متخصص باید دقیقاً به یک ولایت مشخص تعلق داشته باشد.
+  if (!isValidProvince(input.province)) {
+    return { success: false, error: "invalidProvince" };
   }
 
   const address = input.address.trim();
@@ -99,6 +106,7 @@ export async function saveServiceProviderProfileAction(input: {
   const row = {
     owner_id: user.id,
     service_category_id: serviceCategoryId,
+    province: input.province,
     contact_phone: contactPhone,
     address,
     description,

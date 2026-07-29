@@ -32,6 +32,7 @@ import {
 } from "./actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { MyDriverProfile } from "@/lib/transport/driverQueries";
+import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 
 type Dict = Awaited<ReturnType<typeof getDictionary>>;
 
@@ -60,6 +61,7 @@ export function DriverProfileClient({
     existingProfile?.vehicleType ?? ""
   );
   const [vehicleDetails, setVehicleDetails] = useState(existingProfile?.vehicleDetails ?? "");
+  const [province, setProvince] = useState<string | null>(existingProfile?.province ?? null);
   const [contactPhone, setContactPhone] = useState(
     existingProfile?.contactPhone ?? defaultContactPhone
   );
@@ -118,6 +120,10 @@ export function DriverProfileClient({
       showToast(errorText("invalidVehicleType"), "error");
       return;
     }
+    if (!province) {
+      showToast(dict.province.fieldError, "error");
+      return;
+    }
     if (!contactPhone.trim()) {
       showToast(errorText("invalidPhone"), "error");
       return;
@@ -150,6 +156,7 @@ export function DriverProfileClient({
 
       const result = await saveDriverProfileAction({
         vehicleType,
+        province: province as string,
         vehicleDetails,
         contactPhone,
         imagePaths: [...existingImages, ...uploadedPaths],
@@ -273,6 +280,14 @@ export function DriverProfileClient({
           value={vehicleDetails}
           onChange={(e) => setVehicleDetails(e.target.value)}
         />
+        <div className="mb-4">
+          <ProvinceSelectField
+            value={province}
+            onChange={setProvince}
+            dict={dict.province}
+            label={dict.province.fieldLabel}
+          />
+        </div>
         <Input
           label={formDict.contactPhoneLabel}
           value={contactPhone}
@@ -417,5 +432,3 @@ export function DriverProfileClient({
     </div>
   );
 }
-
-
