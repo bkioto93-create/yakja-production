@@ -24,13 +24,19 @@
 //   GET /api/mobile/v1/profile (فاز M01)، سمت موبایل در دسترس است (useAuth().user.phoneNumber) —
 //   نیازی به ارسال دوباره‌ی همان مقدار از این Route نبود.
 //
-// POST / PATCH — بدنه: { vehicleType, vehicleDetails, contactPhone, imagePaths: string[] }
+// POST / PATCH — بدنه: { vehicleType, province, vehicleDetails, contactPhone, imagePaths: string[] }
 //   imagePaths دقیقاً همان مسیرهای خامِ Storage (خروجی POST .../transport/driver/upload-slots)
 //   است، نه URL کامل — عیناً همان قرارداد marketplace/listings (فاز M02).
+//
+// ⚠️ رفع باگ دیپلوی (فاز ۱۰ — قابلیت ولایت): بعد از افزودن فیلد الزامی province به
+// saveDriverProfileAction، بیلد Vercel شکست، چون این Route موبایل هنوز آن را نمی‌فرستاد. راه‌حل:
+// یک فیلد province هم از بدنه‌ی درخواست خوانده و مستقیماً به اکشن پاس داده می‌شود — اعتبارسنجی
+// خودِ مقدار (isValidProvince) از قبل داخل خودِ اکشن انجام می‌شود.
+//
 //   خروجی موفق: { success: true }
 //   خروجی ناموفق: { success: false, error } — کدها دقیقاً همان‌هایی که
 //   dict.transport.driverProfile.errors موبایل از قبل پوشش می‌دهد: unauthenticated،
-//   invalidVehicleType، invalidPhone، invalidImageCount، invalidImageData، dbError.
+//   invalidVehicleType، invalidProvince، invalidPhone، invalidImageCount، invalidImageData، dbError.
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -40,6 +46,7 @@ import { saveDriverProfileAction } from "@/app/[lang]/transport/driver/actions";
 const ERROR_STATUS: Record<string, number> = {
   unauthenticated: 401,
   invalidVehicleType: 400,
+  invalidProvince: 400,
   invalidPhone: 400,
   invalidImageCount: 400,
   invalidImageData: 400,
@@ -68,6 +75,7 @@ async function handleSave(request: Request) {
 
   const result = await saveDriverProfileAction({
     vehicleType: typeof b.vehicleType === "string" ? b.vehicleType : "",
+    province: typeof b.province === "string" ? b.province : "",
     vehicleDetails: typeof b.vehicleDetails === "string" ? b.vehicleDetails : "",
     contactPhone: typeof b.contactPhone === "string" ? b.contactPhone : "",
     imagePaths: Array.isArray(b.imagePaths) ? (b.imagePaths as string[]) : [],

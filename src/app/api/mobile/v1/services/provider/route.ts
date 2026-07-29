@@ -26,17 +26,25 @@
 //   user.phoneNumber از قبل، از همان GET /api/mobile/v1/profile (فاز M01)، سمت موبایل در دسترس
 //   است.
 //
-// POST / PATCH — بدنه: { serviceCategoryId, address, contactPhone, description, imagePaths: string[] }
+// POST / PATCH — بدنه: { serviceCategoryId, province, address, contactPhone, description,
+//   imagePaths: string[] }
 //   imagePaths دقیقاً همان مسیرهای خامِ Storage (خروجی POST .../services/provider/upload-slots)
 //   است، نه URL کامل — عیناً همان قرارداد marketplace/listings و transport/driver.
 //   latitude/longitude عمداً همیشه null فرستاده می‌شوند: saveServiceProviderProfileAction با
 //   مقدار null کلید location را در payload upsert اصلاً اضافه نمی‌کند (نگاه کنید به کامنت خودِ
 //   آن تابع)، یعنی این Route هرگز موقعیت مکانیِ قبلاً ثبت‌شده (اگر باشد) را پاک/بازنویسی نمی‌کند؛
 //   فرم موبایل طبق متن دقیق تسک ۳ اصلاً GPS نمی‌گیرد.
+//
+// ⚠️ رفع باگ دیپلوی (فاز ۱۰ — قابلیت ولایت): بعد از افزودن فیلد الزامی province به
+// saveServiceProviderProfileAction، بیلد Vercel شکست، چون این Route موبایل هنوز آن را
+// نمی‌فرستاد. راه‌حل: یک فیلد province هم از بدنه‌ی درخواست خوانده و مستقیماً به اکشن پاس داده
+// می‌شود — اعتبارسنجی خودِ مقدار (isValidProvince) از قبل داخل خودِ اکشن انجام می‌شود.
+//
 //   خروجی موفق: { success: true }
 //   خروجی ناموفق: { success: false, error } — کدها دقیقاً همان‌هایی که
 //   dict.services.providerProfile.errors موبایل از قبل پوشش می‌دهد: unauthenticated،
-//   invalidCategory، invalidAddress، invalidPhone، invalidImageCount، invalidImageData، dbError.
+//   invalidCategory، invalidProvince، invalidAddress، invalidPhone، invalidImageCount،
+//   invalidImageData، dbError.
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -46,6 +54,7 @@ import { saveServiceProviderProfileAction } from "@/app/[lang]/services/provider
 const ERROR_STATUS: Record<string, number> = {
   unauthenticated: 401,
   invalidCategory: 400,
+  invalidProvince: 400,
   invalidAddress: 400,
   invalidPhone: 400,
   invalidImageCount: 400,
@@ -75,6 +84,7 @@ async function handleSave(request: Request) {
 
   const result = await saveServiceProviderProfileAction({
     serviceCategoryId: typeof b.serviceCategoryId === "string" ? b.serviceCategoryId : "",
+    province: typeof b.province === "string" ? b.province : "",
     address: typeof b.address === "string" ? b.address : "",
     contactPhone: typeof b.contactPhone === "string" ? b.contactPhone : "",
     description: typeof b.description === "string" ? b.description : "",
