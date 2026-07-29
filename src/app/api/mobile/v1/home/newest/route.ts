@@ -21,6 +21,15 @@
 //
 // Query param: ?limit=10 (اختیاری؛ پیش‌فرض ۱۰، سقف ۲۰ — دقیقاً همان سقفی که خودِ اکشن‌های وب هم
 // برای بنرهای مشابه استفاده می‌کنند؛ محافظت در برابر درخواست بیش‌ازحد از سمت کلاینت).
+//
+// رفع باگ دیپلوی (فاز ۱۰ — قابلیت ولایت): بعد از افزودن فیلتر ولایتی به صفحه‌ی اصلی وب،
+// getNewestDriversForHome/getNewestProvidersForHome یک آرگومان دومِ الزامی (province) گرفتند و
+// بیلد Vercel شکست («Expected 2 arguments, but got 1»)، چون این Route موبایل هنوز فقط با ۱
+// آرگومان صدایشان می‌زد. راه‌حل: یک ?province=kabul اختیاری هم اینجا پذیرفته می‌شود (اگر اپ
+// موبایل هنوز آن را نمی‌فرستد، مقدار پیش‌فرض null یعنی «همه‌ی افغانستان» است — دقیقاً همان رفتار
+// قبل از فاز ۱۰، بدون هیچ تغییر رفتاری برای نسخه‌ی فعلی اپ موبایل)؛ اعتبارسنجی‌اش هم دقیقاً
+// هم‌الگو با تمام Server Actionهای وب (isValidProvince).
+// Query param: ?province=kabul (اختیاری؛ پیش‌فرض بدون فیلتر = همه‌ی افغانستان)
 // خروجی: { drivers: HomeDriverPreview[], providers: HomeProviderPreview[] }
 // (images همان مسیرهای خامِ Storage است، نه URL کامل — تبدیل سمت موبایل، در lib/home/api.ts،
 // دقیقاً هم‌الگو با بقیه‌ی ماژول‌ها.)
@@ -30,15 +39,19 @@ import {
   getNewestDriversForHome,
   getNewestProvidersForHome,
 } from "@/lib/home/homeQueries";
+import { isValidProvince } from "@/lib/provinces";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const rawLimit = Number(searchParams.get("limit"));
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 20) : 10;
 
+  const rawProvince = searchParams.get("province");
+  const province = rawProvince && isValidProvince(rawProvince) ? rawProvince : null;
+
   const [drivers, providers] = await Promise.all([
-    getNewestDriversForHome(limit),
-    getNewestProvidersForHome(limit),
+    getNewestDriversForHome(limit, province),
+    getNewestProvidersForHome(limit, province),
   ]);
 
   return NextResponse.json({ drivers, providers });
