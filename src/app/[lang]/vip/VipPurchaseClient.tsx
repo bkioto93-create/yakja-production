@@ -2,6 +2,8 @@
 // فاز ۱۱ — بخش تعاملی صفحه‌ی VIP: انتخاب روش پرداخت (بانک/صرافی)، نمایش اطلاعات همان روش
 // (خوانده‌شده از platform_settings، نه هاردکد)، فیلد اختیاری «توضیح تکمیلی/کد رهگیری»، و ثبت
 // نهایی درخواست — دقیقاً طبق جریان ۸ مرحله‌ای بند ۲ پرامپت VIP.
+//
+// ⚠️ رفع خطای بیلد (TypeScript): افزودن casting (`as Record<string, string>`) برای خطاهای فرم.
 "use client";
 
 import { useState, useTransition } from "react";
@@ -37,6 +39,8 @@ export function VipPurchaseClient({
   const router = useRouter();
   const { showToast } = useToast();
   const vipDict = dict.vip;
+  const errorsDict = vipDict.form.errors as Record<string, string>; // <== اضافه شدن Casting این قسمت
+  
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null);
   const [note, setNote] = useState("");
   const [isSubmitting, startSubmitting] = useTransition();
@@ -51,7 +55,7 @@ export function VipPurchaseClient({
     startSubmitting(async () => {
       const result = await createVipRequestAction(lang, paymentMethod, note);
       if (!result.success) {
-        showToast(vipDict.form.errors[result.error] ?? vipDict.form.errors.generic, "error");
+        showToast(errorsDict[result.error] ?? errorsDict.generic, "error");
         return;
       }
       showToast(vipDict.form.submitSuccess, "success");
