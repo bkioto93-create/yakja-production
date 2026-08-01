@@ -12,12 +12,11 @@
 // با همین تغییری که قبلاً در ماژول transport انجام شد.
 //
 // **به‌روزرسانی UX (چیپ‌های دسته‌بندی):** چیپ‌های تخصص از حالت اسکرول افقی تک‌ردیفه
-// (overflow-x-auto) به چیدمان چندردیفه‌ی «wrap» تغییر کردند. با ~۱۰ تخصص، اسکرول افقی باعث
-// می‌شد بخشی از گزینه‌ها همیشه بیرون از دید کاربر بمانند و او باید حدس می‌زد که باید کنار
-// بکشد. در چیدمان جدید همه‌ی گزینه‌ها همزمان و بدون نیاز به هیچ تعامل اضافه (نه اسکرول، نه باز
-// کردن یک منو/دراپ‌داون) قابل مشاهده و لمس هستند — هم‌راستا با بند ۲ سند راهبردی (سادگی حداکثری
-// برای کاربران کم‌تجربه) و بند «اولویت تصویر بر متن» (آیکون هر تخصص همچنان کنار برچسبش دیده
-// می‌شود، برخلاف یک دراپ‌داون معمولی که معمولاً فقط متن نشان می‌دهد).
+// (overflow-x-auto) به چیدمان چندردیفه‌ی «wrap» تغییر کردند.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ۱) VipBadge کنار نام تخصص، فقط اگر provider.ownerIsVip؛
+// ۲) اگر متخصص ویدئوی VIP دارد (provider.videoPath)، یک پخش‌کننده‌ی کوچک <video> زیر نوار
+// نمونه‌کار نمایش داده می‌شود — طبق بند ۵ پرامپت VIP («کارت متخصص»).
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -27,8 +26,9 @@ import { Input } from "@/components/ui/Input";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { ReportButton } from "@/components/reports/ReportButton";
+import { VipBadge } from "@/components/vip/VipBadge";
 import { getBuiltinIconComponent } from "@/lib/services/serviceCategoryIcons";
-import { getServiceProviderImageUrl } from "@/lib/services/images";
+import { getServiceProviderImageUrl, getServiceProviderVideoUrl } from "@/lib/services/images";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { searchActiveServiceProvidersAction } from "./actions";
 import { SERVICE_PROVIDERS_PAGE_SIZE } from "./constants";
@@ -62,6 +62,7 @@ export function ActiveServiceProvidersList({
   lang,
   dict,
   reportButtonLabel,
+  vipBadgeLabel,
   categories,
   provinceDict,
   selectedProvince,
@@ -71,6 +72,7 @@ export function ActiveServiceProvidersList({
   lang: string;
   dict: ServicesListDict;
   reportButtonLabel: string;
+  vipBadgeLabel: string;
   categories: ServiceCategory[];
   provinceDict: ProvinceDict;
   selectedProvince: string | null;
@@ -211,8 +213,7 @@ export function ActiveServiceProvidersList({
         </p>
       </div>
 
-      {/* چیپ‌های دسته‌بندی — چیدمان چندردیفه (wrap)، نه اسکرول افقی: همه‌ی تخصص‌ها همزمان و
-          بدون نیاز به هیچ تعامل اضافه (اسکرول یا باز کردن منو) دیده و لمس می‌شوند. */}
+      {/* چیپ‌های دسته‌بندی — چیدمان چندردیفه (wrap)، نه اسکرول افقی. */}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -311,7 +312,10 @@ export function ActiveServiceProvidersList({
                     ) : null}
                   </div>
                   <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <span className="font-bold text-text-main">{categoryLabel(provider)}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-text-main">{categoryLabel(provider)}</span>
+                      {provider.ownerIsVip && <VipBadge label={vipBadgeLabel} />}
+                    </div>
                     <span className="text-xs text-text-muted line-clamp-1">{provider.address}</span>
                     {provider.description && (
                       <span className="text-xs text-text-muted line-clamp-1">
@@ -342,6 +346,15 @@ export function ActiveServiceProvidersList({
                       />
                     ))}
                   </div>
+                )}
+
+                {/* فاز ۱۱ — ویدئوی اختیاری VIP */}
+                {provider.videoPath && (
+                  <video
+                    src={getServiceProviderVideoUrl(provider.videoPath)}
+                    controls
+                    className="w-full aspect-video rounded-xl bg-black"
+                  />
                 )}
 
                 <a href={`tel:${provider.contactPhone}`} className="w-full">

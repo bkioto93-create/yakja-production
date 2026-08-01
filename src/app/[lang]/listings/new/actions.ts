@@ -7,6 +7,17 @@
 // همان آدرس می‌فرستد (uploadToSignedUrl) — سبک‌تر برای اینترنت ۲G/۳G و بدون نیاز به دستکاری سقف
 // حجم پیش‌فرض Server Action در Next.js. در پایان فقط مسیر فایل‌ها (رشته، نه بایت تصویر) به اکشن
 // دوم فرستاده می‌شود.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):**
+//   ۱) createSignedVideoUploadSlotAction اضافه شد — دقیقاً هم‌الگو با createSignedUploadSlotsAction
+//      اما برای باکت تازه‌ی listings-videos، و با یک بررسی اضافه که خودِ Icons.tsx UI نمی‌تواند
+//      جایگزینش شود: سمت سرور دوباره بررسی می‌کند کاربر واقعاً VIP فعال است (نه فقط این‌که
+//      کلاینت دکمه‌ی آپلود را نشانش داده) — این همان «گیت‌کردن واقعی»ای است که پرامپت VIP روی آن
+//      تاکید صریح داشت؛ صرفاً مخفی‌کردن دکمه در UI برای امنیت کافی نیست.
+//   ۲) createListingAction قبل از insert، سقف روزانه‌ی ۲ آگهی رایگان را هم بررسی می‌کند
+//      (src/lib/vip/dailyPostLimit.ts) — دوباره، سمت سرور، نه فقط سمت کلاینت.
+//   ۳) ورودی videoPath (اختیاری) پذیرفته و در ستون تازه‌ی listings.video_path ذخیره می‌شود؛ اگر
+//      کاربر VIP نباشد ولی videoPath فرستاده باشد (تلاش برای دور زدن UI)، درخواست رد می‌شود.
 "use server";
 
 import { supabaseAdminClient } from "@/lib/supabase/server";
@@ -15,8 +26,11 @@ import { normalizeAfghanPhone } from "@/lib/phone";
 import { toAsciiDigits } from "@/lib/marketplace/numbers";
 import { isValidListingCategory } from "@/lib/marketplace/categories";
 import { isValidProvince } from "@/lib/provinces";
+import { isUserVip } from "@/lib/vip/vipStatus";
+import { canUserPostToday } from "@/lib/vip/dailyPostLimit";
 
 const LISTINGS_BUCKET = "listings-images";
+const LISTINGS_VIDEOS_BUCKET = "listings-videos";
 const MIN_IMAGES = 1;
 const MAX_IMAGES = 5;
 
@@ -50,6 +64,28 @@ export async function createSignedUploadSlotsAction(
   return { success: true, slots };
 }
 
+// فاز ۱۱ — یک ویدئوی تکی (طبق تصمیم پذیرفته‌شده‌ی سوال باز ۲ پرامپت VIP)، فقط برای کاربر VIP.
+export async function createSignedVideoUploadSlotAction(): Promise<
+  { success: true; slot: SignedUploadSlot } | { success: false; error: string }
+> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "unauthenticated" };
+
+  // گیت‌کردن واقعی سمت سرور — نه فقط پنهان‌کردن دکمه در UI.
+  if (!isUserVip(user.vipExpiresAt)) {
+    return { success: false, error: "notVip" };
+  }
+
+  const path = `${user.id}/${Date.now()}.mp4`;
+  const { data, error } = await supabaseAdminClient.storage
+    .from(LISTINGS_VIDEOS_BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error || !data) return { success: false, error: "uploadFailed" };
+
+  return { success: true, slot: { path: data.path, token: data.token } };
+}
+
 export async function createListingAction(input: {
   category: string;
   province: string;
@@ -59,11 +95,20 @@ export async function createListingAction(input: {
   contactPhone: string;
   description: string;
   imagePaths: string[];
+  videoPath?: string | null;
   latitude?: number | null;
   longitude?: number | null;
 }) {
   const user = await getCurrentUser();
   if (!user) return { success: false as const, error: "unauthenticated" };
+
+  const isVip = isUserVip(user.vipExpiresAt);
+
+  // فاز ۱۱ — سقف روزانه‌ی ۲ آگهی رایگان (کالا+ملک با هم)؛ کاربر VIP همیشه مجاز است.
+  const { allowed } = await canUserPostToday({ userId: user.id, isVip });
+  if (!allowed) {
+    return { success: false as const, error: "dailyLimitReached" };
+  }
 
   if (!isValidListingCategory(input.category)) {
     return { success: false as const, error: "invalidCategory" };
@@ -97,6 +142,17 @@ export async function createListingAction(input: {
   const ownsAllPaths = input.imagePaths.every((p) => p.startsWith(`${user.id}/`));
   if (!ownsAllPaths) return { success: false as const, error: "invalidImageData" };
 
+  // فاز ۱۱ — گیت‌کردن واقعی ویدئو، دوباره سمت سرور: حتی اگر کاربر با دستکاری مستقیم درخواست
+  // (بدون عبور از UI) یک videoPath بفرستد، اگر VIP نباشد یا مسیر متعلق به خودش نباشد، رد می‌شود.
+  let videoPath: string | null = null;
+  if (input.videoPath) {
+    if (!isVip) return { success: false as const, error: "notVip" };
+    if (!input.videoPath.startsWith(`${user.id}/`)) {
+      return { success: false as const, error: "invalidVideoData" };
+    }
+    videoPath = input.videoPath;
+  }
+
   const description = input.description.trim() || null;
 
   // ساخت مقدار geography از مختصات مرورگر (در صورت اجازه‌ی کاربر)؛ در غیر این صورت null
@@ -116,15 +172,19 @@ export async function createListingAction(input: {
     contact_phone: contactPhone,
     description,
     images: input.imagePaths,
+    video_path: videoPath,
     location: locationValue,
     status: "pending",
   });
 
   if (insertError) {
-    // پاک‌سازی تصاویر یتیم در صورت شکست ثبت آگهی (خطای پاک‌سازی نادیده گرفته می‌شود؛ اولویت با
-    // پیام خطای اصلی است)
+    // پاک‌سازی تصاویر/ویدئوی یتیم در صورت شکست ثبت آگهی (خطای پاک‌سازی نادیده گرفته می‌شود؛
+    // اولویت با پیام خطای اصلی است)
     try {
       await supabaseAdminClient.storage.from(LISTINGS_BUCKET).remove(input.imagePaths);
+      if (videoPath) {
+        await supabaseAdminClient.storage.from(LISTINGS_VIDEOS_BUCKET).remove([videoPath]);
+      }
     } catch {
       // نادیده گرفته می‌شود
     }

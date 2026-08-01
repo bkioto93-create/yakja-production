@@ -206,6 +206,9 @@ export default {
       "loginRequiredTitle": "ابتدا وارد شوید",
       "loginRequiredDesc": "برای ثبت آگهی، لازم است ابتدا با شماره موبایل خود وارد حساب شوید.",
       "loginRequiredButton": "ورود به حساب",
+      "videoTitle": "ویدئوی کوتاه (اختیاری، ویژه‌ی VIP)",
+      "addVideoButton": "افزودن ویدئو",
+      "removeVideoLabel": "حذف این ویدئو",
       "errors": {
         "unauthenticated": "ابتدا باید وارد حساب خود شوید.",
         "invalidCategory": "لطفاً یک دسته را انتخاب کنید.",
@@ -215,9 +218,14 @@ export default {
         "invalidAddress": "لطفاً آدرس یا منطقه را وارد کنید.",
         "invalidPhone": "شماره تماس واردشده نامعتبر است.",
         "invalidImageData": "یکی از عکس‌ها قابل پردازش نیست.",
-        "uploadFailed": "بارگذاری عکس‌ها با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "uploadFailed": "بارگذاری فایل‌ها با مشکل مواجه شد؛ دوباره امتحان کنید.",
         "dbError": "ثبت آگهی با مشکل مواجه شد؛ دوباره امتحان کنید.",
         "compressionFailed": "پردازش این عکس ممکن نشد؛ عکس دیگری امتحان کنید.",
+        "invalidVideoType": "فقط فایل ویدئویی قابل قبول است.",
+        "videoTooLarge": "حجم ویدئو نباید بیشتر از ۲۰ مگابایت باشد.",
+        "invalidVideoData": "ویدئوی انتخاب‌شده قابل پردازش نیست.",
+        "notVip": "افزودن ویدئو فقط برای اعضای VIP فعال است.",
+        "dailyLimitReached": "شما امروز به سقف ۲ آگهی رایگان رسیده‌اید. برای ثبت آگهی نامحدود، عضو VIP شوید.",
         "generic": "مشکلی پیش آمد؛ دوباره امتحان کنید."
       }
     },
@@ -291,6 +299,9 @@ export default {
       "photosHint": "می‌توانید تا ۵ عکس از خودتان یا وسیله‌تان اضافه کنید تا اعتماد متقاضیان بیشتر شود.",
       "addPhotoButton": "افزودن عکس",
       "removePhotoLabel": "حذف عکس",
+      "videoSectionTitle": "ویدئوی کوتاه (اختیاری، ویژه‌ی VIP)",
+      "addVideoButton": "افزودن ویدئو",
+      "removeVideoLabel": "حذف این ویدئو",
       "errors": {
         "unauthenticated": "ابتدا باید وارد حساب خود شوید.",
         "invalidVehicleType": "لطفاً نوع وسیله نقلیه‌ی خود را انتخاب کنید.",
@@ -301,7 +312,11 @@ export default {
         "invalidImageCount": "تعداد عکس‌ها بیش از حد مجاز است.",
         "invalidImageData": "یکی از عکس‌ها نامعتبر است؛ دوباره امتحان کنید.",
         "compressionFailed": "فشرده‌سازی عکس با مشکل مواجه شد؛ عکس دیگری امتحان کنید.",
-        "uploadFailed": "آپلود عکس با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "uploadFailed": "آپلود فایل با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "invalidVideoType": "فقط فایل ویدئویی قابل قبول است.",
+        "videoTooLarge": "حجم ویدئو نباید بیشتر از ۲۰ مگابایت باشد.",
+        "invalidVideoData": "ویدئوی انتخاب‌شده قابل پردازش نیست.",
+        "notVip": "افزودن ویدئو فقط برای اعضای VIP فعال است.",
         "generic": "مشکلی پیش آمد؛ دوباره امتحان کنید."
       }
     }
@@ -330,6 +345,9 @@ export default {
       "photosHint": "می‌توانید تا ۵ عکس از نمونه‌کارهای خود اضافه کنید تا مشتریان پیش از تماس، کیفیت کارتان را ببینند.",
       "addPhotoButton": "افزودن عکس",
       "removePhotoLabel": "حذف عکس",
+      "videoSectionTitle": "ویدئوی کوتاه (اختیاری، ویژه‌ی VIP)",
+      "addVideoButton": "افزودن ویدئو",
+      "removeVideoLabel": "حذف این ویدئو",
       "errors": {
         "unauthenticated": "ابتدا باید وارد حساب خود شوید.",
         "invalidCategory": "لطفاً یک تخصص را انتخاب کنید.",
@@ -339,7 +357,11 @@ export default {
         "invalidImageCount": "تعداد عکس‌ها بیش از حد مجاز است.",
         "invalidImageData": "یکی از عکس‌ها نامعتبر است؛ دوباره امتحان کنید.",
         "compressionFailed": "فشرده‌سازی عکس با مشکل مواجه شد؛ عکس دیگری امتحان کنید.",
-        "uploadFailed": "آپلود عکس با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "uploadFailed": "آپلود فایل با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "invalidVideoType": "فقط فایل ویدئویی قابل قبول است.",
+        "videoTooLarge": "حجم ویدئو نباید بیشتر از ۲۰ مگابایت باشد.",
+        "invalidVideoData": "ویدئوی انتخاب‌شده قابل پردازش نیست.",
+        "notVip": "افزودن ویدئو فقط برای اعضای VIP فعال است.",
         "generic": "مشکلی پیش آمد؛ دوباره امتحان کنید."
       }
     },
@@ -421,6 +443,9 @@ export default {
       "loginRequiredTitle": "ابتدا وارد شوید",
       "loginRequiredDesc": "برای ثبت آگهی ملک، لازم است ابتدا با شماره موبایل خود وارد حساب شوید.",
       "loginRequiredButton": "ورود به حساب",
+      "videoTitle": "ویدئوی کوتاه (اختیاری، ویژه‌ی VIP)",
+      "addVideoButton": "افزودن ویدئو",
+      "removeVideoLabel": "حذف این ویدئو",
       "errors": {
         "unauthenticated": "ابتدا باید وارد حساب خود شوید.",
         "invalidPropertyType": "لطفاً نوع ملک را انتخاب کنید.",
@@ -430,8 +455,13 @@ export default {
         "invalidAddress": "لطفاً آدرس یا منطقه را وارد کنید.",
         "invalidImageData": "یکی از عکس‌ها قابل پردازش نیست.",
         "compressionFailed": "پردازش این عکس ممکن نشد؛ عکس دیگری امتحان کنید.",
-        "uploadFailed": "بارگذاری عکس‌ها با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "uploadFailed": "بارگذاری فایل‌ها با مشکل مواجه شد؛ دوباره امتحان کنید.",
         "dbError": "ثبت آگهی ملک با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "invalidVideoType": "فقط فایل ویدئویی قابل قبول است.",
+        "videoTooLarge": "حجم ویدئو نباید بیشتر از ۲۰ مگابایت باشد.",
+        "invalidVideoData": "ویدئوی انتخاب‌شده قابل پردازش نیست.",
+        "notVip": "افزودن ویدئو فقط برای اعضای VIP فعال است.",
+        "dailyLimitReached": "شما امروز به سقف ۲ آگهی رایگان رسیده‌اید. برای ثبت آگهی نامحدود، عضو VIP شوید.",
         "generic": "مشکلی پیش آمد؛ دوباره امتحان کنید."
       }
     },
@@ -559,6 +589,7 @@ export default {
       "services": "خدمات",
       "reports": "گزارش‌ها",
       "providers": "رانندگان و متخصصین",
+      "vip": "اشتراک VIP",
       "logout": "خروج",
       "menuLabel": "منو"
     },
@@ -704,6 +735,37 @@ export default {
       "statusInactive": "غیرفعال",
       "updateError": "به‌روزرسانی وضعیت با مشکل مواجه شد؛ دوباره امتحان کنید."
     },
+    "vip": {
+      "title": "مدیریت اشتراک VIP",
+      "subtitle": "درخواست‌های خرید/تمدید VIP را بررسی کنید و تنظیمات اشتراک را ویرایش کنید.",
+      "statusLabels": {
+        "pending": "در انتظار بررسی",
+        "approved": "تاییدشده",
+        "rejected": "ردشده"
+      },
+      "empty": "در این بخش هیچ درخواستی یافت نشد.",
+      "unknownOwner": "نامشخص",
+      "paymentMethodBank": "واریز بانکی",
+      "paymentMethodExchange": "صرافی",
+      "noteLabel": "توضیح کاربر",
+      "requestedAtLabel": "تاریخ درخواست",
+      "approveButton": "تایید",
+      "rejectButton": "رد",
+      "rejectReasonPrompt": "دلیل رد (اختیاری):",
+      "updateError": "به‌روزرسانی درخواست با مشکل مواجه شد؛ دوباره امتحان کنید.",
+      "settings": {
+        "title": "تنظیمات اشتراک VIP",
+        "priceLabel": "قیمت اشتراک ماهانه (افغانی)",
+        "bankLabel": "اطلاعات واریز بانکی",
+        "exchangeLabel": "اطلاعات صرافی",
+        "saveButton": "ذخیره تنظیمات",
+        "saveSuccess": "تنظیمات VIP ذخیره شد.",
+        "saveError": "ذخیره‌ی تنظیمات با مشکل مواجه شد؛ دوباره امتحان کنید."
+      },
+      "activeUsersTitle": "کاربران VIP فعال",
+      "activeUsersEmpty": "در حال حاضر هیچ کاربر VIP فعالی وجود ندارد.",
+      "expiresAtLabel": "انقضا"
+    },
     "dashboard": {
       "welcome": "به پنل مدیریت یکجا خوش آمدید.",
       "statsSectionTitle": "داشبورد آماری",
@@ -786,6 +848,62 @@ export default {
       "notFoundTitle": "این کاربر یافت نشد",
       "notFoundDesc": "ممکن است این حساب حذف شده یا مسدود شده باشد.",
       "backToHomeButton": "بازگشت به صفحه اصلی"
+    }
+  },
+  "vip": {
+    "badgeLabel": "VIP",
+    "pageTitle": "عضویت VIP یکجا",
+    "pageSubtitle": "با یک هزینه‌ی ماهانه‌ی ساده، آگهی‌های شما بیشتر دیده می‌شوند و محدودیت‌های حساب رایگان برداشته می‌شود.",
+    "priceLabel": "هزینه‌ی اشتراک ماهانه",
+    "currencyPerMonth": "افغانی / ماه",
+    "loginRequiredTitle": "ابتدا وارد شوید",
+    "loginRequiredDesc": "برای خرید یا تمدید اشتراک VIP، لازم است ابتدا با شماره موبایل خود وارد حساب شوید.",
+    "loginRequiredButton": "ورود به حساب",
+    "benefits": {
+      "videoTitle": "افزودن ویدئوی کوتاه",
+      "videoDesc": "کنار عکس‌ها، یک ویدئوی کوتاه هم به آگهی یا پروفایل خود اضافه کنید.",
+      "postsTitle": "ثبت آگهی نامحدود",
+      "postsDesc": "بدون سقف ۲ آگهی در روز؛ هر تعداد آگهی که بخواهید ثبت کنید.",
+      "chatTitle": "چت نامحدود با مشتریان",
+      "chatDesc": "در گفتگوی درون‌برنامه‌ای (به‌زودی)، بدون هیچ محدودیتی پیام بدهید و بگیرید."
+    },
+    "upsell": {
+      "videoMessage": "افزودن ویدئو فقط برای اعضای VIP فعال است. با عضویت VIP، ویدئوی آگهی/پروفایل خود را اضافه کنید.",
+      "dailyLimitMessage": "شما امروز به سقف ۲ آگهی رایگان رسیده‌اید. با عضویت VIP، آگهی نامحدود ثبت کنید.",
+      "button": "عضویت VIP"
+    },
+    "profileUpsellTitle": "عضو VIP یکجا شوید",
+    "profileUpsellDesc": "ویدئو، آگهی نامحدود و چت نامحدود",
+    "homeBanner": {
+      "title": "عضو VIP یکجا شوید",
+      "subtitle": "دیده‌شدن بیشتر، محدودیت کمتر",
+      "videoLabel": "افزودن ویدئوی کوتاه به آگهی/پروفایل",
+      "postsLabel": "ثبت آگهی نامحدود، بدون سقف روزانه",
+      "chatLabel": "چت نامحدود با مشتریان (به‌زودی)",
+      "button": "بیشتر بدانید"
+    },
+    "form": {
+      "selectMethodError": "لطفاً یک روش پرداخت را انتخاب کنید.",
+      "paymentMethodBank": "واریز بانکی",
+      "paymentMethodExchange": "صرافی",
+      "noteLabel": "توضیح تکمیلی یا کد رهگیری (اختیاری)",
+      "notePlaceholder": "مثلاً: کد رهگیری تراکنش یا نام صرافی...",
+      "submitButton": "ثبت درخواست عضویت VIP",
+      "submitSuccess": "درخواست شما ثبت شد و پس از بررسی مدیر، حساب شما VIP خواهد شد.",
+      "requestTitle": "ثبت درخواست عضویت",
+      "renewTitle": "تمدید اشتراک VIP",
+      "pendingTitle": "درخواست شما در انتظار بررسی است",
+      "pendingDesc": "درخواست عضویت VIP شما ثبت شده و به‌زودی توسط مدیر بررسی می‌شود.",
+      "rejectedNotice": "درخواست قبلی شما رد شده است.",
+      "rejectionReasonLabel": "دلیل رد",
+      "currentlyVipUntil": "شما هم‌اکنون VIP هستید، تا تاریخ {date}",
+      "errors": {
+        "unauthenticated": "ابتدا باید وارد حساب خود شوید.",
+        "invalidPaymentMethod": "روش پرداخت انتخاب‌شده نامعتبر است.",
+        "alreadyPending": "شما همین حالا یک درخواست در انتظار بررسی دارید.",
+        "dbError": "ثبت درخواست با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "generic": "مشکلی پیش آمد؛ دوباره امتحان کنید."
+      }
     }
   }
 };

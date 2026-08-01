@@ -2,9 +2,13 @@
 // تسک ۴ فاز ۰۵ — صفحه‌ی ثبت آگهی جدید ملک. برای کاربر مهمان (بدون نشست)، به‌جای فرم، کارت دعوت به
 // ورود نمایش داده می‌شود (دقیقاً همان الگوی src/app/[lang]/listings/new/page.tsx، فاز ۰۲، تسک ۴)،
 // چون ثبت آگهی نیازمند owner_id واقعی است.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** isVip (از همان user نشست‌دار) به NewRealEstateWizard پاس
+// داده می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isUserVip } from "@/lib/vip/vipStatus";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
@@ -42,7 +46,7 @@ export default async function NewRealEstatePage({
   return (
     <div className="flex flex-col px-4 md:px-0 py-6 max-w-lg md:max-w-xl mx-auto w-full gap-4">
       <h1 className="text-xl font-extrabold text-text-main">{dict.realEstate.wizard.title}</h1>
-      <NewRealEstateWizard lang={lang as Locale} dict={dict} />
+      <NewRealEstateWizard lang={lang as Locale} dict={dict} isVip={isUserVip(user.vipExpiresAt)} />
     </div>
   );
 }

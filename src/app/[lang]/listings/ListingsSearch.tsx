@@ -12,6 +12,9 @@
 // افقی بخشی از دسته‌ها همیشه بیرون از دید کاربر می‌ماند و او باید حدس می‌زد باید کنار بکشد. در
 // چیدمان جدید همه‌ی دسته‌ها همزمان و بدون نیاز به هیچ تعامل اضافه (نه اسکرول، نه دراپ‌داون) قابل
 // مشاهده و لمس هستند.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک VipBadge کوچک کنار عنوان کارت اضافه شد، فقط وقتی
+// item.ownerIsVip=true — طبق بند ۵ پرامپت VIP («کنار نام/تماس فروشنده... کارت آگهی کالا»).
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -21,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
+import { VipBadge } from "@/components/vip/VipBadge";
 import { LISTING_CATEGORIES } from "@/lib/marketplace/categories";
 import { getListingImageUrl } from "@/lib/marketplace/images";
 import { searchListingsAction } from "./actions";
@@ -43,6 +47,7 @@ export function ListingsSearch({
   lang,
   dict,
   provinceDict,
+  vipBadgeLabel,
   selectedProvince,
   initialItems,
   initialTotalCount,
@@ -50,6 +55,7 @@ export function ListingsSearch({
   lang: Locale;
   dict: MarketplaceDict;
   provinceDict: ProvinceDict;
+  vipBadgeLabel: string;
   selectedProvince: string | null;
   initialItems: ListingSummary[];
   initialTotalCount: number;
@@ -249,7 +255,10 @@ export function ListingsSearch({
                   />
                 </div>
                 <div className="p-2.5 flex flex-col gap-1">
-                  <span className="text-sm font-bold text-text-main line-clamp-1">{item.title}</span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-sm font-bold text-text-main line-clamp-1 min-w-0">{item.title}</span>
+                    {item.ownerIsVip && <VipBadge label={vipBadgeLabel} />}
+                  </div>
                   <span className="text-sm font-extrabold text-primary" dir="ltr">
                     {item.price.toLocaleString()}
                   </span>

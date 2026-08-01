@@ -12,10 +12,10 @@
 // نوع RealEstateDetail وجود دارد، نه در RealEstateSummary/SimilarRealEstate (که فقط برای کارت
 // فهرست/مشابه لازم است).
 //
-// نکته‌ی تایپ‌اسکریپتی: دقیقاً هم‌سو با queries.ts ماژول کالا، چون supabaseAdminClient بدون
-// Generic نوع «Database» ساخته شده، خروجی .rpc(...) توسط TypeScript به‌صورت پیش‌فرض ناشناخته
-// تشخیص داده می‌شود؛ برای همین بلافاصله بعد از خواندن data، با یک نوع خام محلی (RawXxxRow) و
-// «as» صریح، شکل واقعی ردیف را به TypeScript اعلام می‌کنیم.
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** RealEstateDetail و RealEstateSummary دو فیلد تازه گرفتند:
+// `videoPath` و `ownerIsVip` — دقیقاً همان تصمیم و دلیلی که برای ListingDetail/ListingSummary در
+// src/lib/marketplace/queries.ts گرفته شد. SimilarRealEstate عمداً بدون تغییر ماند (طبق بند ۵
+// پرامپت VIP، فقط «کارت و صفحه‌ی جزئیات» نیاز به VipBadge دارند).
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 
@@ -28,10 +28,12 @@ export type RealEstateDetail = {
   address: string;
   description: string | null;
   images: string[];
+  videoPath: string | null;
   createdAt: string;
   latitude: number | null;
   longitude: number | null;
   contactPhone: string;
+  ownerIsVip: boolean;
 };
 
 export type SimilarRealEstate = {
@@ -54,8 +56,10 @@ export type RealEstateSummary = {
   price: number;
   address: string;
   images: string[];
+  videoPath: string | null;
   createdAt: string;
   distanceMeters: number | null;
+  ownerIsVip: boolean;
 };
 
 // شکل خام ردیفی که تابع Postgres «get_real_estate_detail» برمی‌گرداند.
@@ -68,10 +72,12 @@ type RawRealEstateDetailRow = {
   address: string;
   description: string | null;
   images: string[];
+  video_path: string | null;
   created_at: string;
   latitude: number | null;
   longitude: number | null;
   contact_phone: string;
+  owner_is_vip: boolean;
 };
 
 // شکل خام ردیفی که تابع Postgres «get_similar_real_estate» برمی‌گرداند.
@@ -94,8 +100,10 @@ type RawRealEstateSummaryRow = {
   price: number;
   address: string;
   images: string[];
+  video_path: string | null;
   created_at: string;
   distance_meters: number | null;
+  owner_is_vip: boolean;
   total_count: number;
 };
 
@@ -119,10 +127,12 @@ export async function getApprovedRealEstateById(id: string): Promise<RealEstateD
     address: row.address,
     description: row.description,
     images: row.images ?? [],
+    videoPath: row.video_path,
     createdAt: row.created_at,
     latitude: row.latitude,
     longitude: row.longitude,
     contactPhone: row.contact_phone,
+    ownerIsVip: row.owner_is_vip ?? false,
   };
 }
 
@@ -204,8 +214,10 @@ export async function searchRealEstate(params: {
       price: Number(row.price),
       address: row.address,
       images: row.images ?? [],
+      videoPath: row.video_path,
       createdAt: row.created_at,
       distanceMeters: row.distance_meters,
+      ownerIsVip: row.owner_is_vip ?? false,
     })),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
   };

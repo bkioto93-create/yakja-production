@@ -10,20 +10,19 @@
 // وسیله‌ی راننده (لیست ثابت در کد، VEHICLE_TYPES)، تخصص‌های خدماتی پویا و از جدول
 // service_categories خوانده می‌شوند.
 //
-// این صفحه عمداً هنوز از هیچ صفحه‌ی دیگری (مثلاً یک دکمه‌ی «من متخصصم» در فهرست عمومی خدمات) لینک
-// نشده، چون صفحه‌ی فهرست/جستجوی عمومی خدمات (src/app/[lang]/services/page.tsx) هنوز ساخته نشده —
-// دقیقاً هم‌الگو با فاز ۰۳ که در آن هم driver/page.tsx (تسک ۴) پیش از transport/page.tsx با دکمه‌ی
-// becomeDriverButton (تسک ۸) ساخته شد. آن اتصال، طبق ترتیب دقیق لیست تسک‌ها، در تسک ۷ همین فاز
-// اضافه خواهد شد.
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** isVip (از همان user نشست‌دار) به ServiceProviderProfileClient
+// پاس داده می‌شود — بدون هیچ کوئری اضافه‌ی جداگانه.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMyServiceProviderProfile } from "@/lib/services/serviceProviderQueries";
 import { getActiveServiceCategories } from "@/lib/services/serviceCategories";
+import { isUserVip } from "@/lib/vip/vipStatus";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ServiceProviderProfileClient } from "./ServiceProviderProfileClient";
+import type { Locale } from "@/lib/i18n/constants";
 
 export default async function ServiceProviderProfilePage({
   params,
@@ -66,10 +65,11 @@ export default async function ServiceProviderProfilePage({
       <p className="text-sm text-text-muted -mt-2">{dict.services.providerProfile.subtitle}</p>
       <ServiceProviderProfileClient
         dict={dict}
-        lang={lang}
+        lang={lang as Locale}
         defaultContactPhone={user.phoneNumber}
         existingProfile={existingProfile}
         categories={categories}
+        isVip={isUserVip(user.vipExpiresAt)}
       />
     </div>
   );

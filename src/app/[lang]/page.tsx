@@ -15,6 +15,11 @@
 // (قابل سریالایز نیست) — همین باعث خطای بیلد/رانتایم "Functions cannot be passed directly to
 // Client Components" می‌شد. راه‌حل: فقط اسم آیکون (رشته‌ی ساده) پاس داده می‌شود، و خودِ
 // QuickAccessIcon.tsx (که سمت کلاینت است) آن اسم را به کامپوننت واقعی تبدیل می‌کند.
+//
+// **فاز ۱۱ (عضویت VIP):** طبق بند ۷ پرامپت VIP، یک بنر تبلیغاتی VIP بین بخش «دسترسی سریع» و
+// بخش «بنرهای پیش‌رونده‌ی افقی» اضافه شد (src/components/home/VipHomeBanner.tsx) — بلافاصله
+// بعد از دسترسی سریع، برای بیشترین دیده‌شدن، و همچنان کاملاً «بین دسترسی سریع و چرا یکجا؟»
+// طبق متن دقیق پرامپت.
 import { getDictionary } from "@/dictionaries/getDictionary";
 import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
@@ -22,6 +27,7 @@ import { HomeFeatures } from "./HomeFeatures";
 import { HomeFaq } from "./HomeFaq";
 import { HeroIllustration } from "./HeroIllustration";
 import { QuickAccessIcon } from "./QuickAccessIcon";
+import { VipHomeBanner } from "@/components/home/VipHomeBanner";
 import {
   DriversShowcase,
   ProvidersShowcase,
@@ -170,6 +176,9 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
               ))}
            </div>
          </div>
+
+         {/* بنر VIP — فاز ۱۱، بند ۷ پرامپت VIP: بین «دسترسی سریع» و «چرا یکجا؟» */}
+         <VipHomeBanner lang={lang} dict={dict.vip.homeBanner} />
 
          {/* بنرهای پیش‌رونده‌ی افقی — رانندگان/متخصصین/کالا/ملک تازه (درخواست صریح کارفرما) */}
          <div className="-mx-[24px] md:mx-0 space-y-8">

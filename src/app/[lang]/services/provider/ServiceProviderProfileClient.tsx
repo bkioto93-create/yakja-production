@@ -6,6 +6,10 @@
 // NewListingWizard فاز ۰۲ است): گرید ۳ ستونه، فشرده‌سازی سمت کلاینت (نسخه‌ی services)، حداکثر ۵
 // عکس، کاملاً اختیاری. برای این ماژول عکس اهمیت مضاعف دارد چون طبق ممیزی محصول، «نمونه‌کار» یکی
 // از قوی‌ترین عامل‌های اعتمادسازی پیش از تماس با یک متخصص است (مشابه Thumbtack).
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک بخش «ویدئو» بعد از «گالری نمونه‌کار» اضافه شد — دقیقاً
+// همان الگوی دو-حالته‌ی DriverProfileClient.tsx: کاربر VIP ابزار آپلود/پیش‌نمایش/حذف تک‌ویدئویی
+// می‌بیند؛ کاربر غیر-VIP به‌جای آن، VipUpsellNotice مشترک را می‌بیند.
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
@@ -17,19 +21,26 @@ import { IconCategoryPicker } from "@/components/ui/IconCategoryPicker";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/ToastProvider";
+import { VipUpsellNotice } from "@/components/vip/VipUpsellNotice";
 import { getBuiltinIconComponent } from "@/lib/services/serviceCategoryIcons";
 import { compressImageFile, type CompressedImage } from "@/lib/services/imageCompression";
 import { getServiceProviderImageUrl } from "@/lib/services/images";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import type { ServiceCategory } from "@/lib/services/serviceCategories";
-import { saveServiceProviderProfileAction, createServiceProviderSignedUploadSlotsAction } from "./actions";
+import {
+  saveServiceProviderProfileAction,
+  createServiceProviderSignedUploadSlotsAction,
+  createServiceProviderSignedVideoUploadSlotAction,
+} from "./actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
+import type { Locale } from "@/lib/i18n/constants";
 import type { MyServiceProviderProfile } from "@/lib/services/serviceProviderQueries";
 import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 
 type Dict = Awaited<ReturnType<typeof getDictionary>>;
 
 const MAX_IMAGES = 5;
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 
 export function ServiceProviderProfileClient({
   dict,
@@ -37,12 +48,14 @@ export function ServiceProviderProfileClient({
   defaultContactPhone,
   existingProfile,
   categories,
+  isVip,
 }: {
   dict: Dict;
-  lang: string;
+  lang: Locale;
   defaultContactPhone: string;
   existingProfile: MyServiceProviderProfile | null;
   categories: ServiceCategory[];
+  isVip: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -68,6 +81,12 @@ export function ServiceProviderProfileClient({
   const [newImages, setNewImages] = useState<CompressedImage[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
   const totalImagesCount = existingImages.length + newImages.length;
+
+  // فاز ۱۱ — ویدئوی موجود (حالت ویرایش) + ویدئوی تازه‌ی انتخاب‌شده در همین جلسه.
+  const [existingVideoPath, setExistingVideoPath] = useState<string | null>(
+    existingProfile?.videoPath ?? null
+  );
+  const [newVideo, setNewVideo] = useState<{ file: File; previewUrl: string } | null>(null);
 
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   useEffect(() => {
@@ -117,6 +136,27 @@ export function ServiceProviderProfileClient({
     });
   }
 
+  function handleAddVideo(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
+      showToast(errorText("invalidVideoType"), "error");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      showToast(errorText("videoTooLarge"), "error");
+      return;
+    }
+    if (newVideo) URL.revokeObjectURL(newVideo.previewUrl);
+    setNewVideo({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  function handleRemoveVideo() {
+    if (newVideo) URL.revokeObjectURL(newVideo.previewUrl);
+    setNewVideo(null);
+    setExistingVideoPath(null);
+  }
+
   function handleSubmit() {
     if (!serviceCategoryId) {
       showToast(errorText("invalidCategory"), "error");
@@ -159,6 +199,26 @@ export function ServiceProviderProfileClient({
         }
       }
 
+      // فاز ۱۱ — آپلود ویدئوی تازه (اگر وجود داشته باشد و کاربر VIP باشد).
+      let finalVideoPath: string | null = existingVideoPath;
+      if (isVip && newVideo) {
+        const videoSlotResult = await createServiceProviderSignedVideoUploadSlotAction();
+        if (!videoSlotResult.success) {
+          showToast(errorText(videoSlotResult.error), "error");
+          return;
+        }
+        const { error: videoUploadError } = await supabaseBrowserClient.storage
+          .from("service-providers-videos")
+          .uploadToSignedUrl(videoSlotResult.slot.path, videoSlotResult.slot.token, newVideo.file, {
+            contentType: newVideo.file.type || "video/mp4",
+          });
+        if (videoUploadError) {
+          showToast(errorText("uploadFailed"), "error");
+          return;
+        }
+        finalVideoPath = videoSlotResult.slot.path;
+      }
+
       const result = await saveServiceProviderProfileAction({
         serviceCategoryId,
         province: province as string,
@@ -166,6 +226,7 @@ export function ServiceProviderProfileClient({
         contactPhone,
         description,
         imagePaths: [...existingImages, ...uploadedPaths],
+        videoPath: finalVideoPath,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
       });
@@ -332,6 +393,57 @@ export function ServiceProviderProfileClient({
             </label>
           )}
         </div>
+      </div>
+
+      {/* فاز ۱۱ — بخش ویدئو، فقط VIP. */}
+      <div className="flex flex-col gap-2">
+        <h2 className="font-bold text-text-main text-center">{formDict.videoSectionTitle}</h2>
+
+        {!isVip ? (
+          <VipUpsellNotice lang={lang} message={dict.vip.upsell.videoMessage} buttonLabel={dict.vip.upsell.button} />
+        ) : newVideo ? (
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-w-xs mx-auto w-full">
+            <video src={newVideo.previewUrl} controls className="w-full aspect-video bg-black" />
+            <button
+              type="button"
+              onClick={handleRemoveVideo}
+              aria-label={formDict.removeVideoLabel}
+              className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
+            >
+              ×
+            </button>
+          </div>
+        ) : existingVideoPath ? (
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-w-xs mx-auto w-full">
+            <video
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/service-providers-videos/${existingVideoPath}`}
+              controls
+              className="w-full aspect-video bg-black"
+            />
+            <button
+              type="button"
+              onClick={handleRemoveVideo}
+              aria-label={formDict.removeVideoLabel}
+              className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <label className="max-w-xs mx-auto w-full aspect-video rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 cursor-pointer active:scale-95 transition-transform">
+            <Icons.Camera className="w-6 h-6" />
+            <span className="text-xs font-bold text-center px-2">{formDict.addVideoButton}</span>
+            <input
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => {
+                handleAddVideo(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
       </div>
 
       {!isHiddenByAdmin && (

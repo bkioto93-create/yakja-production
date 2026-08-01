@@ -3,9 +3,9 @@
 // مرتب‌شده بر اساس نزدیک‌ترین فاصله (در صورت دادن GPS) یا بدون فاصله. اولین صفحه‌ی نتایج (بدون
 // فیلتر تخصص، بدون مکان کاربر) کاملاً سمت سرور خوانده می‌شود، دقیقاً هم‌الگو با
 // src/app/[lang]/listings/page.tsx (فاز ۰۲، تسک ۷) و src/app/[lang]/transport/page.tsx (فاز ۰۳،
-// تسک ۸). این صفحه هم‌زمان اولین‌بار مسیر /{lang}/services را می‌سازد و دکمه‌ی «من متخصصم» را
-// به صفحه‌ی پروفایل متخصص (ساخته‌شده در تسک ۶) وصل می‌کند — دقیقاً همان اتصالی که در پایان
-// تسک ۶ برای همین تسک برنامه‌ریزی شده بود.
+// تسک ۸).
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** vipBadgeLabel به ActiveServiceProvidersList پاس داده می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getActiveServiceCategories } from "@/lib/services/serviceCategories";
@@ -50,6 +50,7 @@ export default async function ServicesPage({
         lang={lang}
         dict={listDict}
         reportButtonLabel={dict.reports.reportButtonLabel}
+        vipBadgeLabel={dict.vip.badgeLabel}
         categories={categories}
         provinceDict={dict.province}
         selectedProvince={province}

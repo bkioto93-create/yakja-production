@@ -4,6 +4,14 @@
 // موقعیت مکانی (GPS) عمداً در هیچ مرحله‌ی جداگانه‌ای درخواست نمی‌شود؛ فقط یک‌بار، خاموش و
 // اختیاری، هنگام رسیدن به مرحله‌ی آخر گرفته می‌شود تا کاربر با درخواست دسترسی زودهنگام دلسرد
 // نشود. اگر کاربر اجازه ندهد، ستون location طبق طراحی تسک ۲ همان null باقی می‌ماند.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک ویدئوی اختیاری (تصمیم پذیرفته‌شده: فقط یک ویدئو) به
+// انتهای همان مرحله‌ی ۲ (عکس‌ها) اضافه شد — عمداً یک مرحله‌ی تازه‌ی مستقل ساخته نشد، تا شماره‌ی
+// کل مراحل (TOTAL_STEPS=4) و منطق Stepper دست‌نخورده بماند؛ ویدئو از نظر کاربر ادامه‌ی طبیعی
+// «رسانه‌ی آگهی» است، نه یک مرحله‌ی مجزا. کاربر غیر-VIP به‌جای ابزار آپلود، همان کامپوننت مشترک
+// VipUpsellNotice را می‌بیند. ویدئو برخلاف عکس، فشرده (compress) نمی‌شود — فقط حجم (حداکثر
+// ۲۰ مگابایت، هم‌سو با محدودیت باکت listings-videos) و نوع فایل سمت کلاینت اعتبارسنجی می‌شود؛
+// اعتبارسنجی واقعی و غیرقابل‌دورزدن همچنان سمت سرور در actions.ts انجام می‌شود.
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
@@ -14,12 +22,17 @@ import { Input } from "@/components/ui/Input";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/ToastProvider";
+import { VipUpsellNotice } from "@/components/vip/VipUpsellNotice";
 import { LISTING_CATEGORIES, type ListingCategoryId } from "@/lib/marketplace/categories";
 import { compressImageFile, type CompressedImage } from "@/lib/marketplace/imageCompression";
 import { sanitizePriceInput, toAsciiDigits } from "@/lib/marketplace/numbers";
 import { normalizeAfghanPhone } from "@/lib/phone";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
-import { createSignedUploadSlotsAction, createListingAction } from "./actions";
+import {
+  createSignedUploadSlotsAction,
+  createSignedVideoUploadSlotAction,
+  createListingAction,
+} from "./actions";
 import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { Locale } from "@/lib/i18n/constants";
@@ -29,15 +42,18 @@ type Dict = Awaited<ReturnType<typeof getDictionary>>;
 const TOTAL_STEPS = 4;
 const MIN_IMAGES = 1;
 const MAX_IMAGES = 5;
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024; // ۲۰ مگابایت — هم‌سو با محدودیت باکت listings-videos
 
 export function NewListingWizard({
   lang,
   dict,
   defaultContactPhone,
+  isVip,
 }: {
   lang: Locale;
   dict: Dict;
   defaultContactPhone: string;
+  isVip: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -49,6 +65,7 @@ export function NewListingWizard({
   const [category, setCategory] = useState<ListingCategoryId | "">("");
   const [images, setImages] = useState<CompressedImage[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [video, setVideo] = useState<{ file: File; previewUrl: string } | null>(null);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [address, setAddress] = useState("");
@@ -101,6 +118,28 @@ export function NewListingWizard({
       if (target) URL.revokeObjectURL(target.previewUrl);
       return prev.filter((_, i) => i !== index);
     });
+  }
+
+  function handleAddVideo(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      showToast(errorText("invalidVideoType"), "error");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      showToast(errorText("videoTooLarge"), "error");
+      return;
+    }
+
+    if (video) URL.revokeObjectURL(video.previewUrl);
+    setVideo({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  function handleRemoveVideo() {
+    if (video) URL.revokeObjectURL(video.previewUrl);
+    setVideo(null);
   }
 
   function validateStep(currentStep: number): boolean {
@@ -174,6 +213,26 @@ export function NewListingWizard({
         imagePaths.push(slot.path);
       }
 
+      // فاز ۱۱ — آپلود ویدئوی اختیاری، فقط اگر کاربر VIP است و ویدئویی انتخاب کرده.
+      let videoPath: string | null = null;
+      if (isVip && video) {
+        const videoSlotResult = await createSignedVideoUploadSlotAction();
+        if (!videoSlotResult.success) {
+          showToast(errorText(videoSlotResult.error), "error");
+          return;
+        }
+        const { error: videoUploadError } = await supabaseBrowserClient.storage
+          .from("listings-videos")
+          .uploadToSignedUrl(videoSlotResult.slot.path, videoSlotResult.slot.token, video.file, {
+            contentType: video.file.type || "video/mp4",
+          });
+        if (videoUploadError) {
+          showToast(errorText("uploadFailed"), "error");
+          return;
+        }
+        videoPath = videoSlotResult.slot.path;
+      }
+
       const result = await createListingAction({
         category: category as string,
         province: province as string,
@@ -183,6 +242,7 @@ export function NewListingWizard({
         contactPhone,
         description,
         imagePaths,
+        videoPath,
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
       });
@@ -266,6 +326,41 @@ export function NewListingWizard({
                   disabled={isCompressing}
                   onChange={(e) => {
                     handleAddImages(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
+          {/* فاز ۱۱ — ویدئوی اختیاری، فقط VIP. کاربر غیر-VIP به‌جای ابزار آپلود، کارت دعوت را می‌بیند. */}
+          <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-text-main text-center">{wizardDict.videoTitle}</h3>
+
+            {!isVip ? (
+              <VipUpsellNotice lang={lang} message={dict.vip.upsell.videoMessage} buttonLabel={dict.vip.upsell.button} />
+            ) : video ? (
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-w-xs mx-auto w-full">
+                <video src={video.previewUrl} controls className="w-full aspect-video bg-black" />
+                <button
+                  type="button"
+                  onClick={handleRemoveVideo}
+                  aria-label={wizardDict.removeVideoLabel}
+                  className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <label className="max-w-xs mx-auto w-full aspect-video rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 cursor-pointer active:scale-95 transition-transform">
+                <Icons.Camera className="w-6 h-6" />
+                <span className="text-xs font-bold text-center px-2">{wizardDict.addVideoButton}</span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleAddVideo(e.target.files);
                     e.target.value = "";
                   }}
                 />

@@ -9,6 +9,10 @@
 // (20_phase_08b_transport_services_photos.sql) به هر دو تابع این فایل اضافه شد — هم به
 // getMyDriverProfile (برای نمایش عکس‌های موجود در حالت ویرایش پروفایل) و هم به تابع Postgres
 // get_active_drivers که getActiveDrivers از آن استفاده می‌کند (برای فهرست عمومی).
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** getMyDriverProfile فیلد تازه‌ی videoPath گرفت (برای نمایش
+// ویدئوی موجود در حالت ویرایش)؛ ActiveDriverSummary فیلدهای videoPath و ownerIsVip گرفت (برای
+// VipBadge و پخش‌کننده‌ی ویدئو در کارت راننده، طبق بند ۵ پرامپت VIP).
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import type { VehicleTypeId } from "./vehicleTypes";
@@ -21,6 +25,7 @@ export type MyDriverProfile = {
   province: string | null;
   isActive: boolean;
   images: string[];
+  videoPath: string | null;
 };
 
 // پروفایل راننده‌ی خودِ کاربرِ واردشده را برمی‌گرداند؛ اگر هنوز پروفایلی نساخته (کاربر تازه به
@@ -28,7 +33,7 @@ export type MyDriverProfile = {
 export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfile | null> {
   const { data, error } = await supabaseAdminClient
     .from("drivers")
-    .select("id, vehicle_type, vehicle_details, contact_phone, province, is_active, images")
+    .select("id, vehicle_type, vehicle_details, contact_phone, province, is_active, images, video_path")
     .eq("owner_id", ownerId)
     .maybeSingle();
 
@@ -42,6 +47,7 @@ export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfi
     province: data.province ?? null,
     isActive: data.is_active,
     images: data.images ?? [],
+    videoPath: data.video_path ?? null,
   };
 }
 
@@ -60,10 +66,12 @@ export type ActiveDriverSummary = {
   vehicleDetails: string | null;
   contactPhone: string;
   images: string[];
+  videoPath: string | null;
   latitude: number | null;
   longitude: number | null;
   distanceMeters: number | null;
   lastLocationUpdate: string | null;
+  ownerIsVip: boolean;
 };
 
 // شکل خام ردیفی که تابع Postgres «get_active_drivers» برمی‌گرداند.
@@ -73,10 +81,12 @@ type RawActiveDriverRow = {
   vehicle_details: string | null;
   contact_phone: string;
   images: string[] | null;
+  video_path: string | null;
   latitude: number | null;
   longitude: number | null;
   distance_meters: number | null;
   last_location_update: string | null;
+  owner_is_vip: boolean;
   total_count: number;
 };
 
@@ -107,10 +117,12 @@ export async function getActiveDrivers(params: {
       vehicleDetails: row.vehicle_details,
       contactPhone: row.contact_phone,
       images: row.images ?? [],
+      videoPath: row.video_path,
       latitude: row.latitude,
       longitude: row.longitude,
       distanceMeters: row.distance_meters,
       lastLocationUpdate: row.last_location_update,
+      ownerIsVip: row.owner_is_vip ?? false,
     })),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
   };

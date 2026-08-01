@@ -8,6 +8,10 @@
 // حالت ویرایش) با getDriverImageUrl نمایش داده می‌شوند و هرکدام قابل حذف است؛ عکس‌های تازه ابتدا
 // فشرده و پیش‌نمایش می‌شوند و فقط هنگام ذخیره‌ی نهایی فرم، با createDriverSignedUploadSlotsAction
 // آپلود می‌شوند — دقیقاً همان جریان دو-مرحله‌ای آگهی کالا (فاز ۰۲).
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک بخش «ویدئو» بعد از بخش «عکس‌ها» اضافه شد — همان الگوی
+// دو-حالته‌ی مرحله‌ی ۲ NewListingWizard.tsx: کاربر VIP یک ابزار آپلود/پیش‌نمایش/حذف تک‌ویدئویی
+// می‌بیند؛ کاربر غیر-VIP به‌جای آن، VipUpsellNotice مشترک را می‌بیند.
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
@@ -20,6 +24,7 @@ import { Switch } from "@/components/ui/Switch";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/ToastProvider";
+import { VipUpsellNotice } from "@/components/vip/VipUpsellNotice";
 import { VEHICLE_TYPES, type VehicleTypeId } from "@/lib/transport/vehicleTypes";
 import { compressImageFile, type CompressedImage } from "@/lib/transport/imageCompression";
 import { getDriverImageUrl } from "@/lib/transport/images";
@@ -29,25 +34,32 @@ import {
   setDriverActiveStatusAction,
   updateDriverLocationAction,
   createDriverSignedUploadSlotsAction,
+  createDriverSignedVideoUploadSlotAction,
 } from "./actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
+import type { Locale } from "@/lib/i18n/constants";
 import type { MyDriverProfile } from "@/lib/transport/driverQueries";
 import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 
 type Dict = Awaited<ReturnType<typeof getDictionary>>;
 
 const MAX_IMAGES = 5;
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 
 type LocationTrackingStatus = "idle" | "active" | "denied" | "unsupported";
 
 export function DriverProfileClient({
+  lang,
   dict,
   defaultContactPhone,
   existingProfile,
+  isVip,
 }: {
+  lang: Locale;
   dict: Dict;
   defaultContactPhone: string;
   existingProfile: MyDriverProfile | null;
+  isVip: boolean;
 }) {
   const router = useRouter();
   const { showToast } = useToast();
@@ -74,6 +86,12 @@ export function DriverProfileClient({
   const [isCompressing, setIsCompressing] = useState(false);
 
   const totalImagesCount = existingImages.length + newImages.length;
+
+  // فاز ۱۱ — ویدئوی موجود (حالت ویرایش) + ویدئوی تازه‌ی انتخاب‌شده در همین جلسه.
+  const [existingVideoPath, setExistingVideoPath] = useState<string | null>(
+    existingProfile?.videoPath ?? null
+  );
+  const [newVideo, setNewVideo] = useState<{ file: File; previewUrl: string } | null>(null);
 
   const [isActive, setIsActive] = useState(existingProfile?.isActive ?? false);
   const [isTogglingActive, startTogglingActive] = useTransition();
@@ -115,6 +133,27 @@ export function DriverProfileClient({
     });
   }
 
+  function handleAddVideo(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
+      showToast(errorText("invalidVideoType"), "error");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      showToast(errorText("videoTooLarge"), "error");
+      return;
+    }
+    if (newVideo) URL.revokeObjectURL(newVideo.previewUrl);
+    setNewVideo({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  function handleRemoveVideo() {
+    if (newVideo) URL.revokeObjectURL(newVideo.previewUrl);
+    setNewVideo(null);
+    setExistingVideoPath(null);
+  }
+
   function handleSubmit() {
     if (!vehicleType) {
       showToast(errorText("invalidVehicleType"), "error");
@@ -154,12 +193,33 @@ export function DriverProfileClient({
         }
       }
 
+      // فاز ۱۱ — آپلود ویدئوی تازه (اگر وجود داشته باشد و کاربر VIP باشد).
+      let finalVideoPath: string | null = existingVideoPath;
+      if (isVip && newVideo) {
+        const videoSlotResult = await createDriverSignedVideoUploadSlotAction();
+        if (!videoSlotResult.success) {
+          showToast(errorText(videoSlotResult.error), "error");
+          return;
+        }
+        const { error: videoUploadError } = await supabaseBrowserClient.storage
+          .from("drivers-videos")
+          .uploadToSignedUrl(videoSlotResult.slot.path, videoSlotResult.slot.token, newVideo.file, {
+            contentType: newVideo.file.type || "video/mp4",
+          });
+        if (videoUploadError) {
+          showToast(errorText("uploadFailed"), "error");
+          return;
+        }
+        finalVideoPath = videoSlotResult.slot.path;
+      }
+
       const result = await saveDriverProfileAction({
         vehicleType,
         province: province as string,
         vehicleDetails,
         contactPhone,
         imagePaths: [...existingImages, ...uploadedPaths],
+        videoPath: finalVideoPath,
       });
 
       if (!result.success) {
@@ -376,6 +436,57 @@ export function DriverProfileClient({
             </label>
           )}
         </div>
+      </div>
+
+      {/* فاز ۱۱ — بخش ویدئو، فقط VIP. */}
+      <div className="flex flex-col gap-2">
+        <h2 className="font-bold text-text-main text-center">{formDict.videoSectionTitle}</h2>
+
+        {!isVip ? (
+          <VipUpsellNotice lang={lang} message={dict.vip.upsell.videoMessage} buttonLabel={dict.vip.upsell.button} />
+        ) : newVideo ? (
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-w-xs mx-auto w-full">
+            <video src={newVideo.previewUrl} controls className="w-full aspect-video bg-black" />
+            <button
+              type="button"
+              onClick={handleRemoveVideo}
+              aria-label={formDict.removeVideoLabel}
+              className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
+            >
+              ×
+            </button>
+          </div>
+        ) : existingVideoPath ? (
+          <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-w-xs mx-auto w-full">
+            <video
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/drivers-videos/${existingVideoPath}`}
+              controls
+              className="w-full aspect-video bg-black"
+            />
+            <button
+              type="button"
+              onClick={handleRemoveVideo}
+              aria-label={formDict.removeVideoLabel}
+              className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
+            >
+              ×
+            </button>
+          </div>
+        ) : (
+          <label className="max-w-xs mx-auto w-full aspect-video rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 cursor-pointer active:scale-95 transition-transform">
+            <Icons.Camera className="w-6 h-6" />
+            <span className="text-xs font-bold text-center px-2">{formDict.addVideoButton}</span>
+            <input
+              type="file"
+              accept="video/*"
+              className="hidden"
+              onChange={(e) => {
+                handleAddVideo(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
       </div>
 
       {isEditMode && (

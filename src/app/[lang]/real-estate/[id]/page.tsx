@@ -4,29 +4,28 @@
 // آگهی‌های مشابه بر اساس همان نوع ملک و همان نوع معامله انتخاب می‌شوند؛ اگر آگهی جاری موقعیت
 // مکانی (GPS) داشت، مرتب‌سازی توسط تابع Postgres سمت دیتابیس (get_similar_real_estate، با
 // PostGIS ST_Distance) انجام می‌شود؛ در غیر این صورت، جدیدترین آگهی‌های همان نوع/معامله نمایش
-// داده می‌شوند. فقط آگهی‌های «تاییدشده» در این صفحه قابل مشاهده‌اند (همان قاعده‌ی RLS/RPC عمومی).
+// داده می‌شوند. فقط آگهی‌های «تاییدشده» در این صفحه قابل مشاهده‌اند.
 //
 // تفاوت با ماژول کالا: real_estate ستون title ندارد، پس تیتر صفحه از روی نوع ملک ساخته می‌شود؛
 // شماره تماس هم برخلاف listings در خودِ ردیف آگهی ذخیره نشده — از get_real_estate_detail (Join
-// با users) خوانده می‌شود (طبق طراحی تسک ۴ همین فاز).
+// با users) خوانده می‌شود.
 //
 // تکمیل گذشته‌نگر تسک ۳ فاز ۰۶: کارت «آگهی‌دهنده» اضافه شد — لینکی به پروفایل عمومی
-// تازه‌ساخته‌شده‌ی آگهی‌دهنده (src/app/[lang]/users/[id]/page.tsx، از روی property.ownerId که از
-// قبل در RealEstateDetail موجود بود)، دقیقاً هم‌الگو با کارت «فروشنده» در ماژول کالا.
+// تازه‌ساخته‌شده‌ی آگهی‌دهنده.
 //
-// **اصلاح ممیزی مجدد تسک ۴ فاز ۰۸:** تصویر اصلی/بزرگ گالری (eager + fetchPriority="high")
-// فاقد decoding="async" بود، برخلاف توضیح مکتوب تسک ۴ («در تمام موارد بالا decoding="async" هم
-// اضافه شد»). دقیقاً همان مغایرتی که در listings/[id]/page.tsx هم پیدا شد (چون این فایل هم‌الگوی
-// همان است)؛ اکنون این‌جا هم اضافه شد — بدون تغییر در fetchPriority="high"/loading="eager".
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ۱) VipBadge کنار تیتر آگهی، فقط اگر property.ownerIsVip؛
+// ۲) اگر آگهی ویدئوی VIP دارد (property.videoPath)، یک پخش‌کننده‌ی <video> بعد از گالری تصاویر
+// اضافه می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getApprovedRealEstateById, getSimilarRealEstate } from "@/lib/realEstate/queries";
-import { getRealEstateImageUrl } from "@/lib/realEstate/images";
+import { getRealEstateImageUrl, getRealEstateVideoUrl } from "@/lib/realEstate/images";
 import { PROPERTY_TYPES } from "@/lib/realEstate/propertyTypes";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ReportButton } from "@/components/reports/ReportButton";
+import { VipBadge } from "@/components/vip/VipBadge";
 
 export default async function RealEstateDetailPage({
   params,
@@ -113,6 +112,15 @@ export default async function RealEstateDetailPage({
             ))}
           </div>
         )}
+
+        {/* فاز ۱۱ — ویدئوی اختیاری VIP */}
+        {property.videoPath && (
+          <video
+            src={getRealEstateVideoUrl(property.videoPath)}
+            controls
+            className="w-full aspect-video rounded-2xl bg-black"
+          />
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
@@ -121,9 +129,12 @@ export default async function RealEstateDetailPage({
           <span>{propertyTypeLabel}</span>
         </div>
 
-        <h1 className="text-xl font-extrabold text-text-main">
-          {propertyTypeLabel} · {dealTypeLabel}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-extrabold text-text-main">
+            {propertyTypeLabel} · {dealTypeLabel}
+          </h1>
+          {property.ownerIsVip && <VipBadge label={dict.vip.badgeLabel} size="md" />}
+        </div>
 
         <div className="flex items-baseline gap-1.5">
           <span className="text-2xl font-extrabold text-primary" dir="ltr">

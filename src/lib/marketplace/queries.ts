@@ -23,6 +23,13 @@
 // نمی‌کرد. برخلاف سه تابع دیگر این فایل (که با supabaseAdminClient.rpc به توابع Postgres وصل
 // می‌شوند)، این تابع مستقیماً روی ستون‌های ساده‌ی جدول listings کوئری می‌زند — نیازی به تابع
 // Postgres جداگانه نیست چون هیچ محاسبه‌ی مکانی (PostGIS) در کار نیست، فقط فیلتر owner_id.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ListingDetail و ListingSummary دو فیلد تازه گرفتند:
+// `videoPath` (مسیر ویدئوی اختیاری آگهی) و `ownerIsVip` (برای نمایش VipBadge کنار کارت/جزئیات
+// بدون یک کوئری جداگانه‌ی اضافه — رجوع کنید به 22_phase_11_vip_membership.sql، ستون‌های تازه‌ی
+// خروجی get_listing_detail/search_listings). SimilarListing/MyListing عمداً بدون تغییر ماندند
+// چون طبق بند ۵ پرامپت VIP، فقط «کارت و صفحه‌ی جزئیات» نیاز به VipBadge دارند، نه بخش
+// «آگهی‌های مشابه» یا «آگهی‌های من».
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 
@@ -36,9 +43,11 @@ export type ListingDetail = {
   contactPhone: string;
   description: string | null;
   images: string[];
+  videoPath: string | null;
   createdAt: string;
   latitude: number | null;
   longitude: number | null;
+  ownerIsVip: boolean;
 };
 
 export type SimilarListing = {
@@ -61,8 +70,10 @@ export type ListingSummary = {
   price: number;
   address: string;
   images: string[];
+  videoPath: string | null;
   createdAt: string;
   distanceMeters: number | null;
+  ownerIsVip: boolean;
 };
 
 // شکل خروجی «آگهی‌های من» (تسک ۷ فاز M02 موبایل) — شامل وضعیت (pending/approved/deleted)،
@@ -89,9 +100,11 @@ type RawListingDetailRow = {
   contact_phone: string;
   description: string | null;
   images: string[];
+  video_path: string | null;
   created_at: string;
   latitude: number | null;
   longitude: number | null;
+  owner_is_vip: boolean;
 };
 
 // شکل خام ردیفی که تابع Postgres «get_similar_listings» برمی‌گرداند.
@@ -114,8 +127,10 @@ type RawListingSummaryRow = {
   price: number;
   address: string;
   images: string[];
+  video_path: string | null;
   created_at: string;
   distance_meters: number | null;
+  owner_is_vip: boolean;
   total_count: number;
 };
 
@@ -152,9 +167,11 @@ export async function getApprovedListingById(id: string): Promise<ListingDetail 
     contactPhone: row.contact_phone,
     description: row.description,
     images: row.images ?? [],
+    videoPath: row.video_path,
     createdAt: row.created_at,
     latitude: row.latitude,
     longitude: row.longitude,
+    ownerIsVip: row.owner_is_vip ?? false,
   };
 }
 
@@ -231,8 +248,10 @@ export async function searchListings(params: {
       price: Number(row.price),
       address: row.address,
       images: row.images ?? [],
+      videoPath: row.video_path,
       createdAt: row.created_at,
       distanceMeters: row.distance_meters,
+      ownerIsVip: row.owner_is_vip ?? false,
     })),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
   };

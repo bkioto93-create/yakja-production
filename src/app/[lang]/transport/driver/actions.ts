@@ -25,6 +25,12 @@
 // است: اگر خودِ حذف فایل با خطا مواجه شود، ذخیره‌ی پروفایل که واقعاً موفق بوده نباید به کاربر
 // «شکست‌خورده» نشان داده شود؛ در بدترین حالت یک فایل یتیم باقی می‌ماند که در ذخیره‌ی بعدی همین
 // پروفایل (یا یک پاک‌سازی دوره‌ای جداگانه در آینده) جبران می‌شود.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** createDriverSignedVideoUploadSlotAction اضافه شد (دقیقاً
+// هم‌الگو با نسخه‌ی مشابهش در listings/new/actions.ts، گیت‌شده سمت سرور با isUserVip).
+// saveDriverProfileAction هم videoPath را می‌پذیرد و همان منطق نظافتِ فایل یتیم که برای عکس‌ها
+// وجود داشت، برای ویدئوی جایگزین‌شده/حذف‌شده هم اعمال شد. پروفایل راننده مشمول سقف روزانه‌ی ۲
+// آگهی نیست (طبق تعریف src/lib/vip/dailyPostLimit.ts، آن سقف فقط listings+real_estate است).
 "use server";
 
 import { supabaseAdminClient } from "@/lib/supabase/server";
@@ -33,8 +39,10 @@ import { normalizeAfghanPhone } from "@/lib/phone";
 import { toAsciiDigits } from "@/lib/marketplace/numbers";
 import { isValidVehicleType } from "@/lib/transport/vehicleTypes";
 import { isValidProvince } from "@/lib/provinces";
+import { isUserVip } from "@/lib/vip/vipStatus";
 
 const DRIVERS_BUCKET = "drivers-images";
+const DRIVERS_VIDEOS_BUCKET = "drivers-videos";
 const MAX_IMAGES = 5;
 
 export type SignedUploadSlot = { path: string; token: string };
@@ -70,15 +78,36 @@ export async function createDriverSignedUploadSlotsAction(
   return { success: true, slots };
 }
 
+// فاز ۱۱ — یک ویدئوی تکی، فقط برای کاربر VIP؛ گیت‌کردن واقعی سمت سرور.
+export async function createDriverSignedVideoUploadSlotAction(): Promise<
+  { success: true; slot: SignedUploadSlot } | { success: false; error: string }
+> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "unauthenticated" };
+  if (!isUserVip(user.vipExpiresAt)) return { success: false, error: "notVip" };
+
+  const path = `${user.id}/${Date.now()}.mp4`;
+  const { data, error } = await supabaseAdminClient.storage
+    .from(DRIVERS_VIDEOS_BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error || !data) return { success: false, error: "uploadFailed" };
+
+  return { success: true, slot: { path: data.path, token: data.token } };
+}
+
 export async function saveDriverProfileAction(input: {
   vehicleType: string;
   province: string;
   vehicleDetails: string;
   contactPhone: string;
   imagePaths: string[];
+  videoPath?: string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "unauthenticated" };
+
+  const isVip = isUserVip(user.vipExpiresAt);
 
   if (!isValidVehicleType(input.vehicleType)) {
     return { success: false, error: "invalidVehicleType" };
@@ -101,18 +130,27 @@ export async function saveDriverProfileAction(input: {
   const ownsAllPaths = input.imagePaths.every((p) => p.startsWith(`${user.id}/`));
   if (!ownsAllPaths) return { success: false, error: "invalidImageData" };
 
+  // فاز ۱۱ — گیت‌کردن واقعی ویدئو، دوباره سمت سرور.
+  let videoPath: string | null = null;
+  if (input.videoPath) {
+    if (!isVip) return { success: false, error: "notVip" };
+    if (!input.videoPath.startsWith(`${user.id}/`)) return { success: false, error: "invalidVideoData" };
+    videoPath = input.videoPath;
+  }
+
   const vehicleDetails = input.vehicleDetails.trim() || null;
 
-  // نظافت تصاویر یتیم: پیش از upsert، آرایه‌ی images فعلی (پیش از این ذخیره) خوانده می‌شود تا
+  // نظافت تصاویر/ویدئوی یتیم: پیش از upsert، مقادیر فعلی (پیش از این ذخیره) خوانده می‌شوند تا
   // بعداً بتوان مسیرهای حذف‌شده توسط کاربر را تشخیص داد. اگر ردیفی هنوز وجود نداشته باشد (اولین
-  // ثبت پروفایل)، previousImages به‌درستی آرایه‌ی خالی خواهد بود.
+  // ثبت پروفایل)، previousImages/previousVideoPath به‌درستی خالی/null خواهند بود.
   const { data: existingRow } = await supabaseAdminClient
     .from("drivers")
-    .select("images")
+    .select("images, video_path")
     .eq("owner_id", user.id)
     .maybeSingle();
 
   const previousImages: string[] = existingRow?.images ?? [];
+  const previousVideoPath: string | null = existingRow?.video_path ?? null;
 
   const { error } = await supabaseAdminClient
     .from("drivers")
@@ -124,28 +162,35 @@ export async function saveDriverProfileAction(input: {
         vehicle_details: vehicleDetails,
         contact_phone: contactPhone,
         images: input.imagePaths,
+        video_path: videoPath,
       },
       { onConflict: "owner_id" }
     );
 
   if (error) {
-    // پاک‌سازی تصاویر یتیم در صورت شکست ثبت — دقیقاً هم‌الگو با createListingAction.
+    // پاک‌سازی تصاویر/ویدئوی یتیم در صورت شکست ثبت — دقیقاً هم‌الگو با createListingAction.
     try {
       await supabaseAdminClient.storage.from(DRIVERS_BUCKET).remove(input.imagePaths);
+      if (videoPath) await supabaseAdminClient.storage.from(DRIVERS_VIDEOS_BUCKET).remove([videoPath]);
     } catch {
       // نادیده گرفته می‌شود
     }
     return { success: false, error: "dbError" };
   }
 
-  // upsert موفق بود. حالا مسیرهایی که در آرایه‌ی قدیم بودند ولی کاربر آن‌ها را در همین ذخیره حذف
-  // کرده (یعنی در آرایه‌ی تازه‌ی ورودی نیستند) را از باکت Storage هم پاک می‌کنیم. عمداً best-effort
-  // و بعد از موفقیت upsert: خطای احتمالی اینجا نباید ذخیره‌ی موفقِ پروفایل را به کاربر «شکست» نشان
-  // دهد؛ در بدترین حالت یک فایل یتیم باقی می‌ماند که دفعه‌ی بعد جبران می‌شود.
+  // upsert موفق بود. حالا مسیرهایی که در آرایه/مقدار قدیم بودند ولی کاربر آن‌ها را در همین ذخیره
+  // حذف/جایگزین کرده را از باکت Storage هم پاک می‌کنیم. عمداً best-effort و بعد از موفقیت upsert.
   const removedPaths = previousImages.filter((p) => !input.imagePaths.includes(p));
   if (removedPaths.length > 0) {
     try {
       await supabaseAdminClient.storage.from(DRIVERS_BUCKET).remove(removedPaths);
+    } catch {
+      // نادیده گرفته می‌شود — دلیل بالا
+    }
+  }
+  if (previousVideoPath && previousVideoPath !== videoPath) {
+    try {
+      await supabaseAdminClient.storage.from(DRIVERS_VIDEOS_BUCKET).remove([previousVideoPath]);
     } catch {
       // نادیده گرفته می‌شود — دلیل بالا
     }

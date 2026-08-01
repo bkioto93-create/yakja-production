@@ -20,9 +20,12 @@
 // ویرایش حذف کرده) با storage.remove از باکت service-providers-images هم واقعاً پاک می‌شود — قبل
 // از این، فقط از ستون images حذف می‌شد و خودِ فایل در Storage یتیم می‌ماند (رفتاری بی‌خطر ولی ناقص
 // که در ممیزی تسک ۱ همین فاز مستند شده بود). این پاک‌سازی عمداً best-effort و بعد از موفقیت
-// upsert است: اگر خودِ حذف فایل با خطا مواجه شود، ذخیره‌ی پروفایل که واقعاً موفق بوده نباید به
-// کاربر «شکست‌خورده» نشان داده شود؛ در بدترین حالت یک فایل یتیم باقی می‌ماند که در ذخیره‌ی بعدی
-// همین پروفایل (یا یک پاک‌سازی دوره‌ای جداگانه در آینده) جبران می‌شود.
+// upsert است.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** createServiceProviderSignedVideoUploadSlotAction اضافه شد
+// (دقیقاً هم‌الگو با نسخه‌ی مشابهش در transport/driver/actions.ts، گیت‌شده سمت سرور با isUserVip).
+// saveServiceProviderProfileAction هم videoPath را می‌پذیرد و همان منطق نظافتِ فایل یتیم که برای
+// عکس‌ها وجود داشت، برای ویدئوی جایگزین‌شده/حذف‌شده هم اعمال شد.
 "use server";
 
 import { supabaseAdminClient } from "@/lib/supabase/server";
@@ -30,9 +33,11 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { normalizeAfghanPhone } from "@/lib/phone";
 import { toAsciiDigits } from "@/lib/marketplace/numbers";
 import { isValidProvince } from "@/lib/provinces";
+import { isUserVip } from "@/lib/vip/vipStatus";
 
 const FOREIGN_KEY_VIOLATION_CODE = "23503";
 const SERVICE_PROVIDERS_BUCKET = "service-providers-images";
+const SERVICE_PROVIDERS_VIDEOS_BUCKET = "service-providers-videos";
 const MAX_IMAGES = 5;
 
 export type SignedUploadSlot = { path: string; token: string };
@@ -65,6 +70,24 @@ export async function createServiceProviderSignedUploadSlotsAction(
   return { success: true, slots };
 }
 
+// فاز ۱۱ — یک ویدئوی تکی، فقط برای کاربر VIP؛ گیت‌کردن واقعی سمت سرور.
+export async function createServiceProviderSignedVideoUploadSlotAction(): Promise<
+  { success: true; slot: SignedUploadSlot } | { success: false; error: string }
+> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "unauthenticated" };
+  if (!isUserVip(user.vipExpiresAt)) return { success: false, error: "notVip" };
+
+  const path = `${user.id}/${Date.now()}.mp4`;
+  const { data, error } = await supabaseAdminClient.storage
+    .from(SERVICE_PROVIDERS_VIDEOS_BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error || !data) return { success: false, error: "uploadFailed" };
+
+  return { success: true, slot: { path: data.path, token: data.token } };
+}
+
 export async function saveServiceProviderProfileAction(input: {
   serviceCategoryId: string;
   province: string;
@@ -72,11 +95,14 @@ export async function saveServiceProviderProfileAction(input: {
   contactPhone: string;
   description: string;
   imagePaths: string[];
+  videoPath?: string | null;
   latitude?: number | null;
   longitude?: number | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "unauthenticated" };
+
+  const isVip = isUserVip(user.vipExpiresAt);
 
   const serviceCategoryId = input.serviceCategoryId.trim();
   if (!serviceCategoryId) {
@@ -101,6 +127,14 @@ export async function saveServiceProviderProfileAction(input: {
   const ownsAllPaths = input.imagePaths.every((p) => p.startsWith(`${user.id}/`));
   if (!ownsAllPaths) return { success: false, error: "invalidImageData" };
 
+  // فاز ۱۱ — گیت‌کردن واقعی ویدئو، دوباره سمت سرور.
+  let videoPath: string | null = null;
+  if (input.videoPath) {
+    if (!isVip) return { success: false, error: "notVip" };
+    if (!input.videoPath.startsWith(`${user.id}/`)) return { success: false, error: "invalidVideoData" };
+    videoPath = input.videoPath;
+  }
+
   const description = input.description.trim() || null;
 
   const row = {
@@ -111,6 +145,7 @@ export async function saveServiceProviderProfileAction(input: {
     address,
     description,
     images: input.imagePaths,
+    video_path: videoPath,
   };
 
   // ساخت مقدار geography از مختصات مرورگر — دقیقاً هم‌الگو با نسخه‌ی قبلی این اکشن: چون این یک
@@ -126,16 +161,16 @@ export async function saveServiceProviderProfileAction(input: {
     ? { ...row, location: `SRID=4326;POINT(${input.longitude} ${input.latitude})` }
     : row;
 
-  // نظافت تصاویر یتیم: پیش از upsert، آرایه‌ی images فعلی (پیش از این ذخیره) خوانده می‌شود تا
-  // بعداً بتوان مسیرهای حذف‌شده توسط کاربر را تشخیص داد. اگر ردیفی هنوز وجود نداشته باشد (اولین
-  // ثبت پروفایل)، previousImages به‌درستی آرایه‌ی خالی خواهد بود.
+  // نظافت تصاویر/ویدئوی یتیم: پیش از upsert، مقادیر فعلی خوانده می‌شوند تا بعداً بتوان مسیرهای
+  // حذف‌شده توسط کاربر را تشخیص داد.
   const { data: existingRow } = await supabaseAdminClient
     .from("service_providers")
-    .select("images")
+    .select("images, video_path")
     .eq("owner_id", user.id)
     .maybeSingle();
 
   const previousImages: string[] = existingRow?.images ?? [];
+  const previousVideoPath: string | null = existingRow?.video_path ?? null;
 
   const { error } = await supabaseAdminClient
     .from("service_providers")
@@ -145,23 +180,31 @@ export async function saveServiceProviderProfileAction(input: {
     if (error.code === FOREIGN_KEY_VIOLATION_CODE) {
       return { success: false, error: "invalidCategory" };
     }
-    // پاک‌سازی تصاویر یتیم در صورت شکست ثبت — دقیقاً هم‌الگو با createListingAction (فاز ۰۲).
+    // پاک‌سازی تصاویر/ویدئوی یتیم در صورت شکست ثبت — دقیقاً هم‌الگو با createListingAction (فاز ۰۲).
     try {
       await supabaseAdminClient.storage.from(SERVICE_PROVIDERS_BUCKET).remove(input.imagePaths);
+      if (videoPath) {
+        await supabaseAdminClient.storage.from(SERVICE_PROVIDERS_VIDEOS_BUCKET).remove([videoPath]);
+      }
     } catch {
       // نادیده گرفته می‌شود
     }
     return { success: false, error: "dbError" };
   }
 
-  // upsert موفق بود. حالا مسیرهایی که در آرایه‌ی قدیم بودند ولی کاربر آن‌ها را در همین ذخیره حذف
-  // کرده (یعنی در آرایه‌ی تازه‌ی ورودی نیستند) را از باکت Storage هم پاک می‌کنیم. عمداً best-effort
-  // و بعد از موفقیت upsert: خطای احتمالی اینجا نباید ذخیره‌ی موفقِ پروفایل را به کاربر «شکست» نشان
-  // دهد؛ در بدترین حالت یک فایل یتیم باقی می‌ماند که دفعه‌ی بعد جبران می‌شود.
+  // upsert موفق بود. حالا مسیرهایی که در آرایه/مقدار قدیم بودند ولی کاربر آن‌ها را در همین ذخیره
+  // حذف/جایگزین کرده را از باکت Storage هم پاک می‌کنیم. عمداً best-effort و بعد از موفقیت upsert.
   const removedPaths = previousImages.filter((p) => !input.imagePaths.includes(p));
   if (removedPaths.length > 0) {
     try {
       await supabaseAdminClient.storage.from(SERVICE_PROVIDERS_BUCKET).remove(removedPaths);
+    } catch {
+      // نادیده گرفته می‌شود — دلیل بالا
+    }
+  }
+  if (previousVideoPath && previousVideoPath !== videoPath) {
+    try {
+      await supabaseAdminClient.storage.from(SERVICE_PROVIDERS_VIDEOS_BUCKET).remove([previousVideoPath]);
     } catch {
       // نادیده گرفته می‌شود — دلیل بالا
     }

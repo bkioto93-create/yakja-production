@@ -10,15 +10,13 @@
 // ۲) مرحله‌ی ۱ علاوه بر «نوع ملک»، نوع معامله (فروش/اجاره) را هم مشخص می‌کند — اما نه همیشه با یک
 //    پرسش جداگانه: طبق تصمیم طراحی ثبت‌شده در src/lib/realEstate/dealTypes.ts (تسک ۲)، برای
 //    «فروش خانه»/«اجاره خانه»/«فروش زمین»/«باغ»، نوع معامله مستقیماً از روی نوع ملک انتخابی مشخص
-//    است (چون در نامشان تصریح شده یا عملاً همیشه یک حالت دارند)؛ فقط برای «مغازه»/«سوله»/«سایر»
-//    (که هم فروشی و هم اجاره‌ای معنا دارند) یک پرسش کوتاه اضافه («فروش یا اجاره؟») همان‌جا در
+//    است؛ فقط برای «مغازه»/«سوله»/«سایر» یک پرسش کوتاه اضافه («فروش یا اجاره؟») همان‌جا در
 //    مرحله‌ی ۱ نمایش داده می‌شود — بدون افزودن مرحله‌ی جداگانه‌ی پنجم، دقیقاً طبق متن تسک («۴ مرحله»).
-// ۳) به‌روزرسانی تسک ۵ (نسبت به تسک ۴): فشرده‌سازی تصویر سمت کلاینت حالا فعال است —
-//    src/lib/realEstate/imageCompression.ts (دقیقاً هم‌الگو با src/lib/marketplace/imageCompression.ts،
-//    فاز ۰۲، تسک ۵). هر عکس بلافاصله پس از انتخاب کاربر (نه در لحظه‌ی ارسال نهایی) فشرده می‌شود؛
-//    وضعیت isCompressing حین این کار Stepper را مسدود نگه می‌دارد تا کاربر زودتر از موعد به مرحله‌ی
-//    بعد نرود. آپلود نهایی همیشه با Content-Type ثابت image/jpeg انجام می‌شود، چون خروجی فشرده‌سازی
-//    همیشه JPEG است (هم‌سو با ساده‌سازی createSignedUploadSlotsAction در actions.ts همین تسک).
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک ویدئوی اختیاری به انتهای همان مرحله‌ی ۲ (عکس‌ها) اضافه
+// شد — دقیقاً همان تصمیم طراحی و همان دلیل NewListingWizard.tsx (فاز ۰۲): تعداد کل مراحل
+// (TOTAL_STEPS=4) دست‌نخورده می‌ماند. کاربر غیر-VIP به‌جای ابزار آپلود، VipUpsellNotice مشترک را
+// می‌بیند.
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
@@ -29,12 +27,17 @@ import { Input } from "@/components/ui/Input";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/ToastProvider";
+import { VipUpsellNotice } from "@/components/vip/VipUpsellNotice";
 import { PROPERTY_TYPES, type PropertyTypeId } from "@/lib/realEstate/propertyTypes";
 import { type DealTypeId } from "@/lib/realEstate/dealTypes";
 import { compressImageFile, type CompressedImage } from "@/lib/realEstate/imageCompression";
 import { sanitizePriceInput, toAsciiDigits } from "@/lib/marketplace/numbers";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
-import { createSignedUploadSlotsAction, createRealEstateListingAction } from "./actions";
+import {
+  createSignedUploadSlotsAction,
+  createSignedVideoUploadSlotAction,
+  createRealEstateListingAction,
+} from "./actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { Locale } from "@/lib/i18n/constants";
 import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
@@ -44,6 +47,7 @@ type Dict = Awaited<ReturnType<typeof getDictionary>>;
 const TOTAL_STEPS = 4;
 const MIN_IMAGES = 1;
 const MAX_IMAGES = 5;
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 
 // نوع معامله‌ی ضمنی هر نوع ملک؛ مقدار null یعنی «هم فروشی و هم اجاره‌ای معنا دارد» و باید از
 // کاربر جداگانه پرسیده شود — دقیقاً طبق یادداشت طراحی dealTypes.ts (تسک ۲ همین فاز).
@@ -57,7 +61,15 @@ const IMPLIED_DEAL_TYPE: Record<PropertyTypeId, DealTypeId | null> = {
   other: null,
 };
 
-export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }) {
+export function NewRealEstateWizard({
+  lang,
+  dict,
+  isVip,
+}: {
+  lang: Locale;
+  dict: Dict;
+  isVip: boolean;
+}) {
   const router = useRouter();
   const { showToast } = useToast();
   const wizardDict = dict.realEstate.wizard;
@@ -69,6 +81,7 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
   const [dealType, setDealType] = useState<DealTypeId | "">("");
   const [images, setImages] = useState<CompressedImage[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [video, setVideo] = useState<{ file: File; previewUrl: string } | null>(null);
   const [price, setPrice] = useState("");
   const [address, setAddress] = useState("");
   const [province, setProvince] = useState<string | null>(null);
@@ -130,6 +143,26 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
       if (target) URL.revokeObjectURL(target.previewUrl);
       return prev.filter((_, i) => i !== index);
     });
+  }
+
+  function handleAddVideo(fileList: FileList | null) {
+    const file = fileList?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("video/")) {
+      showToast(errorText("invalidVideoType"), "error");
+      return;
+    }
+    if (file.size > MAX_VIDEO_BYTES) {
+      showToast(errorText("videoTooLarge"), "error");
+      return;
+    }
+    if (video) URL.revokeObjectURL(video.previewUrl);
+    setVideo({ file, previewUrl: URL.createObjectURL(file) });
+  }
+
+  function handleRemoveVideo() {
+    if (video) URL.revokeObjectURL(video.previewUrl);
+    setVideo(null);
   }
 
   function validateStep(currentStep: number): boolean {
@@ -201,6 +234,26 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
         imagePaths.push(slot.path);
       }
 
+      // فاز ۱۱ — آپلود ویدئوی اختیاری، فقط اگر کاربر VIP است و ویدئویی انتخاب کرده.
+      let videoPath: string | null = null;
+      if (isVip && video) {
+        const videoSlotResult = await createSignedVideoUploadSlotAction();
+        if (!videoSlotResult.success) {
+          showToast(errorText(videoSlotResult.error), "error");
+          return;
+        }
+        const { error: videoUploadError } = await supabaseBrowserClient.storage
+          .from("real-estate-videos")
+          .uploadToSignedUrl(videoSlotResult.slot.path, videoSlotResult.slot.token, video.file, {
+            contentType: video.file.type || "video/mp4",
+          });
+        if (videoUploadError) {
+          showToast(errorText("uploadFailed"), "error");
+          return;
+        }
+        videoPath = videoSlotResult.slot.path;
+      }
+
       const result = await createRealEstateListingAction({
         propertyType: propertyType as string,
         dealType: dealType as string,
@@ -209,6 +262,7 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
         address: address.trim(),
         description,
         imagePaths,
+        videoPath,
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
       });
@@ -319,6 +373,41 @@ export function NewRealEstateWizard({ lang, dict }: { lang: Locale; dict: Dict }
                   disabled={isCompressing}
                   onChange={(e) => {
                     handleAddImages(e.target.files);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
+          </div>
+
+          {/* فاز ۱۱ — ویدئوی اختیاری، فقط VIP. */}
+          <div className="pt-2 border-t border-slate-100 flex flex-col gap-3">
+            <h3 className="text-sm font-bold text-text-main text-center">{wizardDict.videoTitle}</h3>
+
+            {!isVip ? (
+              <VipUpsellNotice lang={lang} message={dict.vip.upsell.videoMessage} buttonLabel={dict.vip.upsell.button} />
+            ) : video ? (
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-w-xs mx-auto w-full">
+                <video src={video.previewUrl} controls className="w-full aspect-video bg-black" />
+                <button
+                  type="button"
+                  onClick={handleRemoveVideo}
+                  aria-label={wizardDict.removeVideoLabel}
+                  className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <label className="max-w-xs mx-auto w-full aspect-video rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 cursor-pointer active:scale-95 transition-transform">
+                <Icons.Camera className="w-6 h-6" />
+                <span className="text-xs font-bold text-center px-2">{wizardDict.addVideoButton}</span>
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    handleAddVideo(e.target.files);
                     e.target.value = "";
                   }}
                 />

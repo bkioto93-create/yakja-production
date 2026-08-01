@@ -5,14 +5,19 @@
 // برخلاف آنجا، اینجا اگر کاربر قبلاً پروفایل راننده داشته باشد (existingProfile غیر null)،
 // همان فرم با مقادیر فعلی پر می‌شود و در «حالت ویرایش» نمایش داده می‌شود — طبق عنوان تسک ۴:
 // «ثبت/ویرایش پروفایل راننده».
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** lang و isVip (از همان user نشست‌دار) به DriverProfileClient
+// پاس داده می‌شوند — بدون هیچ کوئری اضافه‌ی جداگانه.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMyDriverProfile } from "@/lib/transport/driverQueries";
+import { isUserVip } from "@/lib/vip/vipStatus";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { DriverProfileClient } from "./DriverProfileClient";
+import type { Locale } from "@/lib/i18n/constants";
 
 export default async function DriverProfilePage({
   params,
@@ -49,9 +54,11 @@ export default async function DriverProfilePage({
       <h1 className="text-xl font-extrabold text-text-main">{dict.transport.driverProfile.title}</h1>
       <p className="text-sm text-text-muted -mt-2">{dict.transport.driverProfile.subtitle}</p>
       <DriverProfileClient
+        lang={lang as Locale}
         dict={dict}
         defaultContactPhone={user.phoneNumber}
         existingProfile={existingProfile}
+        isVip={isUserVip(user.vipExpiresAt)}
       />
     </div>
   );

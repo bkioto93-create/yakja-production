@@ -2,9 +2,14 @@
 // تسک ۴ فاز ۰۲ — صفحه‌ی ثبت آگهی جدید. برای کاربر مهمان (بدون نشست)، به‌جای فرم، کارت دعوت به
 // ورود نمایش داده می‌شود (دقیقاً همان الگوی src/app/[lang]/profile/page.tsx برای کاربر مهمان)،
 // چون ثبت آگهی نیازمند owner_id واقعی است.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** isVip از همان user نشست‌دار (getCurrentUser، که حالا
+// vipExpiresAt هم برمی‌گرداند) محاسبه و به NewListingWizard پاس داده می‌شود — بدون هیچ کوئری
+// اضافه‌ی جداگانه.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
+import { isUserVip } from "@/lib/vip/vipStatus";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
@@ -46,6 +51,7 @@ export default async function NewListingPage({
         lang={lang as Locale}
         dict={dict}
         defaultContactPhone={user.phoneNumber}
+        isVip={isUserVip(user.vipExpiresAt)}
       />
     </div>
   );

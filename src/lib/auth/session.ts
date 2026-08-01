@@ -37,6 +37,15 @@
 // (`src/app/[lang]/admin/login/actions.ts` و `src/app/[lang]/auth/verify/actions.ts`) با
 // `await createSession(...)` بدون استفاده از مقدار بازگشتی صدا زده می‌شوند، این تغییر برای وب صفر
 // اثر رفتاری دارد؛ فقط یک مسیر مصرف تازه (خواندن توکن برای پاسخ JSON موبایل) را ممکن می‌کند.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک تغییر افزایشی/Additive دیگر — `SessionUser` حالا
+// `vipExpiresAt` را هم حمل می‌کند (مستقیماً از ستون تازه‌ی `users.vip_expires_at` خوانده می‌شود،
+// دقیقاً هم‌الگو با بقیه‌ی ستون‌های موجود همین select). دلیل این‌که این فیلد به‌جای یک کوئری
+// جداگانه در هر صفحه اینجا اضافه شد: تقریباً همه‌جای اپ (پروفایل، هر ۴ فرم ثبت/ویرایش، صفحه‌ی
+// VIP) همین‌جوری هم `getCurrentUser()` را صدا می‌زنند؛ اضافه‌کردن یک ستون به همین select، به‌جای
+// یک هلپر کاملاً جدا، از یک کوئری اضافه‌ی تکراری در هر صفحه جلوگیری می‌کند. برای تبدیل این مقدار
+// خام به یک boolean «آیا الان VIP است؟»، از `isUserVip` در `src/lib/vip/vipStatus.ts` استفاده
+// کن — نه یک محاسبه‌ی پراکنده‌ی جدید.
 import "server-only";
 import { cookies, headers } from "next/headers";
 import crypto from "node:crypto";
@@ -71,6 +80,7 @@ export type SessionUser = {
   role: string;
   language: string;
   authMethod: SessionAuthMethod;
+  vipExpiresAt: string | null;
 };
 
 // `authMethod` پیش‌فرض `"otp"` دارد تا فراخوانی‌های موجود (جریان تایید OTP) بدون تغییر امضا هم
@@ -166,7 +176,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const { data, error } = await supabaseAdminClient
     .from("users")
-    .select("id, phone_number, name, role, language, is_blocked")
+    .select("id, phone_number, name, role, language, is_blocked, vip_expires_at")
     .eq("id", session.userId)
     .maybeSingle();
 
@@ -179,6 +189,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     role: data.role,
     language: data.language,
     authMethod: session.authMethod,
+    vipExpiresAt: data.vip_expires_at,
   };
 }
 

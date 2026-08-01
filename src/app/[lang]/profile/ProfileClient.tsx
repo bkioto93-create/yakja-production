@@ -2,6 +2,11 @@
 // تسک ۸ فاز ۰۱ — بخش تعاملی صفحه‌ی «تنظیمات پروفایل».
 // برای کاربر مهمان (بدون نشست): کارت دعوت به ورود + سوییچ زبان (زبان بدون نیاز به ورود قابل تغییر است).
 // برای کاربر واردشده: اطلاعات پایه‌ی حساب + نشان مدیر (در صورت role='admin') + سوییچ زبان + خروج.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک کارت وضعیت VIP اضافه شد — طبق بند ۵ پرامپت VIP
+// («پروفایل خود کاربر در اپ»): اگر VIP فعال است، تیک VipBadge کنار شماره تماس + تاریخ انقضا؛
+// اگر یک درخواست «در انتظار بررسی» یا «ردشده» دارد، همان وضعیت نشان داده می‌شود؛ در غیر این
+// صورت، یک دعوت ساده به صفحه‌ی /vip.
 "use client";
 
 import { useState, useTransition } from "react";
@@ -9,10 +14,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icons } from "@/components/ui/Icons";
+import { VipBadge } from "@/components/vip/VipBadge";
 import { switchLanguageAction, logoutAction } from "./actions";
+import { isUserVip } from "@/lib/vip/vipStatus";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { Locale } from "@/lib/i18n/constants";
 import type { SessionUser } from "@/lib/auth/session";
+import type { MyVipRequest } from "@/lib/vip/vipQueries";
 
 type Dict = Awaited<ReturnType<typeof getDictionary>>;
 
@@ -20,14 +28,19 @@ export function ProfileClient({
   lang,
   dict,
   user,
+  latestVipRequest,
 }: {
   lang: Locale;
   dict: Dict;
   user: SessionUser | null;
+  latestVipRequest: MyVipRequest | null;
 }) {
   const [pendingLang, setPendingLang] = useState<Locale | null>(null);
   const [isSwitchingLang, startSwitchingLang] = useTransition();
   const [isLoggingOut, startLoggingOut] = useTransition();
+
+  const vipDict = dict.vip;
+  const isVip = user ? isUserVip(user.vipExpiresAt) : false;
 
   const handleSwitchLanguage = (nextLang: Locale) => {
     if (nextLang === lang || isSwitchingLang) return;
@@ -57,9 +70,12 @@ export function ProfileClient({
             <p className="text-[11px] font-extrabold text-text-muted mb-0.5">
               {dict.profile.phoneLabel}
             </p>
-            <p dir="ltr" className="text-lg font-bold text-text-main truncate">
-              {user.phoneNumber}
-            </p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p dir="ltr" className="text-lg font-bold text-text-main truncate">
+                {user.phoneNumber}
+              </p>
+              {isVip && <VipBadge label={vipDict.badgeLabel} />}
+            </div>
             {user.role === "admin" && (
               <span className="inline-block mt-1.5 text-xs font-bold text-accent bg-accent/10 rounded-full px-2.5 py-1">
                 {dict.profile.roleAdmin}
@@ -80,6 +96,36 @@ export function ProfileClient({
             </Button>
           </Link>
         </Card>
+      )}
+
+      {/* فاز ۱۱ — کارت وضعیت VIP، فقط برای کاربر واردشده. */}
+      {user && (
+        <Link
+          href={`/${lang}/vip`}
+          className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-l from-amber-50 to-white border border-amber-100 active:scale-[0.98] transition-transform"
+        >
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-amber-100 text-amber-500 flex items-center justify-center">
+            <Icons.CheckCircle className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col">
+            <span className="font-bold text-text-main text-sm">
+              {isVip && user.vipExpiresAt
+                ? vipDict.form.currentlyVipUntil.replace(
+                    "{date}",
+                    new Date(user.vipExpiresAt).toLocaleDateString(lang === "ps" ? "fa-AF" : "fa-IR")
+                  )
+                : latestVipRequest?.status === "pending"
+                  ? vipDict.form.pendingTitle
+                  : latestVipRequest?.status === "rejected"
+                    ? vipDict.form.rejectedNotice
+                    : vipDict.profileUpsellTitle}
+            </span>
+            {!isVip && !latestVipRequest && (
+              <span className="text-xs text-text-muted">{vipDict.profileUpsellDesc}</span>
+            )}
+          </div>
+          <Icons.ArrowRight className="w-4 h-4 text-text-muted rotate-180 shrink-0" />
+        </Link>
       )}
 
       {/* سوییچ زبان — تسک ۸ فاز ۰۱، در دسترس هم برای کاربر واردشده و هم مهمان */}

@@ -23,6 +23,10 @@
 //
 // **رفع خطای Build:** DRIVERS_PAGE_SIZE دیگر از actions.ts (فایل "use server") ایمپورت
 // نمی‌شود، بلکه از constants.ts می‌آید.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ۱) VipBadge کنار نام نوع وسیله، فقط اگر driver.ownerIsVip؛
+// ۲) اگر راننده ویدئوی VIP دارد (driver.videoPath)، یک پخش‌کننده‌ی کوچک <video> زیر ردیف بالای
+// کارت نمایش داده می‌شود — طبق بند ۵ پرامپت VIP («کارت راننده»).
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -31,8 +35,9 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { ReportButton } from "@/components/reports/ReportButton";
+import { VipBadge } from "@/components/vip/VipBadge";
 import { VEHICLE_TYPES } from "@/lib/transport/vehicleTypes";
-import { getDriverImageUrl } from "@/lib/transport/images";
+import { getDriverImageUrl, getDriverVideoUrl } from "@/lib/transport/images";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { searchActiveDriversAction } from "./actions";
 import { DRIVERS_PAGE_SIZE } from "./constants";
@@ -70,6 +75,7 @@ export function ActiveDriversList({
   dict,
   reportButtonLabel,
   vehicleTypesDict,
+  vipBadgeLabel,
   provinceDict,
   selectedProvince,
   initialItems,
@@ -79,6 +85,7 @@ export function ActiveDriversList({
   dict: TransportListDict;
   reportButtonLabel: string;
   vehicleTypesDict: Record<string, string>;
+  vipBadgeLabel: string;
   provinceDict: ProvinceDict;
   selectedProvince: string | null;
   initialItems: ActiveDriverSummary[];
@@ -236,7 +243,10 @@ export function ActiveDriversList({
                     )}
                   </div>
                   <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                    <span className="font-bold text-text-main">{vehicleTypesDict[driver.vehicleType]}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-text-main">{vehicleTypesDict[driver.vehicleType]}</span>
+                      {driver.ownerIsVip && <VipBadge label={vipBadgeLabel} />}
+                    </div>
                     {driver.vehicleDetails && (
                       <span className="text-xs text-text-muted line-clamp-1">{driver.vehicleDetails}</span>
                     )}
@@ -248,6 +258,15 @@ export function ActiveDriversList({
                     )}
                   </div>
                 </div>
+
+                {/* فاز ۱۱ — ویدئوی اختیاری VIP */}
+                {driver.videoPath && (
+                  <video
+                    src={getDriverVideoUrl(driver.videoPath)}
+                    controls
+                    className="w-full aspect-video rounded-xl bg-black"
+                  />
+                )}
 
                 {/* تسک ۹ — دکمه‌ی تماس یک‌لمسی؛ کاربر هرگز نیازی به کپی/تایپ شماره ندارد. */}
                 <a href={`tel:${driver.contactPhone}`} className="w-full">

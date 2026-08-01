@@ -6,12 +6,19 @@
 // - موبایل (زیر md): یک نوار فشرده با عنوان صفحه‌ی فعلی + دکمه‌ی همبرگری که یک منوی کشویی
 //   عمودی با آیتم‌های تمام‌عرض (حداقل ۴۸ پیکسل ارتفاع، مناسب لمس با انگشت شست) باز می‌کند.
 // - دسکتاپ (md به بالا): همان نوار افقی قبلی، بدون هیچ تغییر ظاهری، به‌علاوه‌ی هایلایت صفحه‌ی فعال.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** لینک ناوبری «اشتراک VIP» اضافه شد — عمداً در انتهای فهرست
+// (بعد از «پیامک‌ها»)، دقیقاً هم‌رویه با «رانندگان و متخصصین»/«خدمات»/«گزارش‌ها»: چون همه‌ی
+// امکانات پیش از آن از قبل در جایگاه مصوبِ خودشان قرار داشتند، این لینک تازه هم مثل بقیه‌ی لینک‌های
+// تازه‌ی این پروژه در انتها اضافه شد. آیکون این لینک عمداً از @heroicons/react (CheckBadgeIcon)
+// است، نه از Icons.tsx دستی‌ساز — دقیقاً همان تصمیم طراحی که برای VipBadge.tsx هم گرفته شد.
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
+import { CheckBadgeIcon } from "@heroicons/react/24/outline";
 
 type NavDict = {
   dashboard: string;
@@ -21,6 +28,7 @@ type NavDict = {
   services: string;
   reports: string;
   providers: string;
+  vip: string;
   logout: string;
   menuLabel: string;
 };
@@ -67,6 +75,7 @@ export function AdminNav({
     { href: `/${lang}/admin/reports`, label: dict.reports, icon: Icons.Flag },
     { href: `/${lang}/admin/services`, label: dict.services, icon: Icons.Wrench },
     { href: `/${lang}/admin/sms`, label: dict.sms, icon: Icons.MessageSquare },
+    { href: `/${lang}/admin/vip`, label: dict.vip, icon: CheckBadgeIcon },
   ];
 
   function isActive(href: string, exact?: boolean) {

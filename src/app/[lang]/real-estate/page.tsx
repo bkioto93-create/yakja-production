@@ -1,10 +1,8 @@
 // مسیر فایل: src/app/[lang]/real-estate/page.tsx
-// تسک ۶ فاز ۰۵ — نسخه‌ی نهایی فهرست/جستجوی آگهی‌های ملکِ تاییدشده (جایگزین نسخه‌ی حداقلی تسک ۴)،
-// دقیقاً هم‌الگو با src/app/[lang]/listings/page.tsx (فاز ۰۲، تسک ۷). اولین صفحه‌ی نتایج (بدون
-// نوع ملک/معامله، بدون مکان کاربر، یعنی «جدیدترین‌ها») کاملاً سمت سرور خوانده می‌شود تا حتی پیش
-// از اجرای جاوااسکریپت هم چیزی روی صفحه دیده شود (سازگار با اینترنت ضعیف)؛ فیلتر نوع ملک/معامله،
-// جستجوی دستی شهر/منطقه، و مرتب‌سازی بر اساس نزدیک‌ترین فاصله (GPS) سپس توسط کامپوننت کلاینت
-// RealEstateSearch (با Server Action) انجام می‌شود.
+// تسک ۶ فاز ۰۵ — نسخه‌ی نهایی فهرست/جستجوی آگهی‌های ملکِ تاییدشده، دقیقاً هم‌الگو با
+// src/app/[lang]/listings/page.tsx (فاز ۰۲، تسک ۷).
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** vipBadgeLabel به RealEstateSearch پاس داده می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { searchRealEstate } from "@/lib/realEstate/queries";
@@ -49,6 +47,7 @@ export default async function RealEstatePage({
         lang={lang as Locale}
         dict={dict.realEstate}
         provinceDict={dict.province}
+        vipBadgeLabel={dict.vip.badgeLabel}
         selectedProvince={province}
         initialItems={items}
         initialTotalCount={totalCount}

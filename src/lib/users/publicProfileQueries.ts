@@ -1,19 +1,17 @@
 // مسیر فایل: src/lib/users/publicProfileQueries.ts
 // تکمیل گذشته‌نگر تسک ۳ فاز ۰۶ — لایه‌ی خواندن داده برای صفحه‌ی عمومی «پروفایل کاربر»
-// (src/app/[lang]/users/[id]/page.tsx). پیش از این فایل، هیچ صفحه‌ی عمومی نمایش پروفایل کاربر
-// دیگر در اپ وجود نداشت (رجوع کنید به یادداشت محدودیت شفاف‌شده‌ی تسک ۳ در
-// YAKJA_PHASE_06_REPORTS.md)؛ همین فایل + صفحه‌ی همراهش، آن محدودیت را برطرف می‌کند و امکان اتصال
-// دکمه‌ی «گزارش تخلف» (target_type = user) را کامل می‌کند.
+// (src/app/[lang]/users/[id]/page.tsx).
 //
 // طراحی عمدی: این پروفایل صرفاً «عمومی» است — یعنی فقط ستون‌های امن برای نمایش به هر بازدیدکننده
 // (id، name، created_at) از جدول users خوانده می‌شود؛ هرگز phone_number یا role در اینجا
-// برگردانده نمی‌شود (برخلاف SessionUser در src/lib/auth/session.ts که برای خودِ کاربر است، نه
-// بازدیدکننده‌ی دیگر) — دقیقاً هم‌راستا با بند حریم خصوصی سند راهبردی.
+// برگردانده نمی‌شود.
 //
-// چون جدول users هیچ Policy عمومی/anon ندارد (دقیقاً مثل reports)، این کوئری هم از
-// supabaseAdminClient استفاده می‌کند، نه کلاینت مرورگر.
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** فیلد isVip اضافه شد — تیک VIP کنار نام کاربر در همین صفحه‌ی
+// پروفایل عمومی هم دیده می‌شود (تکمیل طبیعی بند ۵ پرامپت VIP: «کنار نام/تماس فروشنده در همه‌ی این
+// مکان‌ها»؛ این صفحه دقیقاً همان مکان است، فقط برای هر کاربر دیگر نه فقط خودِ کاربر).
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
+import { isUserVip } from "@/lib/vip/vipStatus";
 
 export type PublicUserProfile = {
   id: string;
@@ -21,16 +19,15 @@ export type PublicUserProfile = {
   memberSinceYear: number;
   listingsCount: number;
   realEstateCount: number;
+  isVip: boolean;
 };
 
 // خواندن پروفایل عمومیِ یک کاربر برای صفحه‌ی src/app/[lang]/users/[id]/page.tsx.
-// اگر کاربر وجود نداشت یا مسدود (is_blocked) بود، null برمی‌گردد — دقیقاً هم‌الگو با قاعده‌ی
-// «Public فقط موجودیت تاییدشده/فعال را می‌بیند» که در ماژول‌های دیگر (listings/drivers/...)
-// دنبال شده؛ نمایش عمومی پروفایل یک حساب مسدودشده منطقی نیست.
+// اگر کاربر وجود نداشت یا مسدود (is_blocked) بود، null برمی‌گردد.
 export async function getPublicUserProfile(id: string): Promise<PublicUserProfile | null> {
   const { data: user, error } = await supabaseAdminClient
     .from("users")
-    .select("id, name, created_at, is_blocked")
+    .select("id, name, created_at, is_blocked, vip_expires_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -57,5 +54,6 @@ export async function getPublicUserProfile(id: string): Promise<PublicUserProfil
     memberSinceYear: new Date(user.created_at as string).getFullYear(),
     listingsCount: listingsResult.count ?? 0,
     realEstateCount: realEstateResult.count ?? 0,
+    isVip: isUserVip(user.vip_expires_at as string | null),
   };
 }

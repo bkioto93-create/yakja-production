@@ -2,24 +2,18 @@
 // تسک ۴/۵ فاز ۰۵ — دو اکشن جدا برای آپلود امن تصویر + ثبت نهایی آگهی ملک، دقیقاً هم‌الگو با
 // src/app/[lang]/listings/new/actions.ts (فاز ۰۲، تسک ۴/۵). دلیل دو مرحله‌ای بودن دقیقاً همان
 // دلیل ماژول کالاست: auth.uid() در معماری نشست سفارشی این پروژه همیشه null است (بند ۸.۴ سند
-// راهبردی)، پس مرورگر با Anon Key هرگز نمی‌تواند مستقیم در باکت real-estate-images (ساخته‌شده
-// در فاز ۰۰) بنویسد. این سرور (با Service Role که کاربر واقعی را از روی کوکی نشست می‌شناسد) چند
-// «آدرس آپلود امضاشده‌ی موقت» صادر می‌کند؛ مرورگر مستقیماً و بدون عبور از سرور Next.js تصویر
-// فشرده‌شده را به همان آدرس می‌فرستد.
-//
-// به‌روزرسانی تسک ۵ (نسبت به تسک ۴): همان‌طور که در کامنت نسخه‌ی قبلی این فایل پیش‌بینی شده بود،
-// حالا که فشرده‌سازی سمت کلاینت (src/lib/realEstate/imageCompression.ts) همیشه خروجی JPEG با
-// کیفیت پویا تولید می‌کند، دیگر نیازی به دریافت/نگاشت نوع MIME واقعی فایل مرورگر نیست.
-// createSignedUploadSlotsAction به همان الگوی ساده‌ی ماژول کالا (تسک ۵ فاز ۰۲) برگشت: فقط تعداد
-// عکس را می‌گیرد و برای هر اسلات مستقیماً پسوند ثابت .jpg می‌سازد. این تغییر غیرشکننده است و به
-// هیچ مهاجرت داده‌ای نیاز ندارد (نه ستون‌های جدول real_estate و نه محتوای باکت تغییر می‌کند).
+// راهبردی)، پس مرورگر با Anon Key هرگز نمی‌تواند مستقیم در باکت real-estate-images بنویسد.
 //
 // نکته‌ی مهم طراحی (طبق کامنت src/lib/realEstate/dealTypes.ts، تسک ۲ همین فاز): ستون deal_type
-// عمداً مستقل از property_type نگه داشته شده. مرحله‌ی ۱ فرم (NewRealEstateWizard.tsx) برای انواع
-// «فروش خانه»/«اجاره خانه»/«فروش زمین»/«باغ»، نوع معامله را خودکار از روی نوع ملک تعیین می‌کند؛
-// فقط برای «مغازه»/«سوله»/«سایر» (که هم فروشی و هم اجاره‌ای معنا دارند) از کاربر جداگانه پرسیده
-// می‌شود. این اکشن، صرف‌نظر از این‌که مقدار در کلاینت چطور به دست آمده، هر دو مقدار را مستقل و طبق
-// CHECK constraint دیتابیس (تسک ۲) اعتبارسنجی می‌کند — دفاع در عمق واقعی سمت سرور.
+// عمداً مستقل از property_type نگه داشته شده؛ این اکشن هر دو مقدار را مستقل و طبق CHECK
+// constraint دیتابیس اعتبارسنجی می‌کند — دفاع در عمق واقعی سمت سرور.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):**
+//   ۱) createSignedVideoUploadSlotAction اضافه شد — دقیقاً هم‌الگو با نسخه‌ی مشابهش در
+//      listings/new/actions.ts، گیت‌شده سمت سرور با isUserVip.
+//   ۲) createRealEstateListingAction قبل از insert، سقف روزانه‌ی ۲ آگهی رایگان (کالا+ملک با هم،
+//      طبق src/lib/vip/dailyPostLimit.ts) را هم بررسی می‌کند.
+//   ۳) ورودی videoPath (اختیاری) پذیرفته و در ستون تازه‌ی real_estate.video_path ذخیره می‌شود.
 "use server";
 
 import { supabaseAdminClient } from "@/lib/supabase/server";
@@ -28,8 +22,11 @@ import { toAsciiDigits } from "@/lib/marketplace/numbers";
 import { isValidPropertyType } from "@/lib/realEstate/propertyTypes";
 import { isValidDealType } from "@/lib/realEstate/dealTypes";
 import { isValidProvince } from "@/lib/provinces";
+import { isUserVip } from "@/lib/vip/vipStatus";
+import { canUserPostToday } from "@/lib/vip/dailyPostLimit";
 
 const REAL_ESTATE_BUCKET = "real-estate-images";
+const REAL_ESTATE_VIDEOS_BUCKET = "real-estate-videos";
 const MIN_IMAGES = 1;
 const MAX_IMAGES = 5;
 
@@ -63,6 +60,24 @@ export async function createSignedUploadSlotsAction(
   return { success: true, slots };
 }
 
+// فاز ۱۱ — یک ویدئوی تکی، فقط برای کاربر VIP؛ گیت‌کردن واقعی سمت سرور.
+export async function createSignedVideoUploadSlotAction(): Promise<
+  { success: true; slot: SignedUploadSlot } | { success: false; error: string }
+> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "unauthenticated" };
+  if (!isUserVip(user.vipExpiresAt)) return { success: false, error: "notVip" };
+
+  const path = `${user.id}/${Date.now()}.mp4`;
+  const { data, error } = await supabaseAdminClient.storage
+    .from(REAL_ESTATE_VIDEOS_BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error || !data) return { success: false, error: "uploadFailed" };
+
+  return { success: true, slot: { path: data.path, token: data.token } };
+}
+
 export async function createRealEstateListingAction(input: {
   propertyType: string;
   dealType: string;
@@ -71,11 +86,20 @@ export async function createRealEstateListingAction(input: {
   address: string;
   description: string;
   imagePaths: string[];
+  videoPath?: string | null;
   latitude?: number | null;
   longitude?: number | null;
 }) {
   const user = await getCurrentUser();
   if (!user) return { success: false as const, error: "unauthenticated" };
+
+  const isVip = isUserVip(user.vipExpiresAt);
+
+  // فاز ۱۱ — سقف روزانه‌ی ۲ آگهی رایگان (کالا+ملک با هم)؛ کاربر VIP همیشه مجاز است.
+  const { allowed } = await canUserPostToday({ userId: user.id, isVip });
+  if (!allowed) {
+    return { success: false as const, error: "dailyLimitReached" };
+  }
 
   if (!isValidPropertyType(input.propertyType)) {
     return { success: false as const, error: "invalidPropertyType" };
@@ -106,6 +130,16 @@ export async function createRealEstateListingAction(input: {
   const ownsAllPaths = input.imagePaths.every((p) => p.startsWith(`${user.id}/`));
   if (!ownsAllPaths) return { success: false as const, error: "invalidImageData" };
 
+  // فاز ۱۱ — گیت‌کردن واقعی ویدئو، دوباره سمت سرور.
+  let videoPath: string | null = null;
+  if (input.videoPath) {
+    if (!isVip) return { success: false as const, error: "notVip" };
+    if (!input.videoPath.startsWith(`${user.id}/`)) {
+      return { success: false as const, error: "invalidVideoData" };
+    }
+    videoPath = input.videoPath;
+  }
+
   const description = input.description.trim() || null;
 
   // ساخت مقدار geography از مختصات مرورگر (در صورت اجازه‌ی کاربر)؛ در غیر این صورت null می‌ماند —
@@ -124,15 +158,18 @@ export async function createRealEstateListingAction(input: {
     address,
     description,
     images: input.imagePaths,
+    video_path: videoPath,
     location: locationValue,
     status: "pending",
   });
 
   if (insertError) {
-    // پاک‌سازی تصاویر یتیم در صورت شکست ثبت آگهی (خطای پاک‌سازی نادیده گرفته می‌شود؛ اولویت با
-    // پیام خطای اصلی است) — دقیقاً هم‌الگو با createListingAction ماژول کالا.
+    // پاک‌سازی تصاویر/ویدئوی یتیم در صورت شکست ثبت آگهی — دقیقاً هم‌الگو با createListingAction.
     try {
       await supabaseAdminClient.storage.from(REAL_ESTATE_BUCKET).remove(input.imagePaths);
+      if (videoPath) {
+        await supabaseAdminClient.storage.from(REAL_ESTATE_VIDEOS_BUCKET).remove([videoPath]);
+      }
     } catch {
       // نادیده گرفته می‌شود
     }

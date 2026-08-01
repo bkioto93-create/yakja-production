@@ -14,6 +14,10 @@
 // (20_phase_08b_transport_services_photos.sql) به هر دو تابع این فایل اضافه شد — هم به
 // getMyServiceProviderProfile (برای نمایش عکس‌های موجود در حالت ویرایش) و هم به تابع Postgres
 // get_active_service_providers که getActiveServiceProviders از آن استفاده می‌کند.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** getMyServiceProviderProfile فیلد تازه‌ی videoPath گرفت؛
+// ActiveServiceProviderSummary فیلدهای videoPath و ownerIsVip گرفت (VipBadge + پخش‌کننده‌ی
+// ویدئو در کارت متخصص، طبق بند ۵ پرامپت VIP).
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 
@@ -26,6 +30,7 @@ export type MyServiceProviderProfile = {
   description: string | null;
   isActive: boolean;
   images: string[];
+  videoPath: string | null;
 };
 
 // پروفایل متخصصِ خودِ کاربرِ واردشده را برمی‌گرداند؛ اگر هنوز پروفایلی نساخته (کاربر تازه به این
@@ -36,7 +41,7 @@ export async function getMyServiceProviderProfile(
 ): Promise<MyServiceProviderProfile | null> {
   const { data, error } = await supabaseAdminClient
     .from("service_providers")
-    .select("id, service_category_id, contact_phone, address, province, description, is_active, images")
+    .select("id, service_category_id, contact_phone, address, province, description, is_active, images, video_path")
     .eq("owner_id", ownerId)
     .maybeSingle();
 
@@ -51,6 +56,7 @@ export async function getMyServiceProviderProfile(
     description: data.description,
     isActive: data.is_active,
     images: data.images ?? [],
+    videoPath: data.video_path ?? null,
   };
 }
 
@@ -70,9 +76,11 @@ export type ActiveServiceProviderSummary = {
   address: string;
   description: string | null;
   images: string[];
+  videoPath: string | null;
   latitude: number | null;
   longitude: number | null;
   distanceMeters: number | null;
+  ownerIsVip: boolean;
 };
 
 // شکل خام ردیفی که تابع Postgres «get_active_service_providers» برمی‌گرداند.
@@ -88,9 +96,11 @@ type RawActiveServiceProviderRow = {
   address: string;
   description: string | null;
   images: string[] | null;
+  video_path: string | null;
   latitude: number | null;
   longitude: number | null;
   distance_meters: number | null;
+  owner_is_vip: boolean;
   total_count: number;
 };
 
@@ -140,9 +150,11 @@ export async function getActiveServiceProviders(params: {
       address: row.address,
       description: row.description,
       images: row.images ?? [],
+      videoPath: row.video_path,
       latitude: row.latitude,
       longitude: row.longitude,
       distanceMeters: row.distance_meters,
+      ownerIsVip: row.owner_is_vip ?? false,
     })),
     totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
   };

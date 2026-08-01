@@ -4,6 +4,9 @@
 // می‌شود تا حتی پیش از اجرای جاوااسکریپت هم چیزی روی صفحه دیده شود (سازگار با اینترنت ضعیف)؛
 // فیلتر دسته، جستجوی دستی شهر/منطقه، و مرتب‌سازی بر اساس نزدیک‌ترین فاصله (GPS) سپس توسط
 // کامپوننت کلاینت ListingsSearch (با Server Action) انجام می‌شود.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** vipBadgeLabel (متن ثابت «VIP» از دیکشنری) به ListingsSearch
+// پاس داده می‌شود تا آن کامپوننت مجبور به import کل دیکشنری نباشد.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { searchListings } from "@/lib/marketplace/queries";
@@ -49,6 +52,7 @@ export default async function ListingsPage({
         lang={lang as Locale}
         dict={dict.marketplace}
         provinceDict={dict.province}
+        vipBadgeLabel={dict.vip.badgeLabel}
         selectedProvince={province}
         initialItems={items}
         initialTotalCount={totalCount}

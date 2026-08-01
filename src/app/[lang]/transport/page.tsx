@@ -7,6 +7,8 @@
 //
 // **رفع خطای Build:** DRIVERS_PAGE_SIZE دیگر از actions.ts (فایل "use server") ایمپورت
 // نمی‌شود، بلکه از constants.ts می‌آید.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** vipBadgeLabel به ActiveDriversList پاس داده می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getActiveDrivers } from "@/lib/transport/driverQueries";
@@ -52,6 +54,7 @@ export default async function TransportPage({
         dict={listDict}
         reportButtonLabel={dict.reports.reportButtonLabel}
         vehicleTypesDict={dict.transport.vehicleTypes}
+        vipBadgeLabel={dict.vip.badgeLabel}
         provinceDict={dict.province}
         selectedProvince={province}
         initialItems={items}

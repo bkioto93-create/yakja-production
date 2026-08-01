@@ -216,6 +216,9 @@ export default {
       "loginRequiredTitle": "لومړی ننوځئ",
       "loginRequiredDesc": "د اعلان ثبتولو لپاره، لومړی باید د خپل موبایل شمېرې سره حساب ته ننوځئ.",
       "loginRequiredButton": "حساب ته ننوتل",
+      "videoTitle": "لنډه ویډیو (اختیاري، د VIP لپاره)",
+      "addVideoButton": "ویډیو ورزیاتول",
+      "removeVideoLabel": "دغه ویډیو ړنګول",
       "errors": {
         "unauthenticated": "لومړی باید خپل حساب ته ننوځئ.",
         "invalidCategory": "مهرباني وکړئ یوه ډله وټاکئ.",
@@ -225,9 +228,14 @@ export default {
         "invalidAddress": "مهرباني وکړئ پته یا سیمه ولیکئ.",
         "invalidPhone": "ورکړل شوې اړیکې شمېره سمه نه ده.",
         "invalidImageData": "یو انځور نه شي پروسس کیدای.",
-        "uploadFailed": "د انځورونو لېږل ونشول؛ بیا هڅه وکړئ.",
+        "uploadFailed": "د فایل لېږل ونشول؛ بیا هڅه وکړئ.",
         "dbError": "د اعلان ثبتول ونشول؛ بیا هڅه وکړئ.",
         "compressionFailed": "دغه انځور نه شي چمتو کیدای؛ بل انځور هڅه کړئ.",
+        "invalidVideoType": "یوازې د ویډیو فایل منل کیږي.",
+        "videoTooLarge": "د ویډیو اندازه باید له ۲۰ میګابایټو زیاته نه وي.",
+        "invalidVideoData": "ټاکل شوې ویډیو نه شي پروسس کیدای.",
+        "notVip": "ویډیو ورزیاتول یوازې فعال VIP غړو لپاره دي.",
+        "dailyLimitReached": "تاسو نن ورځ د ۲ وړیا اعلانونو حد ته ورسیدئ. د نامحدود اعلان لپاره VIP غړی شئ.",
         "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
       }
     },
@@ -301,6 +309,9 @@ export default {
       "photosHint": "تاسو کولی شئ تر ۵ انځورونو پورې د ځان یا خپل موټر اضافه کړئ ترڅو د غوښتونکو باور زیات شي.",
       "addPhotoButton": "انځور اضافه کول",
       "removePhotoLabel": "انځور ړنګول",
+      "videoSectionTitle": "لنډه ویډیو (اختیاري، د VIP لپاره)",
+      "addVideoButton": "ویډیو ورزیاتول",
+      "removeVideoLabel": "دغه ویډیو ړنګول",
       "errors": {
         "unauthenticated": "لومړی باید خپل حساب ته ننوځئ.",
         "invalidVehicleType": "مهرباني وکړئ د خپل موټر ډول وټاکئ.",
@@ -311,7 +322,11 @@ export default {
         "invalidImageCount": "د انځورونو شمېر له اجازه شوي حد څخه ډېر دی.",
         "invalidImageData": "یو انځور سم نه دی؛ بیا هڅه وکړئ.",
         "compressionFailed": "د انځور فشرده کول ونشول؛ بل انځور وازمویئ.",
-        "uploadFailed": "د انځور اپلوډ ونشو؛ بیا هڅه وکړئ.",
+        "uploadFailed": "د فایل اپلوډ ونشو؛ بیا هڅه وکړئ.",
+        "invalidVideoType": "یوازې د ویډیو فایل منل کیږي.",
+        "videoTooLarge": "د ویډیو اندازه باید له ۲۰ میګابایټو زیاته نه وي.",
+        "invalidVideoData": "ټاکل شوې ویډیو نه شي پروسس کیدای.",
+        "notVip": "ویډیو ورزیاتول یوازې فعال VIP غړو لپاره دي.",
         "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
       }
     }
@@ -340,6 +355,9 @@ export default {
       "photosHint": "تاسو کولی شئ تر ۵ انځورونو پورې د خپلو نمونه کارونو اضافه کړئ ترڅو مشتریان مخکې له اړیکې ستاسو د کار کیفیت وویني.",
       "addPhotoButton": "انځور اضافه کول",
       "removePhotoLabel": "انځور ړنګول",
+      "videoSectionTitle": "لنډه ویډیو (اختیاري، د VIP لپاره)",
+      "addVideoButton": "ویډیو ورزیاتول",
+      "removeVideoLabel": "دغه ویډیو ړنګول",
       "errors": {
         "unauthenticated": "لومړی باید خپل حساب ته ننوځئ.",
         "invalidCategory": "مهرباني وکړئ یو تخصص وټاکئ.",
@@ -349,7 +367,11 @@ export default {
         "invalidImageCount": "د انځورونو شمېر له اجازه شوي حد څخه ډېر دی.",
         "invalidImageData": "یو انځور سم نه دی؛ بیا هڅه وکړئ.",
         "compressionFailed": "د انځور فشرده کول ونشول؛ بل انځور وازمویئ.",
-        "uploadFailed": "د انځور اپلوډ ونشو؛ بیا هڅه وکړئ.",
+        "uploadFailed": "د فایل اپلوډ ونشو؛ بیا هڅه وکړئ.",
+        "invalidVideoType": "یوازې د ویډیو فایل منل کیږي.",
+        "videoTooLarge": "د ویډیو اندازه باید له ۲۰ میګابایټو زیاته نه وي.",
+        "invalidVideoData": "ټاکل شوې ویډیو نه شي پروسس کیدای.",
+        "notVip": "ویډیو ورزیاتول یوازې فعال VIP غړو لپاره دي.",
         "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
       }
     },
@@ -431,6 +453,9 @@ export default {
       "loginRequiredTitle": "لومړی ننوځئ",
       "loginRequiredDesc": "د ملکیت اعلان ثبتولو لپاره، لومړی باید د خپل موبایل شمېرې سره حساب ته ننوځئ.",
       "loginRequiredButton": "حساب ته ننوتل",
+      "videoTitle": "لنډه ویډیو (اختیاري، د VIP لپاره)",
+      "addVideoButton": "ویډیو ورزیاتول",
+      "removeVideoLabel": "دغه ویډیو ړنګول",
       "errors": {
         "unauthenticated": "لومړی باید خپل حساب ته ننوځئ.",
         "invalidPropertyType": "مهرباني وکړئ د ملکیت ډول وټاکئ.",
@@ -440,8 +465,13 @@ export default {
         "invalidAddress": "مهرباني وکړئ پته یا سیمه ولیکئ.",
         "invalidImageData": "یو انځور نه شي پروسس کیدای.",
         "compressionFailed": "دغه انځور نه شي چمتو کیدای؛ بل انځور هڅه کړئ.",
-        "uploadFailed": "د انځورونو لېږل ونشول؛ بیا هڅه وکړئ.",
+        "uploadFailed": "د فایل لېږل ونشول؛ بیا هڅه وکړئ.",
         "dbError": "د ملکیت اعلان ثبتول ونشول؛ بیا هڅه وکړئ.",
+        "invalidVideoType": "یوازې د ویډیو فایل منل کیږي.",
+        "videoTooLarge": "د ویډیو اندازه باید له ۲۰ میګابایټو زیاته نه وي.",
+        "invalidVideoData": "ټاکل شوې ویډیو نه شي پروسس کیدای.",
+        "notVip": "ویډیو ورزیاتول یوازې فعال VIP غړو لپاره دي.",
+        "dailyLimitReached": "تاسو نن ورځ د ۲ وړیا اعلانونو حد ته ورسیدئ. د نامحدود اعلان لپاره VIP غړی شئ.",
         "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
       }
     },
@@ -569,6 +599,7 @@ export default {
       "services": "خدمتونه",
       "reports": "راپورونه",
       "providers": "موټر چلوونکي او متخصصین",
+      "vip": "د VIP غړیتوب",
       "logout": "وتل",
       "menuLabel": "مینو"
     },
@@ -714,6 +745,37 @@ export default {
       "statusInactive": "غیرفعال",
       "updateError": "د حالت نوي کول ونشول؛ بیا هڅه وکړئ."
     },
+    "vip": {
+      "title": "د VIP غړیتوب مدیریت",
+      "subtitle": "د VIP پیرودلو/نوي کولو غوښتنې وګورئ او د غړیتوب تنظیمات سمون ورکړئ.",
+      "statusLabels": {
+        "pending": "د بررسۍ په تمه",
+        "approved": "تایید شوی",
+        "rejected": "ردشوی"
+      },
+      "empty": "په دې برخه کې هیڅ غوښتنه و نه موندل شوه.",
+      "unknownOwner": "نامعلوم",
+      "paymentMethodBank": "بانکي لېږد",
+      "paymentMethodExchange": "صرافي",
+      "noteLabel": "د کاروونکي یادداشت",
+      "requestedAtLabel": "د غوښتنې نېټه",
+      "approveButton": "تایید",
+      "rejectButton": "رد",
+      "rejectReasonPrompt": "د رد کولو دلیل (اختیاري):",
+      "updateError": "د غوښتنې نوي کول ونشول؛ بیا هڅه وکړئ.",
+      "settings": {
+        "title": "د VIP غړیتوب تنظیمات",
+        "priceLabel": "د میاشتني غړیتوب بیه (افغانۍ)",
+        "bankLabel": "د بانکي لېږد معلومات",
+        "exchangeLabel": "د صرافۍ معلومات",
+        "saveButton": "تنظیمات خوندي کول",
+        "saveSuccess": "د VIP تنظیمات خوندي شول.",
+        "saveError": "د تنظیماتو خوندي کول ونشول؛ بیا هڅه وکړئ."
+      },
+      "activeUsersTitle": "فعال VIP کاروونکي",
+      "activeUsersEmpty": "اوس مهال هیڅ فعال VIP کاروونکی نشته.",
+      "expiresAtLabel": "پای نېټه"
+    },
     "dashboard": {
       "welcome": "د یکجا مدیریتي پینل ته ښه راغلاست.",
       "statsSectionTitle": "احصایوي پینل",
@@ -796,6 +858,62 @@ export default {
       "notFoundTitle": "دغه کارن و نه موندل شو",
       "notFoundDesc": "کیدای شي دغه حساب ړنګ شوی یا بند شوی وي.",
       "backToHomeButton": "اصلي پاڼې ته ستنېدل"
+    }
+  },
+  "vip": {
+    "badgeLabel": "VIP",
+    "pageTitle": "د یکجا VIP غړیتوب",
+    "pageSubtitle": "د ساده میاشتني لګښت سره، ستاسو اعلانونه ډېر لیدل کیږي او د وړیا حساب محدودیتونه لرې کیږي.",
+    "priceLabel": "د میاشتني غړیتوب لګښت",
+    "currencyPerMonth": "افغانۍ / میاشت",
+    "loginRequiredTitle": "لومړی ننوځئ",
+    "loginRequiredDesc": "د VIP غړیتوب پیرودلو یا نوي کولو لپاره، لومړی باید د خپل موبایل شمېرې سره حساب ته ننوځئ.",
+    "loginRequiredButton": "حساب ته ننوتل",
+    "benefits": {
+      "videoTitle": "د لنډې ویډیو ورزیاتول",
+      "videoDesc": "د انځورونو تر څنګ، یوه لنډه ویډیو هم خپل اعلان یا پروفایل ته ورزیات کړئ.",
+      "postsTitle": "نامحدود اعلان ثبتول",
+      "postsDesc": "د ورځني ۲ اعلانونو له حد پرته؛ هر څومره چې غواړئ اعلان ثبت کړئ.",
+      "chatTitle": "له مشتریانو سره نامحدود چت",
+      "chatDesc": "په دننه-اپلیکیشني چت کې (ډېر ژر)، بې له کومې محدودیته پیغامونه ورکړئ او ترلاسه کړئ."
+    },
+    "upsell": {
+      "videoMessage": "ویډیو ورزیاتول یوازې فعال VIP غړو لپاره دي. د VIP غړیتوب سره، د خپل اعلان/پروفایل ویډیو ورزیات کړئ.",
+      "dailyLimitMessage": "تاسو نن ورځ د ۲ وړیا اعلانونو حد ته ورسیدئ. د VIP غړیتوب سره، نامحدود اعلان ثبت کړئ.",
+      "button": "د VIP غړیتوب"
+    },
+    "profileUpsellTitle": "د یکجا VIP غړی شئ",
+    "profileUpsellDesc": "ویډیو، نامحدود اعلان او نامحدود چت",
+    "homeBanner": {
+      "title": "د یکجا VIP غړی شئ",
+      "subtitle": "ډېر لیدل کیدل، لږ محدودیت",
+      "videoLabel": "اعلان/پروفایل ته د لنډې ویډیو ورزیاتول",
+      "postsLabel": "نامحدود اعلان ثبتول، بې له ورځني حده",
+      "chatLabel": "له مشتریانو سره نامحدود چت (ډېر ژر)",
+      "button": "نور معلومات"
+    },
+    "form": {
+      "selectMethodError": "مهرباني وکړئ د تادیې یوه لاره وټاکئ.",
+      "paymentMethodBank": "بانکي لېږد",
+      "paymentMethodExchange": "صرافي",
+      "noteLabel": "بشپړونکی یادداشت یا تعقیبي کوډ (اختیاري)",
+      "notePlaceholder": "لکه: د تادیې تعقیبي کوډ یا د صرافۍ نوم...",
+      "submitButton": "د VIP غړیتوب غوښتنه ثبتول",
+      "submitSuccess": "ستاسو غوښتنه ثبت شوه او د مدیر له بررسۍ وروسته به ستاسو حساب VIP شي.",
+      "requestTitle": "د غړیتوب غوښتنه ثبتول",
+      "renewTitle": "د VIP غړیتوب نوي کول",
+      "pendingTitle": "ستاسو غوښتنه د بررسۍ په تمه ده",
+      "pendingDesc": "ستاسو د VIP غړیتوب غوښتنه ثبت شوې او ډېر ژر به د مدیر لخوا وڅیړل شي.",
+      "rejectedNotice": "ستاسو مخکینۍ غوښتنه رد شوې ده.",
+      "rejectionReasonLabel": "د رد کولو دلیل",
+      "currentlyVipUntil": "تاسو اوس مهال VIP یاست، تر {date} نېټې پورې",
+      "errors": {
+        "unauthenticated": "لومړی باید خپل حساب ته ننوځئ.",
+        "invalidPaymentMethod": "ټاکل شوې د تادیې لاره سمه نه ده.",
+        "alreadyPending": "تاسو همدا اوس یوه د بررسۍ په تمه غوښتنه لرئ.",
+        "dbError": "د غوښتنې ثبتول ونشول؛ بیا هڅه وکړئ.",
+        "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
+      }
     }
   }
 };

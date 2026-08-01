@@ -15,15 +15,20 @@
 // اضافه شد»). بندانگشتی‌ها و «آگهی‌های مشابه» از قبل decoding="async" داشتند؛ این تنها تصویری بود
 // که جا افتاده بود. اکنون اضافه شد تا رمزگشایی این تصویر هم رندر بقیه‌ی صفحه را مسدود نکند —
 // بدون هیچ تاثیری بر اولویت دانلود (fetchPriority="high" و loading="eager" دست‌نخورده ماندند).
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ۱) VipBadge کنار عنوان آگهی، فقط اگر listing.ownerIsVip؛
+// ۲) اگر آگهی ویدئوی VIP دارد (listing.videoPath)، یک پخش‌کننده‌ی <video> بعد از گالری تصاویر
+// اضافه می‌شود — طبق بند ۵ پرامپت VIP («صفحه‌ی جزئیات هر آگهی کالا»).
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getApprovedListingById, getSimilarListings } from "@/lib/marketplace/queries";
-import { getListingImageUrl } from "@/lib/marketplace/images";
+import { getListingImageUrl, getListingVideoUrl } from "@/lib/marketplace/images";
 import { LISTING_CATEGORIES } from "@/lib/marketplace/categories";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ReportButton } from "@/components/reports/ReportButton";
+import { VipBadge } from "@/components/vip/VipBadge";
 
 export default async function ListingDetailPage({
   params,
@@ -106,6 +111,15 @@ export default async function ListingDetailPage({
             ))}
           </div>
         )}
+
+        {/* فاز ۱۱ — ویدئوی اختیاری VIP */}
+        {listing.videoPath && (
+          <video
+            src={getListingVideoUrl(listing.videoPath)}
+            controls
+            className="w-full aspect-video rounded-2xl bg-black"
+          />
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
@@ -114,7 +128,10 @@ export default async function ListingDetailPage({
           <span>{categoryLabel}</span>
         </div>
 
-        <h1 className="text-xl font-extrabold text-text-main">{listing.title}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-extrabold text-text-main">{listing.title}</h1>
+          {listing.ownerIsVip && <VipBadge label={dict.vip.badgeLabel} size="md" />}
+        </div>
 
         <div className="flex items-baseline gap-1.5">
           <span className="text-2xl font-extrabold text-primary" dir="ltr">

@@ -1,12 +1,12 @@
 // مسیر فایل: src/app/[lang]/users/[id]/page.tsx
 // تکمیل گذشته‌نگر تسک ۳ فاز ۰۶ — صفحه‌ی عمومیِ «پروفایل کاربر»: دقیقاً هم‌الگو با صفحه‌ی جزئیات
 // آگهی (src/app/[lang]/listings/[id]/page.tsx)، اما بدون گالری تصویر یا دکمه‌ی تماس — چون
-// شماره‌ی موبایل کاربر هرگز به‌صورت عمومی نمایش داده نمی‌شود (بند حریم خصوصی سند راهبردی؛ تماس
-// همیشه از طریق خودِ آگهی/پروفایل راننده/متخصص انجام می‌شود، نه از این صفحه).
+// شماره‌ی موبایل کاربر هرگز به‌صورت عمومی نمایش داده نمی‌شود.
 //
 // این صفحه دقیقاً همان شکافی را پر می‌کند که در یادداشت «محدودیت شفاف» تسک ۳ فاز ۰۶ ثبت شده بود:
-// اکنون دکمه‌ی مشترک ReportButton با target_type='user' یک مقصد واقعی دارد، دقیقاً از طریق
-// getPublicUserProfile (src/lib/users/publicProfileQueries.ts).
+// اکنون دکمه‌ی مشترک ReportButton با target_type='user' یک مقصد واقعی دارد.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** VipBadge کنار نام نمایشی، فقط اگر profile.isVip.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ReportButton } from "@/components/reports/ReportButton";
+import { VipBadge } from "@/components/vip/VipBadge";
 
 export default async function PublicUserProfilePage({
   params,
@@ -66,7 +67,10 @@ export default async function PublicUserProfilePage({
           <Icons.User className="w-8 h-8" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-extrabold text-text-main truncate">{displayName}</h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-lg font-extrabold text-text-main truncate">{displayName}</h1>
+            {profile.isVip && <VipBadge label={dict.vip.badgeLabel} />}
+          </div>
           <p className="text-sm text-text-muted mt-0.5">
             {pageDict.memberSinceLabel.replace("{year}", String(profile.memberSinceYear))}
           </p>

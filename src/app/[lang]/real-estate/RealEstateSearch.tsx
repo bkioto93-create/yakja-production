@@ -1,12 +1,10 @@
 // مسیر فایل: src/app/[lang]/real-estate/RealEstateSearch.tsx
 // تسک ۶ فاز ۰۵ — بخش تعاملی صفحه‌ی فهرست آگهی‌های ملک: فیلتر نوع ملک (چیپ‌های آیکون‌دار، دقیقاً
-// هم‌الگو با ListingsSearch.tsx فاز ۰۲ تسک ۷)، فیلتر نوع معامله (فروش/اجاره/همه — چون real_estate
-// برخلاف listings یک ستون فیلتر دوم هم دارد: deal_type)، دکمه‌ی «نمایش نزدیک‌ترین‌ها» (GPS،
-// اختیاری)، و جستجوی دستی متنی با نام شهر/منطقه که همیشه در دسترس است — چه GPS داده شود چه رد
-// شود. هر تغییری در نوع ملک/نوع معامله/متن جستجو/مختصات با یک تاخیر کوتاه (ضددستپاچگی تایپ) و از
-// طریق Server Action «searchRealEstateAction» یک جستجوی تازه می‌سازد؛ صفحه‌بندی با دکمه‌ی «نمایش
-// موارد بیشتر» (نه اسکرول بی‌نهایت خودکار) انجام می‌شود تا روی اینترنت ۲G/۳G مصرف داده کاملاً زیر
-// کنترل کاربر بماند.
+// هم‌الگو با ListingsSearch.tsx فاز ۰۲ تسک ۷)، فیلتر نوع معامله (فروش/اجاره/همه)، دکمه‌ی «نمایش
+// نزدیک‌ترین‌ها» (GPS، اختیاری)، و جستجوی دستی متنی با نام شهر/منطقه که همیشه در دسترس است.
+//
+// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** VipBadge کوچک کنار عنوان کارت اضافه شد، فقط وقتی
+// item.ownerIsVip=true.
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -16,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
+import { VipBadge } from "@/components/vip/VipBadge";
 import { PROPERTY_TYPES } from "@/lib/realEstate/propertyTypes";
 import { DEAL_TYPES, type DealTypeId } from "@/lib/realEstate/dealTypes";
 import { getRealEstateImageUrl } from "@/lib/realEstate/images";
@@ -38,6 +37,7 @@ export function RealEstateSearch({
   lang,
   dict,
   provinceDict,
+  vipBadgeLabel,
   selectedProvince,
   initialItems,
   initialTotalCount,
@@ -45,6 +45,7 @@ export function RealEstateSearch({
   lang: Locale;
   dict: RealEstateDict;
   provinceDict: ProvinceDict;
+  vipBadgeLabel: string;
   selectedProvince: string | null;
   initialItems: RealEstateSummary[];
   initialTotalCount: number;
@@ -116,8 +117,6 @@ export function RealEstateSearch({
         setLocationStatus("granted");
       },
       () => {
-        // رد دسترسی یا خطای دیگر GPS — کاربر همچنان می‌تواند با جستجوی دستی متنی ادامه بدهد؛
-        // هیچ مانعی برای ادامه‌ی کار ایجاد نمی‌شود.
         setLocationStatus("denied");
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 }
@@ -282,9 +281,12 @@ export function RealEstateSearch({
                   />
                 </div>
                 <div className="p-2.5 flex flex-col gap-1">
-                  <span className="text-sm font-bold text-text-main line-clamp-1">
-                    {propertyTypeLabel(item.propertyType)} · {dealTypesDict[item.dealType]}
-                  </span>
+                  <div className="flex items-center gap-1 min-w-0">
+                    <span className="text-sm font-bold text-text-main line-clamp-1 min-w-0">
+                      {propertyTypeLabel(item.propertyType)} · {dealTypesDict[item.dealType]}
+                    </span>
+                    {item.ownerIsVip && <VipBadge label={vipBadgeLabel} />}
+                  </div>
                   <span className="text-sm font-extrabold text-primary" dir="ltr">
                     {item.price.toLocaleString()}
                   </span>
