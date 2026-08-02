@@ -20,6 +20,8 @@ import type { Metadata, Viewport } from "next";
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
+import { StructuredData } from "@/components/seo/StructuredData";
+import { SITE_URL } from "@/lib/config/siteUrl";
 import faDictionary from "@/dictionaries/fa";
 
 const vazirmatn = Vazirmatn({
@@ -36,6 +38,7 @@ const vazirmatn = Vazirmatn({
 // چیزی که src/proxy.ts هم پیش از انتخاب زبان به آن هدایت می‌کند) است؛ به این ترتیب دیگر هیچ متن
 // تکراری/مستقلی در دو جای مختلف پروژه نگهداری نمی‌شود.
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: faDictionary.meta.title,
   description: faDictionary.meta.description,
 };
@@ -55,10 +58,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html dir="rtl" className="h-full antialiased">
       <body className={`${vazirmatn.className} bg-bg-base text-text-main h-full`}>
+        <StructuredData />
         {children}
         <ServiceWorkerRegister />
       </body>
     </html>
   );
 }
-

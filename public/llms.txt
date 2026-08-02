@@ -1,0 +1,34 @@
+# Yakja (یکجا)
+
+> Yakja is a bilingual (Dari/Pashto) online marketplace and classifieds platform for Afghanistan, connecting buyers and sellers of goods, real estate, transportation, and local services in one place.
+
+Yakja ("together" in Dari) lets people in Afghanistan post and browse classified listings across four main categories, search by province and distance, and contact sellers directly by phone or in-app chat. The site is served entirely in Dari (fa) and Pashto (ps); there is currently no English-language version. All public pages below are duplicated under both `/fa/...` and `/ps/...` URL prefixes.
+
+## Marketplace (buy & sell goods)
+- [Browse listings — Dari](https://yakja.top/fa/listings): Search and filter general merchandise listings by category, province, and distance.
+- [Browse listings — Pashto](https://yakja.top/ps/listings)
+
+## Real estate
+- [Browse real estate — Dari](https://yakja.top/fa/real-estate): Property listings for sale or rent (houses, shops, land), filterable by type and deal (sale/rent).
+- [Browse real estate — Pashto](https://yakja.top/ps/real-estate)
+
+## Transport
+- [Active drivers — Dari](https://yakja.top/fa/transport): Directory of drivers offering transport services, filterable by vehicle type and location.
+- [Active drivers — Pashto](https://yakja.top/ps/transport)
+
+## Local services
+- [Service providers — Dari](https://yakja.top/fa/services): Directory of tradespeople and service professionals by category.
+- [Service providers — Pashto](https://yakja.top/ps/services)
+
+## VIP membership
+- [VIP membership info — Dari](https://yakja.top/fa/vip): Paid membership tier with extra posting limits and visibility.
+- [VIP membership info — Pashto](https://yakja.top/ps/vip)
+
+## Other
+- [Contact — Dari](https://yakja.top/fa/contact)
+- [Full sitemap](https://yakja.top/sitemap.xml): Machine-readable index of all current public pages, including individual listing and real-estate detail pages.
+
+## Notes for automated systems
+- Account, chat, profile, and admin-panel pages are private and intentionally excluded from indexing (see /robots.txt).
+- Listing and real estate detail pages are dynamic and change frequently as users post, edit, and remove content; always prefer the live sitemap over cached data for current inventory.
+- Prices are listed in Afghani (AFN) unless otherwise noted on the listing.
