@@ -36,6 +36,7 @@ import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { ReportButton } from "@/components/reports/ReportButton";
 import { VipBadge } from "@/components/vip/VipBadge";
+import { ChatButton, type ChatButtonDict } from "@/components/chat/ChatButton";
 import { VEHICLE_TYPES } from "@/lib/transport/vehicleTypes";
 import { getDriverImageUrl, getDriverVideoUrl } from "@/lib/transport/images";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
@@ -43,6 +44,7 @@ import { searchActiveDriversAction } from "./actions";
 import { DRIVERS_PAGE_SIZE } from "./constants";
 import type { ActiveDriverSummary } from "@/lib/transport/driverQueries";
 import type { ProvinceDict } from "@/components/province/ProvincePickerModal";
+import type { Locale } from "@/lib/i18n/constants";
 
 type TransportListDict = {
   useMyLocationButton: string;
@@ -76,6 +78,8 @@ export function ActiveDriversList({
   reportButtonLabel,
   vehicleTypesDict,
   vipBadgeLabel,
+  chatButtonDict,
+  viewerId,
   provinceDict,
   selectedProvince,
   initialItems,
@@ -86,6 +90,8 @@ export function ActiveDriversList({
   reportButtonLabel: string;
   vehicleTypesDict: Record<string, string>;
   vipBadgeLabel: string;
+  chatButtonDict: ChatButtonDict;
+  viewerId: string | null;
   provinceDict: ProvinceDict;
   selectedProvince: string | null;
   initialItems: ActiveDriverSummary[];
@@ -275,6 +281,17 @@ export function ActiveDriversList({
                     {dict.callButton}
                   </Button>
                 </a>
+
+                {/* فاز ۱۲ — دکمه‌ی «چت با راننده» */}
+                <ChatButton
+                  lang={lang as Locale}
+                  viewerId={viewerId}
+                  contextType="driver"
+                  contextId={driver.id}
+                  ownerId={driver.ownerId}
+                  dict={chatButtonDict}
+                  fullWidth
+                />
 
                 {/* تسک ۳ فاز ۰۶ — دکمه‌ی «گزارش تخلف» روی هر راننده؛ target_type = driver */}
                 <ReportButton

@@ -6,8 +6,10 @@
 // تسک ۸).
 //
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** vipBadgeLabel به ActiveServiceProvidersList پاس داده می‌شود.
+// **به‌روزرسانی فاز ۱۲ (چت):** viewerId + chatButtonDict به ActiveServiceProvidersList پاس داده می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getActiveServiceCategories } from "@/lib/services/serviceCategories";
 import { getActiveServiceProviders } from "@/lib/services/serviceProviderQueries";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +26,7 @@ export default async function ServicesPage({
   const { lang } = await params;
   const dict = await getDictionary(lang);
   const listDict = dict.services.list;
+  const viewer = await getCurrentUser();
 
   // فاز ۱۰: اولین صفحه‌ی نتایج هم باید طبق ولایت انتخابی کاربر فیلتر شده باشد.
   const { province } = await getSelectedProvince();
@@ -51,6 +54,8 @@ export default async function ServicesPage({
         dict={listDict}
         reportButtonLabel={dict.reports.reportButtonLabel}
         vipBadgeLabel={dict.vip.badgeLabel}
+        chatButtonDict={dict.chat.button}
+        viewerId={viewer?.id ?? null}
         categories={categories}
         provinceDict={dict.province}
         selectedProvince={province}

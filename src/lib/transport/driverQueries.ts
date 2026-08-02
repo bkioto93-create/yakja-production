@@ -62,6 +62,7 @@ export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfi
 // به تغییر SQL یا این لایه‌ی خواندن.
 export type ActiveDriverSummary = {
   id: string;
+  ownerId: string;
   vehicleType: VehicleTypeId;
   vehicleDetails: string | null;
   contactPhone: string;
@@ -77,6 +78,7 @@ export type ActiveDriverSummary = {
 // شکل خام ردیفی که تابع Postgres «get_active_drivers» برمی‌گرداند.
 type RawActiveDriverRow = {
   id: string;
+  owner_id: string;
   vehicle_type: string;
   vehicle_details: string | null;
   contact_phone: string;
@@ -113,6 +115,7 @@ export async function getActiveDrivers(params: {
   return {
     items: rows.map((row) => ({
       id: row.id,
+      ownerId: row.owner_id,
       vehicleType: row.vehicle_type as VehicleTypeId,
       vehicleDetails: row.vehicle_details,
       contactPhone: row.contact_phone,

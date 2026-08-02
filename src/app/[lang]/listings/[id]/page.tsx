@@ -19,8 +19,11 @@
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ۱) VipBadge کنار عنوان آگهی، فقط اگر listing.ownerIsVip؛
 // ۲) اگر آگهی ویدئوی VIP دارد (listing.videoPath)، یک پخش‌کننده‌ی <video> بعد از گالری تصاویر
 // اضافه می‌شود — طبق بند ۵ پرامپت VIP («صفحه‌ی جزئیات هر آگهی کالا»).
+//
+// **به‌روزرسانی فاز ۱۲ (چت):** دکمه‌ی «چت با فروشنده» کنار دکمه‌ی تماس اضافه شد (ChatButton مشترک).
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getApprovedListingById, getSimilarListings } from "@/lib/marketplace/queries";
 import { getListingImageUrl, getListingVideoUrl } from "@/lib/marketplace/images";
 import { LISTING_CATEGORIES } from "@/lib/marketplace/categories";
@@ -29,6 +32,8 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ReportButton } from "@/components/reports/ReportButton";
 import { VipBadge } from "@/components/vip/VipBadge";
+import { ChatButton } from "@/components/chat/ChatButton";
+import type { Locale } from "@/lib/i18n/constants";
 
 export default async function ListingDetailPage({
   params,
@@ -38,6 +43,7 @@ export default async function ListingDetailPage({
   const { lang, id } = await params;
   const dict = await getDictionary(lang);
   const detailDict = dict.marketplace.detail;
+  const viewer = await getCurrentUser();
 
   const listing = await getApprovedListingById(id);
 
@@ -174,6 +180,17 @@ export default async function ListingDetailPage({
             {detailDict.callButton}
           </Button>
         </a>
+
+        {/* فاز ۱۲ — دکمه‌ی «چت با فروشنده» */}
+        <ChatButton
+          lang={lang as Locale}
+          viewerId={viewer?.id ?? null}
+          contextType="listing"
+          contextId={listing.id}
+          ownerId={listing.ownerId}
+          dict={dict.chat.button}
+          fullWidth
+        />
 
         {/* تسک ۳ فاز ۰۶ — دکمه‌ی «گزارش تخلف» روی آگهی؛ target_type = listing */}
         <ReportButton

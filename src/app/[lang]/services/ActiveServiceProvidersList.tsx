@@ -27,6 +27,7 @@ import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { ReportButton } from "@/components/reports/ReportButton";
 import { VipBadge } from "@/components/vip/VipBadge";
+import { ChatButton, type ChatButtonDict } from "@/components/chat/ChatButton";
 import { getBuiltinIconComponent } from "@/lib/services/serviceCategoryIcons";
 import { getServiceProviderImageUrl, getServiceProviderVideoUrl } from "@/lib/services/images";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
@@ -35,6 +36,7 @@ import { SERVICE_PROVIDERS_PAGE_SIZE } from "./constants";
 import type { ServiceCategory } from "@/lib/services/serviceCategories";
 import type { ActiveServiceProviderSummary } from "@/lib/services/serviceProviderQueries";
 import type { ProvinceDict } from "@/components/province/ProvincePickerModal";
+import type { Locale } from "@/lib/i18n/constants";
 
 type ServicesListDict = {
   searchPlaceholder: string;
@@ -63,6 +65,8 @@ export function ActiveServiceProvidersList({
   dict,
   reportButtonLabel,
   vipBadgeLabel,
+  chatButtonDict,
+  viewerId,
   categories,
   provinceDict,
   selectedProvince,
@@ -73,6 +77,8 @@ export function ActiveServiceProvidersList({
   dict: ServicesListDict;
   reportButtonLabel: string;
   vipBadgeLabel: string;
+  chatButtonDict: ChatButtonDict;
+  viewerId: string | null;
   categories: ServiceCategory[];
   provinceDict: ProvinceDict;
   selectedProvince: string | null;
@@ -363,6 +369,17 @@ export function ActiveServiceProvidersList({
                     {dict.callButton}
                   </Button>
                 </a>
+
+                {/* فاز ۱۲ — دکمه‌ی «چت با متخصص» */}
+                <ChatButton
+                  lang={lang as Locale}
+                  viewerId={viewerId}
+                  contextType="service_provider"
+                  contextId={provider.id}
+                  ownerId={provider.ownerId}
+                  dict={chatButtonDict}
+                  fullWidth
+                />
 
                 <ReportButton
                   lang={lang}

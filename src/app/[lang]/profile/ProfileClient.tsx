@@ -128,6 +128,20 @@ export function ProfileClient({
         </Link>
       )}
 
+      {/* فاز ۱۲ — لینک «چت‌های من»، فقط برای کاربر واردشده. */}
+      {user && (
+        <Link
+          href={`/${lang}/chat`}
+          className="flex items-center gap-3 p-4 rounded-2xl bg-white shadow-sm border border-slate-100 active:scale-[0.98] transition-transform"
+        >
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <Icons.MessageSquare className="w-5 h-5" />
+          </div>
+          <span className="flex-1 font-bold text-text-main">{dict.chat.myChatsLink}</span>
+          <Icons.ArrowRight className="w-4 h-4 text-text-muted rotate-180 shrink-0" />
+        </Link>
+      )}
+
       {/* سوییچ زبان — تسک ۸ فاز ۰۱، در دسترس هم برای کاربر واردشده و هم مهمان */}
       <Card className="p-5 flex flex-col gap-3">
         <div>

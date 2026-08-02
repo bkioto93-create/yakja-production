@@ -66,6 +66,7 @@ export async function getMyServiceProviderProfile(
 // چون فیلتر/جستجو/مرتب‌سازی مکانی باید در سطح دیتابیس (PostGIS) انجام شود.
 export type ActiveServiceProviderSummary = {
   id: string;
+  ownerId: string;
   serviceCategoryId: string;
   categoryNameFa: string;
   categoryNamePs: string;
@@ -86,6 +87,7 @@ export type ActiveServiceProviderSummary = {
 // شکل خام ردیفی که تابع Postgres «get_active_service_providers» برمی‌گرداند.
 type RawActiveServiceProviderRow = {
   id: string;
+  owner_id: string;
   service_category_id: string;
   category_name_fa: string;
   category_name_ps: string;
@@ -140,6 +142,7 @@ export async function getActiveServiceProviders(params: {
   return {
     items: rows.map((row) => ({
       id: row.id,
+      ownerId: row.owner_id,
       serviceCategoryId: row.service_category_id,
       categoryNameFa: row.category_name_fa,
       categoryNamePs: row.category_name_ps,

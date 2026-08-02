@@ -9,8 +9,10 @@
 // نمی‌شود، بلکه از constants.ts می‌آید.
 //
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** vipBadgeLabel به ActiveDriversList پاس داده می‌شود.
+// **به‌روزرسانی فاز ۱۲ (چت):** viewerId + chatButtonDict به ActiveDriversList پاس داده می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getActiveDrivers } from "@/lib/transport/driverQueries";
 import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
@@ -26,6 +28,7 @@ export default async function TransportPage({
   const { lang } = await params;
   const dict = await getDictionary(lang);
   const listDict = dict.transport.list;
+  const viewer = await getCurrentUser();
 
   // فاز ۱۰: اولین صفحه‌ی نتایج هم باید طبق ولایت انتخابی کاربر فیلتر شده باشد.
   const { province } = await getSelectedProvince();
@@ -55,6 +58,8 @@ export default async function TransportPage({
         reportButtonLabel={dict.reports.reportButtonLabel}
         vehicleTypesDict={dict.transport.vehicleTypes}
         vipBadgeLabel={dict.vip.badgeLabel}
+        chatButtonDict={dict.chat.button}
+        viewerId={viewer?.id ?? null}
         provinceDict={dict.province}
         selectedProvince={province}
         initialItems={items}

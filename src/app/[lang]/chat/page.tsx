@@ -1,0 +1,96 @@
+// مسیر فایل: src/app/[lang]/chat/page.tsx
+// فاز ۱۲ — صفحه‌ی «چت‌های من»: فهرست همه‌ی گفتگوهایی که کاربر یا آغازکننده‌شان بوده یا صاحبِ
+// آگهی/پروفایل مقابل بوده، دقیقاً هم‌الگو با src/app/[lang]/vip/page.tsx برای حالت کاربر مهمان.
+import Link from "next/link";
+import { getDictionary } from "@/dictionaries/getDictionary";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getMyConversations } from "@/lib/chat/chatQueries";
+import { VipBadge } from "@/components/vip/VipBadge";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Icons } from "@/components/ui/Icons";
+
+export const dynamic = "force-dynamic";
+
+export default async function ChatListPage({
+  params,
+}: {
+  params: Promise<{ lang: string }>;
+}) {
+  const { lang } = await params;
+  const dict = await getDictionary(lang);
+  const chatDict = dict.chat;
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return (
+      <div className="flex flex-col min-h-[70vh] items-center justify-center px-6 py-10">
+        <Card className="p-6 flex flex-col items-center text-center gap-3 max-w-sm w-full">
+          <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+            <Icons.MessageSquare className="w-8 h-8" />
+          </div>
+          <h2 className="font-extrabold text-text-main">{chatDict.loginRequiredTitle}</h2>
+          <p className="text-sm text-text-muted">{chatDict.loginRequiredDesc}</p>
+          <Link href={`/${lang}/auth/login`} className="w-full">
+            <Button variant="primary" fullWidth>
+              {chatDict.loginRequiredButton}
+            </Button>
+          </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  const conversations = await getMyConversations(user.id, chatDict.contextFallbackLabel, chatDict.voiceMessagePreview);
+
+  return (
+    <div className="flex flex-col gap-4 px-4 md:px-0 py-6 max-w-lg md:max-w-xl mx-auto w-full">
+      <h1 className="text-xl font-extrabold text-text-main">{chatDict.listTitle}</h1>
+
+      {conversations.length === 0 ? (
+        <Card className="p-6 flex flex-col items-center text-center gap-2 mt-4">
+          <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center">
+            <Icons.MessageSquare className="w-7 h-7" />
+          </div>
+          <h2 className="font-extrabold text-text-main">{chatDict.emptyTitle}</h2>
+          <p className="text-sm text-text-muted max-w-xs">{chatDict.emptyDesc}</p>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {conversations.map((conv) => (
+            <Link key={conv.id} href={`/${lang}/chat/${conv.id}`}>
+              <Card className="p-3.5 flex items-center gap-3 active:scale-[0.98] transition-transform">
+                <div className="w-12 h-12 shrink-0 rounded-2xl bg-slate-100 overflow-hidden flex items-center justify-center text-slate-400">
+                  {conv.contextImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={conv.contextImageUrl}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Icons.MessageSquare className="w-5 h-5" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-bold text-text-main truncate">
+                      {conv.otherUserName || chatDict.unknownUser}
+                    </span>
+                    {conv.otherUserIsVip && <VipBadge label={dict.vip.badgeLabel} />}
+                  </div>
+                  <span className="text-xs text-text-muted truncate">{conv.contextLabel}</span>
+                  <span className="text-xs text-text-muted truncate">
+                    {conv.lastMessagePreview || chatDict.noMessagesYet}
+                  </span>
+                </div>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

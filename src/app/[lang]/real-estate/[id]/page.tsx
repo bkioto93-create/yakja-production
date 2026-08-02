@@ -16,8 +16,11 @@
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ۱) VipBadge کنار تیتر آگهی، فقط اگر property.ownerIsVip؛
 // ۲) اگر آگهی ویدئوی VIP دارد (property.videoPath)، یک پخش‌کننده‌ی <video> بعد از گالری تصاویر
 // اضافه می‌شود.
+//
+// **به‌روزرسانی فاز ۱۲ (چت):** دکمه‌ی «چت با آگهی‌دهنده» کنار دکمه‌ی تماس اضافه شد.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
+import { getCurrentUser } from "@/lib/auth/session";
 import { getApprovedRealEstateById, getSimilarRealEstate } from "@/lib/realEstate/queries";
 import { getRealEstateImageUrl, getRealEstateVideoUrl } from "@/lib/realEstate/images";
 import { PROPERTY_TYPES } from "@/lib/realEstate/propertyTypes";
@@ -26,6 +29,8 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ReportButton } from "@/components/reports/ReportButton";
 import { VipBadge } from "@/components/vip/VipBadge";
+import { ChatButton } from "@/components/chat/ChatButton";
+import type { Locale } from "@/lib/i18n/constants";
 
 export default async function RealEstateDetailPage({
   params,
@@ -37,6 +42,7 @@ export default async function RealEstateDetailPage({
   const detailDict = dict.realEstate.detail;
   const propertyTypesDict = dict.realEstate.propertyTypes as Record<string, string>;
   const dealTypesDict = dict.realEstate.dealTypes as Record<string, string>;
+  const viewer = await getCurrentUser();
 
   const property = await getApprovedRealEstateById(id);
 
@@ -177,6 +183,17 @@ export default async function RealEstateDetailPage({
             {detailDict.callButton}
           </Button>
         </a>
+
+        {/* فاز ۱۲ — دکمه‌ی «چت با آگهی‌دهنده» */}
+        <ChatButton
+          lang={lang as Locale}
+          viewerId={viewer?.id ?? null}
+          contextType="real_estate"
+          contextId={property.id}
+          ownerId={property.ownerId}
+          dict={dict.chat.button}
+          fullWidth
+        />
 
         {/* تسک ۳ فاز ۰۶ — دکمه‌ی «گزارش تخلف» روی آگهی ملک؛ target_type = real_estate */}
         <ReportButton
