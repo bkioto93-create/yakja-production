@@ -1,164 +1,107 @@
-// مسیر فایل: src/lib/services/serviceProviderQueries.ts
-// تسک ۶ فاز ۰۴ — لایه‌ی خواندن پروفایل متخصصِ خودِ کاربرِ واردشده. دقیقاً هم‌الگو با
-// src/lib/transport/driverQueries.ts (فاز ۰۳، تسک ۴): یک select ساده کافی است چون ستون geography
-// (location) در این مرحله (تسک ۶) نه خوانده و نه نمایش داده می‌شود — فقط ستون‌های ساده‌ی پروفایل
-// (تخصص، آدرس، شماره تماس، توضیح) لازم است.
-//
-// **به‌روزرسانی تسک ۵ فاز ۰۷:** فیلد `isActive` به MyServiceProviderProfile اضافه شد. این ستون
-// (رجوع کنید به 19_phase_07_service_providers_is_active.sql) برخلاف drivers.is_active، هرگز توسط
-// خودِ متخصص در این صفحه تغییر داده نمی‌شود — فقط پنل ادمین آن را می‌نویسد؛ اینجا فقط برای نمایشِ
-// یک اعلانِ صرفاً اطلاع‌رسانی (بدون سوییچ) در ServiceProviderProfileClient.tsx خوانده می‌شود، تا
-// متخصصی که ادمین پروفایلش را پنهان کرده، بی‌خبر نماند که چرا دیگر تماسی دریافت نمی‌کند.
-//
-// **به‌روزرسانی (تصمیم محصول تایید‌شده توسط کارفرما، ۱۴۰۵/۰۴/۳۰):** ستون service_providers.images
-// (20_phase_08b_transport_services_photos.sql) به هر دو تابع این فایل اضافه شد — هم به
-// getMyServiceProviderProfile (برای نمایش عکس‌های موجود در حالت ویرایش) و هم به تابع Postgres
-// get_active_service_providers که getActiveServiceProviders از آن استفاده می‌کند.
-//
-// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** getMyServiceProviderProfile فیلد تازه‌ی videoPath گرفت؛
-// ActiveServiceProviderSummary فیلدهای videoPath و ownerIsVip گرفت (VipBadge + پخش‌کننده‌ی
-// ویدئو در کارت متخصص، طبق بند ۵ پرامپت VIP).
+// مسیر فایل: src/lib/services/adminServiceProviderQueries.ts
+// تسک ۵ فاز ۰۷ — لایه‌ی خواندنِ «مدیریت اختصاصی متخصصین فنی» در پنل ادمین. دقیقاً هم‌الگو با
+// src/lib/transport/adminDriverQueries.ts: صفحه‌بندی واقعی (limit/offset) + جستجوی اختیاری روی
+// contact_phone، به‌علاوه‌ی دو join درون‌حافظه‌ای — یکی با جدول users برای نام/شماره‌ی مالک هر
+// پروفایل، و یکی با service_categories برای نام تخصص — دقیقاً هم‌الگو با
+// src/lib/marketplace/adminListingQueries.ts (تسک ۳) از نظر batched query به‌جای join مستقیم.
+// برخلاف serviceProviderQueries.ts (که فقط پروفایل خودِ کاربر یا فهرست عمومیِ «فعال» را
+// می‌خواند)، این فایل تمام متخصصین را با هر وضعیتی برمی‌گرداند چون مخاطبش ادمین است.
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 
-export type MyServiceProviderProfile = {
+export type AdminServiceProviderRow = {
   id: string;
+  ownerId: string;
   serviceCategoryId: string;
+  categoryNameFa: string;
+  categoryNamePs: string;
   contactPhone: string;
   address: string;
   province: string | null;
   description: string | null;
   isActive: boolean;
   images: string[];
-  videoPath: string | null;
+  ownerName: string | null;
+  ownerPhone: string | null;
 };
 
-// پروفایل متخصصِ خودِ کاربرِ واردشده را برمی‌گرداند؛ اگر هنوز پروفایلی نساخته (کاربر تازه به این
-// صفحه آمده)، null برمی‌گردد — یعنی فرم باید در «حالت ثبت» (نه ویرایش) نمایش داده شود — دقیقاً
-// هم‌الگو با getMyDriverProfile.
-export async function getMyServiceProviderProfile(
-  ownerId: string
-): Promise<MyServiceProviderProfile | null> {
-  const { data, error } = await supabaseAdminClient
-    .from("service_providers")
-    .select("id, service_category_id, contact_phone, address, province, description, is_active, images, video_path")
-    .eq("owner_id", ownerId)
-    .maybeSingle();
+export const ADMIN_SERVICE_PROVIDERS_PAGE_SIZE = 20;
 
-  if (error || !data) return null;
-
-  return {
-    id: data.id,
-    serviceCategoryId: data.service_category_id,
-    contactPhone: data.contact_phone,
-    address: data.address,
-    province: data.province ?? null,
-    description: data.description,
-    isActive: data.is_active,
-    images: data.images ?? [],
-    videoPath: data.video_path ?? null,
-  };
+// کاراکترهایی که در نحوی فیلتر `.or(...)` کتابخانه‌ی supabase-js معنای خاص دارند از عبارت
+// جستجو حذف می‌شوند — دقیقاً هم‌الگو با sanitizeSearchTerm در adminDriverQueries.ts.
+function sanitizeSearchTerm(raw: string): string {
+  return raw.replace(/[%,]/g, "").trim();
 }
 
-// تسک ۷ فاز ۰۴ — فهرست/جستجوی عمومی متخصصین. دقیقاً هم‌الگو با searchListings (فاز ۰۲، تسک ۷)
-// و getActiveDrivers (فاز ۰۳، تسک ۸): از تابع Postgres get_active_service_providers از طریق
-// rpc(...) استفاده می‌شود، نه select مستقیم، چون بازگرداندن ستون geography مستقیماً شکننده است و
-// چون فیلتر/جستجو/مرتب‌سازی مکانی باید در سطح دیتابیس (PostGIS) انجام شود.
-export type ActiveServiceProviderSummary = {
-  id: string;
-  ownerId: string;
-  serviceCategoryId: string;
-  categoryNameFa: string;
-  categoryNamePs: string;
-  categoryIconSource: "builtin" | "custom";
-  categoryIconKey: string | null;
-  categoryIconUrl: string | null;
-  contactPhone: string;
-  address: string;
-  description: string | null;
-  images: string[];
-  videoPath: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  distanceMeters: number | null;
-  ownerIsVip: boolean;
-};
+export async function getServiceProvidersPage(params: {
+  search?: string;
+  page?: number;
+}): Promise<{ items: AdminServiceProviderRow[]; totalCount: number; pageSize: number }> {
+  const page = params.page && params.page > 0 ? Math.floor(params.page) : 1;
+  const from = (page - 1) * ADMIN_SERVICE_PROVIDERS_PAGE_SIZE;
+  const to = from + ADMIN_SERVICE_PROVIDERS_PAGE_SIZE - 1;
 
-// شکل خام ردیفی که تابع Postgres «get_active_service_providers» برمی‌گرداند.
-type RawActiveServiceProviderRow = {
-  id: string;
-  owner_id: string;
-  service_category_id: string;
-  category_name_fa: string;
-  category_name_ps: string;
-  category_icon_source: string;
-  category_icon_key: string | null;
-  category_icon_url: string | null;
-  contact_phone: string;
-  address: string;
-  description: string | null;
-  images: string[] | null;
-  video_path: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  distance_meters: number | null;
-  owner_is_vip: boolean;
-  total_count: number;
-};
+  // برخلاف drivers، جدول service_providers ستون created_at ندارد (رجوع کنید به
+  // 15_phase_04_active_service_providers_function.sql)؛ مرتب‌سازی روی id انجام می‌شود.
+  let query = supabaseAdminClient
+    .from("service_providers")
+    .select(
+      "id, owner_id, service_category_id, contact_phone, address, province, description, is_active, images",
+      { count: "exact" }
+    )
+    .order("id", { ascending: false })
+    .range(from, to);
 
-// - category=null یعنی «همه‌ی تخصص‌ها».
-// - latitude/longitude=null یعنی کاربر GPS را نداده یا رد کرده؛ در این حالت مرتب‌سازی بدون
-//   فاصله انجام می‌شود (distanceMeters همیشه null برمی‌گردد).
-// - query یک عبارت متنی اختیاری است که روی آدرس متخصص با ILIKE بررسی می‌شود؛ این همان «جستجوی
-//   دستی شهر/منطقه» است که طبق متن دقیق تسک ۷، در صورت رد GPS جایگزین می‌شود (و همیشه، حتی با
-//   GPS فعال هم، در دسترس می‌ماند — دقیقاً هم‌الگو با ListingsSearch.tsx فاز ۰۲).
-// - totalCount برای تصمیم‌گیری درباره‌ی نمایش دکمه‌ی «نمایش موارد بیشتر» در سمت کلاینت است.
-// - تابع Postgres خودش از تسک ۵ فاز ۰۷ فقط پروفایل‌های is_active=true را برمی‌گرداند (رجوع کنید
-//   به 19_phase_07_service_providers_is_active.sql).
-export async function getActiveServiceProviders(params: {
-  category?: string | null;
-  province?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  query?: string | null;
-  limit?: number;
-  offset?: number;
-}): Promise<{ items: ActiveServiceProviderSummary[]; totalCount: number }> {
-  const { data, error } = await supabaseAdminClient.rpc("get_active_service_providers", {
-    p_category: params.category ?? null,
-    // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» — بدون فیلتر ولایتی.
-    p_province: params.province ?? null,
-    p_lat: params.latitude ?? null,
-    p_lng: params.longitude ?? null,
-    p_query: params.query ?? null,
-    p_limit: params.limit ?? 20,
-    p_offset: params.offset ?? 0,
-  });
+  const search = params.search ? sanitizeSearchTerm(params.search) : "";
+  if (search) {
+    // چون contact_phone ستون خودِ جدول service_providers است، جستجو مستقیماً روی همین جدول
+    // انجام می‌شود — دقیقاً هم‌الگو با adminDriverQueries.ts.
+    query = query.ilike("contact_phone", `%${search}%`);
+  }
 
-  if (error || !data) return { items: [], totalCount: 0 };
+  const { data, error, count } = await query;
 
-  const rows = data as RawActiveServiceProviderRow[];
+  if (error || !data) {
+    return { items: [], totalCount: 0, pageSize: ADMIN_SERVICE_PROVIDERS_PAGE_SIZE };
+  }
+
+  const ownerIds = Array.from(new Set(data.map((row) => row.owner_id as string)));
+  const { data: owners } = ownerIds.length
+    ? await supabaseAdminClient.from("users").select("id, name, phone_number").in("id", ownerIds)
+    : { data: [] as { id: string; name: string | null; phone_number: string }[] };
+
+  const categoryIds = Array.from(new Set(data.map((row) => row.service_category_id as string)));
+  const { data: categories } = categoryIds.length
+    ? await supabaseAdminClient
+        .from("service_categories")
+        .select("id, name_fa, name_ps")
+        .in("id", categoryIds)
+    : { data: [] as { id: string; name_fa: string; name_ps: string }[] };
+
+  const ownerById = new Map((owners ?? []).map((o) => [o.id, o]));
+  const categoryById = new Map((categories ?? []).map((c) => [c.id, c]));
 
   return {
-    items: rows.map((row) => ({
-      id: row.id,
-      ownerId: row.owner_id,
-      serviceCategoryId: row.service_category_id,
-      categoryNameFa: row.category_name_fa,
-      categoryNamePs: row.category_name_ps,
-      categoryIconSource: row.category_icon_source === "custom" ? "custom" : "builtin",
-      categoryIconKey: row.category_icon_key,
-      categoryIconUrl: row.category_icon_url,
-      contactPhone: row.contact_phone,
-      address: row.address,
-      description: row.description,
-      images: row.images ?? [],
-      videoPath: row.video_path,
-      latitude: row.latitude,
-      longitude: row.longitude,
-      distanceMeters: row.distance_meters,
-      ownerIsVip: row.owner_is_vip ?? false,
-    })),
-    totalCount: rows.length > 0 ? Number(rows[0].total_count) : 0,
+    items: data.map((row) => {
+      const owner = ownerById.get(row.owner_id as string);
+      const category = categoryById.get(row.service_category_id as string);
+      return {
+        id: row.id as string,
+        ownerId: row.owner_id as string,
+        serviceCategoryId: row.service_category_id as string,
+        categoryNameFa: category?.name_fa ?? "",
+        categoryNamePs: category?.name_ps ?? "",
+        contactPhone: row.contact_phone as string,
+        address: row.address as string,
+        province: (row.province as string | null) ?? null,
+        description: row.description as string | null,
+        isActive: row.is_active as boolean,
+        images: (row.images as string[] | null) ?? [],
+        ownerName: owner?.name ?? null,
+        ownerPhone: owner?.phone_number ?? null,
+      };
+    }),
+    totalCount: count ?? 0,
+    pageSize: ADMIN_SERVICE_PROVIDERS_PAGE_SIZE,
   };
 }

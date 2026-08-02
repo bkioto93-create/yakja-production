@@ -15,7 +15,7 @@ const VOICE_BUCKET = "chat-voice-messages";
 const MAX_TEXT_LENGTH = 2000;
 const MAX_VOICE_SECONDS = 120; // ۲ دقیقه سقف هر پیام صوتی — کافی برای یک پیام کوتاه، نه فایل حجیم
 
-type ActionResult<T = Record<string, never>> =
+type ActionResult<T = object> =
   | ({ success: true } & T)
   | { success: false; error: string };
 
