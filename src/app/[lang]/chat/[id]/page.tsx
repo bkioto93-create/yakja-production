@@ -1,8 +1,13 @@
 // مسیر فایل: src/app/[lang]/chat/[id]/page.tsx
 // فاز ۱۲ — صفحه‌ی یک گفتگوی مشخص. کنترل دسترسی واقعی همین‌جا انجام می‌شود:
-// getConversationForUser فقط اگر کاربر جاری واقعاً یکی از دو طرف گفتگو باشد چیزی برمی‌گرداند؛
+// getConversationForUser فقط اگر کاربر جاری واقعاً یکی از دو طرف آن باشد چیزی برمی‌گرداند؛
 // در غیر این صورت (گفتگوی متعلق به کس دیگر، یا گفتگوی ناموجود/پاک‌شده) همان صفحه‌ی خالی «یافت
 // نشد» نمایش داده می‌شود — دقیقاً هم‌الگو با صفحه‌ی جزئیات آگهی برای شناسه‌ی نامعتبر.
+//
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** تنها تغییر، پاس‌دادن یک آرگومان تازه
+// (dict.chat.adminSupport.label) به getConversationForUser است — برای این‌که اگر این گفتگو از
+// نوع admin_support باشد، طرفِ ادمین همیشه با برند «پشتیبانی یکجا» نمایش داده شود، نه نام خام
+// حساب ادمین. هیچ منطق دیگر این صفحه تغییر نکرد.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -44,7 +49,12 @@ export default async function ChatThreadPage({
     );
   }
 
-  const conversation = await getConversationForUser(id, user.id, chatDict.contextFallbackLabel);
+  const conversation = await getConversationForUser(
+    id,
+    user.id,
+    chatDict.contextFallbackLabel,
+    chatDict.adminSupport.label
+  );
 
   if (!conversation) {
     return (

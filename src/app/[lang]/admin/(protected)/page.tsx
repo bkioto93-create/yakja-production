@@ -23,6 +23,10 @@
 // درون‌اپ می‌روند)، این یکی یک <a> ساده با href مستقیم به Route Handler دانلود (بدون نیاز به
 // جاوااسکریپت) است؛ کلیک روی آن بلافاصله دانلود فایل JSON بک‌آپ را با مرورگر آغاز می‌کند، بدون
 // نیاز به یک صفحه‌ی میانی مجزا.
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** کارت «چت‌ها» اضافه شد — دقیقاً هم‌الگو با کارت
+// «گزارش‌های تخلف» (نشان تعداد در انتظار). عمداً بلافاصله بعد از کارت «گزارش‌های تخلف» و پیش از
+// «پیامک‌ها» قرار گرفت — چون هر دو (گزارش‌ها و چت‌های پشتیبانی) یک صفِ نیازمندِ رسیدگیِ سریع‌اند،
+// نه یک فهرست مرور صرف مثل «رانندگان و متخصصین»/«پیامک‌ها».
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { Card } from "@/components/ui/Card";
@@ -31,6 +35,7 @@ import { getPendingReportsCount } from "@/lib/reports/adminReportQueries";
 import { getPendingListingsCount } from "@/lib/marketplace/adminListingQueries";
 import { getPendingRealEstateCount } from "@/lib/realEstate/adminRealEstateQueries";
 import { getAdminStats } from "@/lib/admin/adminStatsQueries";
+import { getPendingAdminChatRequestsCount } from "@/lib/admin/adminChatQueries";
 import { LISTING_CATEGORIES } from "@/lib/marketplace/categories";
 
 export default async function AdminDashboardPage({
@@ -41,10 +46,11 @@ export default async function AdminDashboardPage({
   const { lang } = await params;
   const dict = await getDictionary(lang);
   const pendingReportsCount = await getPendingReportsCount();
-  const [pendingListingsCount, pendingRealEstateCount, stats] = await Promise.all([
+  const [pendingListingsCount, pendingRealEstateCount, stats, pendingChatsCount] = await Promise.all([
     getPendingListingsCount(),
     getPendingRealEstateCount(),
     getAdminStats(),
+    getPendingAdminChatRequestsCount(),
   ]);
   const pendingListingsTotal = pendingListingsCount + pendingRealEstateCount;
 
@@ -138,6 +144,23 @@ export default async function AdminDashboardPage({
                 "{count}",
                 String(pendingReportsCount)
               )}
+            </span>
+          )}
+        </Card>
+      </Link>
+
+      <Link href={`/${lang}/admin/chats`}>
+        <Card className="p-5 flex items-center gap-4 hover:shadow-md transition-shadow">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <Icons.MessageSquare className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-bold text-text-main">{dict.admin.dashboard.chatsCardTitle}</h2>
+            <p className="text-sm text-text-muted">{dict.admin.dashboard.chatsCardDesc}</p>
+          </div>
+          {pendingChatsCount > 0 && (
+            <span className="shrink-0 text-xs font-bold text-white bg-red-500 rounded-full px-2 py-1">
+              {dict.admin.dashboard.chatsPendingBadge.replace("{count}", String(pendingChatsCount))}
             </span>
           )}
         </Card>

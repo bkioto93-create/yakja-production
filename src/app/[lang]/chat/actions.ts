@@ -2,6 +2,21 @@
 // فاز ۱۲ — اکشن‌های چت: شروع/ادامه‌ی گفتگو، ارسال پیام متنی، آپلود و ارسال پیام صوتی.
 // دقیقاً هم‌الگو با src/app/[lang]/vip/actions.ts: تمام اعتبارسنجی و نوشتن سمت سرور با
 // supabaseAdminClient انجام می‌شود (auth.uid() در این پروژه همیشه null است، بند ۸.۴ سند راهبردی).
+//
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):**
+// ۱) اکشن تازه‌ی startAdminSupportConversationAction — دقیقاً هم‌روح با startConversationAction
+//    (idempotent، بدون تکرار ردیف)، با این تفاوت‌ها: (الف) owner/context همیشه همان حساب ادمین
+//    پشتیبانی است، نه یک آگهی/پروفایل که کاربر انتخاب کرده، (ب) هرگز مشمول سقف روزانه‌ی گفتگوی
+//    تازه نیست (تماس با پشتیبانی خودِ پلتفرم، نه گفتگو با یک آگهی/پروفایل دیگر)، (ج) گفتگوی تازه
+//    با status='pending' ساخته می‌شود، نه 'active' — تا در پنل مدیریت به‌عنوان «درخواست در
+//    انتظار» دیده شود، (د) اگر کاربر قبلاً یک‌بار رد شده، به‌جای ساختن ردیف تکراری (که Unique
+//    Constraint اجازه نمی‌دهد)، همان ردیف قبلی را به 'pending' برمی‌گرداند تا کاربر بتواند دوباره
+//    تلاش کند.
+// ۲) sendTextMessageAction و sendVoiceMessageAction حالا به‌جای تابع boolean قدیمی
+//    (assertMembership)، از تابع تازه‌ی getConversationMembership استفاده می‌کنند که علاوه بر
+//    تایید عضویت، contextType/status گفتگو را هم برمی‌گرداند — تا بتوانند بعد از ارسال موفقِ
+//    پیام، در صورت لزوم، «تاییدِ خودکار» گفتگوی پشتیبانی را هم انجام دهند (رجوع کنید به
+//    autoActivateIfAdminReplied پایین همین فایل).
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -9,6 +24,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import { isUserVip } from "@/lib/vip/vipStatus";
 import { canUserStartNewConversation } from "@/lib/chat/chatLimits";
+import { getSupportAdminId, ADMIN_SUPPORT_CONTEXT_TYPE } from "@/lib/chat/adminSupportChat";
 import type { ChatContextType } from "@/lib/chat/chatQueries";
 
 const VOICE_BUCKET = "chat-voice-messages";
@@ -84,15 +100,125 @@ export async function startConversationAction(
   return { success: true, conversationId: created.id as string };
 }
 
-async function assertMembership(conversationId: string, userId: string) {
+// فاز ۱۳ — شروع (یا بازیابی/تلاش دوباره‌ی) گفتگوی «چت با پشتیبانی». برخلاف startConversationAction:
+// هیچ ownerId از سمت کلاینت گرفته نمی‌شود (همیشه سمت سرور با getSupportAdminId تعیین می‌شود، تا
+// کاربر نتواند با دستکاری آرگومان‌ها یک گفتگوی جعلی با شناسه‌ی دلخواه بسازد) و هیچ سقف روزانه‌ای
+// اعمال نمی‌شود.
+export async function startAdminSupportConversationAction(): Promise<
+  ActionResult<{ conversationId: string }>
+> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "unauthenticated" };
+
+  const supportAdminId = await getSupportAdminId();
+  if (!supportAdminId) {
+    // نبودِ هیچ حساب ادمینی در سامانه یک حالت پیکربندی‌نشده است، نه یک خطای معمولی کاربر.
+    return { success: false, error: "unavailable" };
+  }
+
+  if (user.id === supportAdminId) {
+    // خودِ حساب ادمین پشتیبانی هرگز این اکشن را صدا نمی‌زند (دکمه‌ی مربوطه در UI برایش
+    // نمایش داده نمی‌شود)؛ این فقط یک محافظِ دفاع‌در-عمق است.
+    return { success: false, error: "cannotChatWithSelf" };
+  }
+
+  const { data: existing } = await supabaseAdminClient
+    .from("conversations")
+    .select("id, status")
+    .eq("context_type", ADMIN_SUPPORT_CONTEXT_TYPE)
+    .eq("context_id", supportAdminId)
+    .eq("initiator_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    // اگر درخواست قبلی رد شده بود، تلاش تازه‌ی کاربر آن را دوباره به «در انتظار تایید» برمی‌گرداند
+    // (نه یک ردیف دوم — Unique Constraint هم اصلاً اجازه‌ی آن را نمی‌دهد)، تا در صفِ پنل مدیریت
+    // دوباره دیده شود. اگر از قبل pending یا active بود، همان‌طور دست‌نخورده می‌ماند.
+    if (existing.status === "rejected") {
+      await supabaseAdminClient
+        .from("conversations")
+        .update({ status: "pending", requested_at: new Date().toISOString(), responded_at: null })
+        .eq("id", existing.id as string);
+    }
+    return { success: true, conversationId: existing.id as string };
+  }
+
+  const { data: created, error } = await supabaseAdminClient
+    .from("conversations")
+    .insert({
+      context_type: ADMIN_SUPPORT_CONTEXT_TYPE,
+      context_id: supportAdminId,
+      initiator_id: user.id,
+      owner_id: supportAdminId,
+      status: "pending",
+    })
+    .select("id")
+    .maybeSingle();
+
+  // هم‌الگو با startConversationAction: نقض Unique Constraint یعنی هم‌زمان یک درخواست دیگر همین
+  // گفتگو را ساخته — همان ردیف موجود خوانده و برگردانده می‌شود.
+  if (error?.code === "23505") {
+    const { data: raceWinner } = await supabaseAdminClient
+      .from("conversations")
+      .select("id")
+      .eq("context_type", ADMIN_SUPPORT_CONTEXT_TYPE)
+      .eq("context_id", supportAdminId)
+      .eq("initiator_id", user.id)
+      .maybeSingle();
+    if (raceWinner) return { success: true, conversationId: raceWinner.id as string };
+  }
+
+  if (error || !created) return { success: false, error: "dbError" };
+
+  return { success: true, conversationId: created.id as string };
+}
+
+type ConversationMembership = {
+  initiatorId: string;
+  ownerId: string;
+  contextType: ChatContextType;
+  status: "pending" | "active" | "rejected";
+};
+
+// فاز ۱۳ — جایگزینِ assertMembership قبلی: علاوه بر تایید عضویت، contextType/status گفتگو را هم
+// برمی‌گرداند (بدون افزودن یک کوئری دوم) تا اکشن‌های ارسال پیام بتوانند «تاییدِ ضمنیِ» گفتگوی
+// پشتیبانی را (رجوع کنید به توضیح پایین‌تر) بدون خواندن دوباره از دیتابیس بررسی کنند.
+async function getConversationMembership(
+  conversationId: string,
+  userId: string
+): Promise<ConversationMembership | null> {
   const { data } = await supabaseAdminClient
     .from("conversations")
-    .select("id, initiator_id, owner_id")
+    .select("initiator_id, owner_id, context_type, status")
     .eq("id", conversationId)
     .maybeSingle();
 
-  if (!data) return false;
-  return data.initiator_id === userId || data.owner_id === userId;
+  if (!data) return null;
+  if (data.initiator_id !== userId && data.owner_id !== userId) return null;
+
+  return {
+    initiatorId: data.initiator_id as string,
+    ownerId: data.owner_id as string,
+    contextType: data.context_type as ChatContextType,
+    status: (data.status as "pending" | "active" | "rejected" | null) ?? "active",
+  };
+}
+
+// فاز ۱۳ — اگر این پیام را دقیقاً همان حساب ادمینِ صاحبِ یک گفتگوی «پشتیبانی در انتظار تایید»
+// فرستاده باشد، همین پاسخ خودش یک تاییدِ ضمنی محسوب می‌شود: وضعیت به‌طور خودکار 'active' می‌شود —
+// دقیقاً هم‌معنای دکمه‌ی «تایید» در پنل مدیریت (src/app/[lang]/admin/(protected)/chats/actions.ts)،
+// فقط با یک مسیر کوتاه‌تر برای مدیری که ترجیح می‌دهد به‌جای زدن دکمه‌ی تایید، مستقیم پاسخ بدهد.
+async function autoActivateIfAdminReplied(membership: ConversationMembership, conversationId: string, senderId: string) {
+  if (
+    membership.contextType === "admin_support" &&
+    membership.status === "pending" &&
+    membership.ownerId === senderId
+  ) {
+    await supabaseAdminClient
+      .from("conversations")
+      .update({ status: "active", responded_at: new Date().toISOString() })
+      .eq("id", conversationId);
+  }
 }
 
 export async function sendTextMessageAction(
@@ -107,8 +233,8 @@ export async function sendTextMessageAction(
   if (!trimmed) return { success: false, error: "emptyMessage" };
   if (trimmed.length > MAX_TEXT_LENGTH) return { success: false, error: "messageTooLong" };
 
-  const isMember = await assertMembership(conversationId, user.id);
-  if (!isMember) return { success: false, error: "unauthorized" };
+  const membership = await getConversationMembership(conversationId, user.id);
+  if (!membership) return { success: false, error: "unauthorized" };
 
   const { error: insertError } = await supabaseAdminClient.from("chat_messages").insert({
     conversation_id: conversationId,
@@ -118,6 +244,8 @@ export async function sendTextMessageAction(
   });
 
   if (insertError) return { success: false, error: "dbError" };
+
+  await autoActivateIfAdminReplied(membership, conversationId, user.id);
 
   await supabaseAdminClient
     .from("conversations")
@@ -138,8 +266,8 @@ export async function createVoiceUploadSlotAction(
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "unauthenticated" };
 
-  const isMember = await assertMembership(conversationId, user.id);
-  if (!isMember) return { success: false, error: "unauthorized" };
+  const membership = await getConversationMembership(conversationId, user.id);
+  if (!membership) return { success: false, error: "unauthorized" };
 
   const path = `${conversationId}/${user.id}_${Date.now()}.webm`;
   const { data, error } = await supabaseAdminClient.storage
@@ -160,8 +288,8 @@ export async function sendVoiceMessageAction(
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "unauthenticated" };
 
-  const isMember = await assertMembership(conversationId, user.id);
-  if (!isMember) return { success: false, error: "unauthorized" };
+  const membership = await getConversationMembership(conversationId, user.id);
+  if (!membership) return { success: false, error: "unauthorized" };
 
   // دفاع در عمق: مسیر فایل باید دقیقاً همان قرارداد createVoiceUploadSlotAction را داشته باشد.
   if (!voicePath.startsWith(`${conversationId}/${user.id}_`)) {
@@ -188,6 +316,8 @@ export async function sendVoiceMessageAction(
     }
     return { success: false, error: "dbError" };
   }
+
+  await autoActivateIfAdminReplied(membership, conversationId, user.id);
 
   await supabaseAdminClient
     .from("conversations")

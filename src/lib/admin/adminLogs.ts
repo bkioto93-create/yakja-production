@@ -15,6 +15,10 @@
 // دیتابیسی تعریف شده بود، پس این مقدار تازه بدون هیچ migration اضافه‌ای هم‌اکنون قابل‌درج است —
 // فقط همین یونیون تایپ‌اسکریپتی به‌روزرسانی شد.
 //
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** مقدار تازه‌ی "conversation" اضافه شد — برای اقدام
+// تایید/رد یک درخواست چت پشتیبانی در src/app/[lang]/admin/(protected)/chats/actions.ts. دقیقاً
+// طبق همان توضیح بالا، چون این ستون بدون CHECK constraint است، هیچ migration جداگانه‌ای لازم نشد.
+//
 // طراحی عمدی: این تابع هرگز خطا throw نمی‌کند و مقدار بازگشتی‌اش استفاده نمی‌شود. اگر ثبت لاگ به
 // هر دلیلی (مثلاً قطعی موقت دیتابیس) شکست بخورد، نباید اقدام اصلی ادمین (که قبلاً با موفقیت انجام
 // شده) از دید کاربر شکست‌خورده به‌نظر برسد؛ فقط خطا در کنسول سرور ثبت می‌شود. لاگ‌ها ابزار پیگیری و
@@ -23,7 +27,8 @@ import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 
 // انواع هدف قابل‌ثبت — پنج مقدار اولیه‌ی تسک‌های ۲/۳/۵ فاز ۰۷، به‌علاوه‌ی "system" (تسک ۸ فاز ۰۷،
-// دکمه‌ی بک‌آپ) و "vip_request" (فاز ۱۱، تایید/رد درخواست VIP).
+// دکمه‌ی بک‌آپ)، "vip_request" (فاز ۱۱، تایید/رد درخواست VIP) و "conversation" (فاز ۱۳، تایید/رد
+// درخواست چت پشتیبانی).
 export type AdminLogTargetType =
   | "user"
   | "listing"
@@ -31,7 +36,8 @@ export type AdminLogTargetType =
   | "driver"
   | "service_provider"
   | "system"
-  | "vip_request";
+  | "vip_request"
+  | "conversation";
 
 export async function logAdminAction(params: {
   adminId: string;

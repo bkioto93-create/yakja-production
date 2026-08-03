@@ -1,12 +1,21 @@
 // مسیر فایل: src/app/[lang]/contact/page.tsx
 // صفحه‌ سبک PWA ارتباط و هویت بر پایه اصول RTL در افغانستان!
+//
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** یک کارت تازه («چت آنلاین با پشتیبانی»)، درست
+// بالای کادرهای تلفن/آدرس/وبسایت، اضافه شد — برای کاربری که ترجیح می‌دهد به‌جای تماس تلفنی، در
+// همان اپ با تیم مدیریت چت کند. برای این کار این صفحه حالا getCurrentUser را هم می‌خواند (قبلاً
+// اصلاً به وضعیت ورود کاربر نیازی نداشت).
 import { getDictionary } from "@/dictionaries/getDictionary";
+import { getCurrentUser } from "@/lib/auth/session";
+import { AdminSupportChatEntry } from "@/components/chat/AdminSupportChatEntry";
 import Link from "next/link";
+import type { Locale } from "@/lib/i18n/constants";
 
 export default async function ContactPage({ params }: { params: Promise<{ lang: string }> }) {
   const resolvedParams = await params;
   const lang = resolvedParams.lang;
   const dict = await getDictionary(lang);
+  const user = await getCurrentUser();
 
   return (
     <div className="flex flex-col min-h-screen sm:min-h-[90vh] bg-bg-base relative">
@@ -40,6 +49,24 @@ export default async function ContactPage({ params }: { params: Promise<{ lang: 
           </h2>
 
           <div className="w-full flex flex-col space-y-3 mt-4 mb-6">
+             {/* فاز ۱۳ — کارت «چت آنلاین با پشتیبانی»، فقط برای کاربری که خودِ حساب ادمین نیست
+                 (ادمین این ورودی عمومی را نمی‌بیند). برای کاربر مهمان هم نمایش داده می‌شود؛
+                 کلیک روی آن، به‌جای شروع مستقیم گفتگو، او را به صفحه‌ی ورود می‌فرستد. */}
+             {user?.role !== "admin" && (
+               <AdminSupportChatEntry
+                 lang={lang as Locale}
+                 viewerId={user?.id ?? null}
+                 variant="card"
+                 dict={{
+                   title: dict.chat.adminSupport.label,
+                   description: dict.chat.adminSupport.description,
+                   startButton: dict.chat.adminSupport.startButton,
+                   loginRequiredButton: dict.chat.loginRequiredButton,
+                   errors: dict.chat.button.errors,
+                 }}
+               />
+             )}
+
              {/* کادر تلفن: واکنشگرا (لینک Tel مستقیم پروتکل به اپلیکیشن تلفن اندروید می‌پرد طبق نیاز قرارداد) */}
              <div className="flex items-center gap-4 px-5 py-4 rounded-3xl bg-white shadow-sm border border-slate-100">
                 <div className="w-[45px] h-[45px] shrink-0 bg-primary/10 rounded-2xl flex items-center justify-center text-primary border border-primary/5">

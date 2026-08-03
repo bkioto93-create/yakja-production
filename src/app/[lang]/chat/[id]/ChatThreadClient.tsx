@@ -10,6 +10,15 @@
 // ضبط صدا: با MediaRecorder مرورگر (audio/webm) — پشتیبانی گسترده روی کروم/اندروید (پلتفرم اصلی
 // مخاطبان طبق سند راهبردی)؛ در مرورگرهایی که audio/webm را پشتیبانی نمی‌کنند (عمدتاً iOS Safari
 // قدیمی)، دکمه‌ی ضبط با پیام خطای مناسب غیرفعال می‌شود، نه کرش خاموش.
+//
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** یک نوار وضعیت تازه، دقیقاً بالای پیام‌ها (کنار
+// ChatRetentionNotice موجود)، فقط برای گفتگوهای isAdminSupportChat با status !== "active" نمایش
+// داده می‌شود — با دو متن متفاوت بسته به این‌که بیننده کاربر عادی است یا خودِ ادمین پشتیبانی
+// (viewerIsSupportAdmin). عمداً برای کاربر عادی هیچ‌وقت واژه‌ی «رد شد» به کار نمی‌رود (چه گفتگو
+// واقعاً pending باشد چه rejected)، چون طبق تصمیم صریح کارفرما نباید کاربر با یک پیام قطعی/منفی
+// روبه‌رو شود — همیشه یک پیام آرام و حرفه‌ای «در حال بررسی/به‌زودی پاسخ داده می‌شود» می‌بیند.
+// هیچ منطق دیگر (ارسال پیام، ضبط صدا، Realtime) تغییر نکرد — کاربر همچنان می‌تواند حتی پیش از
+// تایید مدیر هم پیام بنویسد؛ همان پیام‌ها بعداً برای مدیر قابل‌مشاهده خواهند بود.
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -57,6 +66,7 @@ export function ChatThreadClient({
   const router = useRouter();
   const { showToast } = useToast();
   const chatDict = dict.chat;
+  const adminSupportDict = chatDict.adminSupport;
   const errorsDict = chatDict.errors as Record<string, string>;
   const errorText = (code: string) => errorsDict[code] ?? errorsDict.generic;
 
@@ -71,6 +81,9 @@ export function ChatThreadClient({
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const seenMessageIdsRef = useRef<Set<string>>(new Set(initialMessages.map((m) => m.id)));
+
+  // فاز ۱۳ — آیا این گفتگوی پشتیبانی هنوز منتظر تایید/پاسخ مدیر است؟
+  const isPendingAdminSupport = conversation.isAdminSupportChat && conversation.status !== "active";
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -109,8 +122,17 @@ export function ChatThreadClient({
           // ساخته می‌شود)؛ برای پیام صوتیِ طرفِ مقابل، صفحه را با router.refresh() تازه می‌کنیم تا
           // getConversationMessages دوباره روی سرور اجرا شود و Signed URL درست بسازد. برای پیام
           // متنی نیازی به این کار نیست.
-          if (row.message_type === "voice" && row.sender_id !== viewerId) {
+          //
+          // نکته‌ی فاز ۱۳: اگر این گفتگوی پشتیبانیِ در انتظار بود و طرف مقابل (مدیر) پیامی فرستاد،
+          // status روی سرور به‌طور خودکار 'active' می‌شود (رجوع کنید به autoActivateIfAdminReplied
+          // در actions.ts)؛ چون این مقدار در payload جدول chat_messages نیست، همان router.refresh()
+          // پیام صوتی هم این حالت را به‌روز می‌کند. برای پیام متنیِ اولِ مدیر هم یک refresh سبک اجرا
+          // می‌شود تا نوار «در انتظار» بلافاصله محو شود، نه فقط بعد از رفرش دستیِ بعدی کاربر.
+          if (row.sender_id !== viewerId && isPendingAdminSupport) {
             router.refresh();
+          }
+
+          if (row.message_type === "voice" && row.sender_id !== viewerId) {
             return;
           }
 
@@ -164,6 +186,12 @@ export function ChatThreadClient({
           createdAt: new Date().toISOString(),
         },
       ]);
+      // فاز ۱۳ — اگر خودِ همین بیننده مدیرِ پشتیبانی بود و گفتگو در انتظار بود، همین پیام روی سرور
+      // status را 'active' کرده؛ یک رفرش سبک، نوار «در انتظار» را از سرصفحه‌ی خودِ مدیر هم فوراً
+      // برمی‌دارد.
+      if (isPendingAdminSupport && conversation.viewerIsSupportAdmin) {
+        router.refresh();
+      }
     });
   }
 
@@ -274,6 +302,10 @@ export function ChatThreadClient({
           createdAt: new Date().toISOString(),
         },
       ]);
+
+      if (isPendingAdminSupport && conversation.viewerIsSupportAdmin) {
+        router.refresh();
+      }
     };
 
     recorder.stop();
@@ -310,12 +342,31 @@ export function ChatThreadClient({
               {conversation.otherUserName || chatDict.unknownUser}
             </span>
             {conversation.otherUserIsVip && <VipBadge label={dict.vip.badgeLabel} />}
+            {/* فاز ۱۳ — نشان کوچک «پشتیبانی رسمی»، فقط وقتی بیننده کاربر عادی است (نه خودِ مدیر) */}
+            {conversation.isAdminSupportChat && !conversation.viewerIsSupportAdmin && (
+              <span className="inline-flex items-center text-[10px] font-bold text-primary bg-primary/10 rounded-full px-2 py-0.5 whitespace-nowrap">
+                {adminSupportDict.officialBadge}
+              </span>
+            )}
           </div>
           <span className="text-xs text-text-muted truncate">{conversation.contextLabel}</span>
         </div>
       </div>
 
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 flex flex-col gap-2.5">
+        {/* فاز ۱۳ — نوار وضعیت «در انتظار تایید مدیر» برای گفتگوی پشتیبانی؛ متن کاملاً بسته به
+            این‌که بیننده کاربر عادی است یا خودِ مدیر فرق می‌کند، اما هرگز کلمه‌ای شبیه «رد شد» به
+            کاربر عادی نشان داده نمی‌شود. */}
+        {isPendingAdminSupport && (
+          <div className="flex items-start gap-2.5 bg-primary/5 border border-primary/10 rounded-2xl px-4 py-3">
+            <Icons.Info className="w-[18px] h-[18px] shrink-0 text-primary mt-0.5" />
+            <p className="text-xs text-primary leading-relaxed">
+              {conversation.viewerIsSupportAdmin
+                ? adminSupportDict.adminPendingNotice
+                : adminSupportDict.userPendingNotice}
+            </p>
+          </div>
+        )}
         <ChatRetentionNotice message={chatDict.retentionNotice} />
       </div>
 

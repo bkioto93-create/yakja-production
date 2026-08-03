@@ -4,6 +4,14 @@
 // جدول‌های ۴‌گانه‌ی context (listings/drivers/service_providers/real_estate) برای supabase-js
 // تعریف نشده، اطلاعات «موضوع گفتگو» (عنوان/عکس) با کوئری‌های دسته‌ای دوم خوانده و در حافظه
 // ترکیب می‌شود.
+//
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** یک نوع تازه‌ی context اضافه شد: "admin_support".
+// برخلاف ۴ نوع قبلی (که context_id به یک ردیف واقعی در جدول‌های listings/drivers/... اشاره
+// می‌کند)، اینجا context_id همیشه همان شناسه‌ی ثابتِ حساب ادمینِ پشتیبانی است (رجوع کنید به
+// src/lib/chat/adminSupportChat.ts) — یعنی نیازی به کوئری‌گرفتن از هیچ جدولی نیست، فقط یک
+// برچسب/آیکون ثابت (که از دیکشنری پاس داده می‌شود، طبق الزام قطعی «ممنوعیت هاردکد متن») برگردانده
+// می‌شود. همچنین چون این نوع گفتگو یک گردش‌کار «در انتظار تایید» دارد (ستون تازه‌ی
+// conversations.status)، این ستون هم به ConversationView/MyConversationRow اضافه شد.
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import { getListingImageUrl } from "@/lib/marketplace/images";
@@ -11,7 +19,16 @@ import { getDriverImageUrl } from "@/lib/transport/images";
 import { getServiceProviderImageUrl } from "@/lib/services/images";
 import { getRealEstateImageUrl } from "@/lib/realEstate/images";
 
-export type ChatContextType = "listing" | "driver" | "service_provider" | "real_estate";
+export type ChatContextType = "listing" | "driver" | "service_provider" | "real_estate" | "admin_support";
+
+// وضعیت گفتگو — برای ۴ نوع قدیمی همیشه "active" است (رفتار قبلی، بدون تغییر)؛ فقط گفتگوی
+// "admin_support" می‌تواند "pending" (در انتظار تایید مدیر) یا "rejected" (رد شده) هم باشد.
+export type ConversationStatus = "pending" | "active" | "rejected";
+
+// آیکون ثابتِ برند برای نمایش گفتگوی پشتیبانی — یک آدرس فایل استاتیک از public/، نه یک متنِ
+// نمایشی به کاربر؛ پس مشمول قاعده‌ی «ممنوعیت هاردکد متن» نیست (دقیقاً هم‌رده با ثابت‌های دیگر این
+// فایل مثل نام باکت Storage).
+const ADMIN_SUPPORT_ICON_PATH = "/icons/yakja-icon-192.png";
 
 export type ConversationContextInfo = {
   label: string;
@@ -25,9 +42,14 @@ export type ConversationContextInfo = {
 export async function getConversationContextInfo(
   contextType: ChatContextType,
   contextId: string,
-  fallbackLabel: string
+  fallbackLabel: string,
+  adminSupportLabel: string
 ): Promise<ConversationContextInfo> {
   switch (contextType) {
+    case "admin_support": {
+      // بدون کوئری: context_id اینجا یک آگهی/پروفایل واقعی نیست، همیشه شناسه‌ی ثابت ادمین است.
+      return { label: adminSupportLabel, imageUrl: ADMIN_SUPPORT_ICON_PATH };
+    }
     case "listing": {
       const { data } = await supabaseAdminClient
         .from("listings")
@@ -92,6 +114,13 @@ export type ConversationView = {
   contextLabel: string;
   contextImageUrl: string | null;
   lastMessageAt: string;
+  status: ConversationStatus;
+  // true فقط برای گفتگوی نوع admin_support — برای این‌که UI نیازی به مقایسه‌ی رشته‌ای
+  // contextType === "admin_support" در همه‌جا نداشته باشد.
+  isAdminSupportChat: boolean;
+  // true فقط وقتی گفتگو از نوع admin_support است و بیننده‌ی فعلی خودِ همان حساب ادمین پشتیبانی
+  // است (نه کاربر درخواست‌دهنده) — برای تغییر متن/رفتار سرصفحه در ChatThreadClient.
+  viewerIsSupportAdmin: boolean;
 };
 
 // یک گفتگوی مشخص را می‌خواند، فقط اگر کاربر جاری واقعاً یکی از دو طرف آن باشد (کنترل دسترسی واقعی
@@ -99,36 +128,50 @@ export type ConversationView = {
 export async function getConversationForUser(
   conversationId: string,
   userId: string,
-  fallbackLabel: string
+  fallbackLabel: string,
+  adminSupportLabel: string
 ): Promise<ConversationView | null> {
   const { data, error } = await supabaseAdminClient
     .from("conversations")
-    .select("id, context_type, context_id, initiator_id, owner_id, last_message_at")
+    .select("id, context_type, context_id, initiator_id, owner_id, last_message_at, status")
     .eq("id", conversationId)
     .maybeSingle();
 
   if (error || !data) return null;
   if (data.initiator_id !== userId && data.owner_id !== userId) return null;
 
+  const contextType = data.context_type as ChatContextType;
   const otherUserId = data.initiator_id === userId ? data.owner_id : data.initiator_id;
+  // برای گفتگوی پشتیبانی، owner_id همیشه همان حساب ادمین است؛ یعنی وقتی otherUserId برابر
+  // owner_id شد، یعنی بیننده‌ی فعلی «کاربر عادی» است و طرف مقابلش ادمین است — نه برعکس.
+  const isAdminSupportChat = contextType === "admin_support";
+  const otherSideIsSupportAdmin = isAdminSupportChat && otherUserId === data.owner_id;
+  const viewerIsSupportAdmin = isAdminSupportChat && data.owner_id === userId;
 
   const [{ data: otherUser }, contextInfo] = await Promise.all([
     supabaseAdminClient.from("users").select("name, vip_expires_at").eq("id", otherUserId).maybeSingle(),
-    getConversationContextInfo(data.context_type as ChatContextType, data.context_id as string, fallbackLabel),
+    getConversationContextInfo(contextType, data.context_id as string, fallbackLabel, adminSupportLabel),
   ]);
 
   return {
     id: data.id as string,
-    contextType: data.context_type as ChatContextType,
+    contextType,
     contextId: data.context_id as string,
     otherUserId,
-    otherUserName: (otherUser?.name as string | null) ?? null,
-    otherUserIsVip: otherUser
-      ? new Date(otherUser.vip_expires_at as string).getTime() > Date.now()
-      : false,
+    // برند «پشتیبانی یکجا» به‌جای نام/نقش واقعی حساب ادمین نمایش داده می‌شود — هم برای یک‌دستیِ
+    // ظاهری، هم چون نام ثبت‌شده‌ی حساب ادمین لزوماً چیز مناسبی برای نمایش عمومی نیست.
+    otherUserName: otherSideIsSupportAdmin ? adminSupportLabel : ((otherUser?.name as string | null) ?? null),
+    otherUserIsVip: otherSideIsSupportAdmin
+      ? false
+      : otherUser
+        ? new Date(otherUser.vip_expires_at as string).getTime() > Date.now()
+        : false,
     contextLabel: contextInfo.label,
     contextImageUrl: contextInfo.imageUrl,
     lastMessageAt: data.last_message_at as string,
+    status: (data.status as ConversationStatus | null) ?? "active",
+    isAdminSupportChat,
+    viewerIsSupportAdmin,
   };
 }
 
@@ -196,6 +239,8 @@ export type MyConversationRow = {
   otherUserIsVip: boolean;
   lastMessagePreview: string;
   lastMessageAt: string;
+  status: ConversationStatus;
+  isAdminSupportChat: boolean;
 };
 
 // فهرست «چت‌های من» — گفتگوهایی که کاربر یا آغازکننده‌شان بوده یا صاحبِ آگهی/پروفایل مقابل بوده،
@@ -204,11 +249,12 @@ export type MyConversationRow = {
 export async function getMyConversations(
   userId: string,
   fallbackLabel: string,
-  voiceMessagePreviewLabel: string
+  voiceMessagePreviewLabel: string,
+  adminSupportLabel: string
 ): Promise<MyConversationRow[]> {
   const { data, error } = await supabaseAdminClient
     .from("conversations")
-    .select("id, context_type, context_id, initiator_id, owner_id, last_message_at")
+    .select("id, context_type, context_id, initiator_id, owner_id, last_message_at, status")
     .or(`initiator_id.eq.${userId},owner_id.eq.${userId}`)
     .order("last_message_at", { ascending: false });
 
@@ -240,50 +286,64 @@ export async function getMyConversations(
   }
 
   // اطلاعات context هر گفتگو — گروه‌بندی بر اساس نوع تا کوئری‌های تکراری روی یک جدول اجرا نشود.
+  // نوع admin_support عمداً از این گروه‌بندی/کوئری کنار گذاشته شده چون اصلاً به دیتابیس نیاز ندارد.
   const contextByTypeAndId = new Map<string, ConversationContextInfo>();
-  const byType: Record<ChatContextType, string[]> = {
+  const byType: Record<Exclude<ChatContextType, "admin_support">, string[]> = {
     listing: [],
     driver: [],
     service_provider: [],
     real_estate: [],
   };
   for (const row of data) {
-    byType[row.context_type as ChatContextType].push(row.context_id as string);
+    if (row.context_type === "admin_support") continue;
+    byType[row.context_type as Exclude<ChatContextType, "admin_support">].push(row.context_id as string);
   }
 
-  for (const [contextType, ids] of Object.entries(byType) as [ChatContextType, string[]][]) {
+  for (const [contextType, ids] of Object.entries(byType) as [Exclude<ChatContextType, "admin_support">, string[]][]) {
     if (ids.length === 0) continue;
     for (const id of Array.from(new Set(ids))) {
-      const info = await getConversationContextInfo(contextType, id, fallbackLabel);
+      const info = await getConversationContextInfo(contextType, id, fallbackLabel, adminSupportLabel);
       contextByTypeAndId.set(`${contextType}:${id}`, info);
     }
   }
 
   return data.map((row) => {
+    const contextType = row.context_type as ChatContextType;
     const otherUserId = (row.initiator_id === userId ? row.owner_id : row.initiator_id) as string;
+    const isAdminSupportChat = contextType === "admin_support";
+    const otherSideIsSupportAdmin = isAdminSupportChat && otherUserId === row.owner_id;
+
     const otherUser = usersMap.get(otherUserId);
-    const contextInfo = contextByTypeAndId.get(`${row.context_type}:${row.context_id}`) ?? {
-      label: fallbackLabel,
-      imageUrl: null,
-    };
+    const contextInfo = isAdminSupportChat
+      ? { label: adminSupportLabel, imageUrl: ADMIN_SUPPORT_ICON_PATH }
+      : (contextByTypeAndId.get(`${row.context_type}:${row.context_id}`) ?? {
+          label: fallbackLabel,
+          imageUrl: null,
+        });
     const lastMessage = lastMessageMap.get(row.id as string);
 
     return {
       id: row.id as string,
-      contextType: row.context_type as ChatContextType,
+      contextType,
       contextLabel: contextInfo.label,
       contextImageUrl: contextInfo.imageUrl,
       otherUserId,
-      otherUserName: (otherUser?.name as string | null) ?? null,
-      otherUserIsVip: otherUser
-        ? new Date(otherUser.vip_expires_at as string).getTime() > Date.now()
-        : false,
+      otherUserName: otherSideIsSupportAdmin
+        ? adminSupportLabel
+        : ((otherUser?.name as string | null) ?? null),
+      otherUserIsVip: otherSideIsSupportAdmin
+        ? false
+        : otherUser
+          ? new Date(otherUser.vip_expires_at as string).getTime() > Date.now()
+          : false,
       lastMessagePreview: lastMessage
         ? lastMessage.messageType === "voice"
           ? voiceMessagePreviewLabel
           : (lastMessage.content ?? "")
         : "",
       lastMessageAt: row.last_message_at as string,
+      status: (row.status as ConversationStatus | null) ?? "active",
+      isAdminSupportChat,
     };
   });
 }

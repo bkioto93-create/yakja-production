@@ -12,13 +12,18 @@
 // امکانات پیش از آن از قبل در جایگاه مصوبِ خودشان قرار داشتند، این لینک تازه هم مثل بقیه‌ی لینک‌های
 // تازه‌ی این پروژه در انتها اضافه شد. آیکون این لینک عمداً از @heroicons/react (CheckBadgeIcon)
 // است، نه از Icons.tsx دستی‌ساز — دقیقاً همان تصمیم طراحی که برای VipBadge.tsx هم گرفته شد.
+//
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** لینک ناوبری «چت‌ها» اضافه شد — بعد از «اشتراک
+// VIP» (یعنی در انتهای فهرست، دقیقاً هم‌رویه با روند افزودن لینک‌های تازه‌ی این پروژه). چون آیکون
+// Icons.MessageSquare از قبل برای لینک «پیامک‌ها» استفاده شده، برای جلوگیری از تکرار بصری، همان
+// الگوی «اشتراک VIP» دنبال شد: یک آیکون مجزا از @heroicons/react (ChatBubbleLeftRightIcon).
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
-import { CheckBadgeIcon } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
 
 type NavDict = {
   dashboard: string;
@@ -29,6 +34,7 @@ type NavDict = {
   reports: string;
   providers: string;
   vip: string;
+  chats: string;
   logout: string;
   menuLabel: string;
 };
@@ -76,6 +82,7 @@ export function AdminNav({
     { href: `/${lang}/admin/services`, label: dict.services, icon: Icons.Wrench },
     { href: `/${lang}/admin/sms`, label: dict.sms, icon: Icons.MessageSquare },
     { href: `/${lang}/admin/vip`, label: dict.vip, icon: CheckBadgeIcon },
+    { href: `/${lang}/admin/chats`, label: dict.chats, icon: ChatBubbleLeftRightIcon },
   ];
 
   function isActive(href: string, exact?: boolean) {

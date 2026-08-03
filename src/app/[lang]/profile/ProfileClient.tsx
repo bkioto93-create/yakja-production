@@ -7,6 +7,11 @@
 // («پروفایل خود کاربر در اپ»): اگر VIP فعال است، تیک VipBadge کنار شماره تماس + تاریخ انقضا؛
 // اگر یک درخواست «در انتظار بررسی» یا «ردشده» دارد، همان وضعیت نشان داده می‌شود؛ در غیر این
 // صورت، یک دعوت ساده به صفحه‌ی /vip.
+//
+// **به‌روزرسانی فاز ۱۳ (چت با مدیر/پشتیبانی):** بلافاصله بعد از لینک «چت‌های من»، یک ورودی تازه‌ی
+// «چت با پشتیبانی» اضافه شد (کامپوننت مشترک AdminSupportChatEntry) — فقط برای کاربر واردشده‌ای
+// که خودِ حساب ادمین نیست (چون ادمین چت‌های پشتیبانی را از پنل مدیریت مدیریت می‌کند، نه از این
+// دکمه‌ی عمومی).
 "use client";
 
 import { useState, useTransition } from "react";
@@ -15,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Icons } from "@/components/ui/Icons";
 import { VipBadge } from "@/components/vip/VipBadge";
+import { AdminSupportChatEntry } from "@/components/chat/AdminSupportChatEntry";
 import { switchLanguageAction, logoutAction } from "./actions";
 import { isUserVip } from "@/lib/vip/vipStatus";
 import type { getDictionary } from "@/dictionaries/getDictionary";
@@ -140,6 +146,24 @@ export function ProfileClient({
           <span className="flex-1 font-bold text-text-main">{dict.chat.myChatsLink}</span>
           <Icons.ArrowRight className="w-4 h-4 text-text-muted rotate-180 shrink-0" />
         </Link>
+      )}
+
+      {/* فاز ۱۳ — لینک «چت با پشتیبانی»، فقط برای کاربر واردشده‌ی غیرِادمین. خودِ حساب ادمین این
+          دکمه را نمی‌بیند چون او درخواست‌های پشتیبانی را از پنل مدیریت (/admin/chats) می‌بیند و
+          پاسخ می‌دهد، نه از این ورودیِ عمومی. */}
+      {user && user.role !== "admin" && (
+        <AdminSupportChatEntry
+          lang={lang}
+          viewerId={user.id}
+          variant="card"
+          dict={{
+            title: dict.chat.adminSupport.label,
+            description: dict.chat.adminSupport.description,
+            startButton: dict.chat.adminSupport.startButton,
+            loginRequiredButton: dict.chat.loginRequiredButton,
+            errors: dict.chat.button.errors,
+          }}
+        />
       )}
 
       {/* سوییچ زبان — تسک ۸ فاز ۰۱، در دسترس هم برای کاربر واردشده و هم مهمان */}
