@@ -123,13 +123,19 @@ export type ConversationView = {
   viewerIsSupportAdmin: boolean;
 };
 
-// یک گفتگوی مشخص را می‌خواند، فقط اگر کاربر جاری واقعاً یکی از دو طرف آن باشد (کنترل دسترسی واقعی
-// همین‌جا انجام می‌شود، نه صرفاً در UI) — اگر نبود یا گفتگو وجود نداشت، null برمی‌گردد.
+// یک گفتگوی مشخص را می‌خواند. کنترل دسترسی واقعی همین‌جا انجام می‌شود (نه صرفاً در UI):
+// - برای گفتگوهای عادی (کالا/ملک/راننده/متخصص): فقط دو طرفِ واقعیِ همان گفتگو اجازه‌ی دیدن دارند.
+// - برای گفتگوی «پشتیبانی» (admin_support): هر کاربری که نقش ادمین دارد (viewerIsAdmin=true)
+//   هم اجازه‌ی دیدن دارد — نه فقط همان یک حساب ثابتی که owner_id به آن اشاره می‌کند. طبق تصمیم
+//   صریح کارفرما: «همه‌ی کسانی‌که به پنل ادمین دسترسی دارند باید بتوانند چت‌های پشتیبانی را
+//   ببینند و پاسخ بدهند» — نه فقط قدیمی‌ترین حساب ادمین (owner_id ثابتِ همیشگی).
+// اگر گفتگو ناموجود/پاک‌شده بود، یا کاربر جاری هیچ‌کدام از شرط‌های بالا را نداشت، null برمی‌گردد.
 export async function getConversationForUser(
   conversationId: string,
   userId: string,
   fallbackLabel: string,
-  adminSupportLabel: string
+  adminSupportLabel: string,
+  viewerIsAdmin: boolean = false
 ): Promise<ConversationView | null> {
   const { data, error } = await supabaseAdminClient
     .from("conversations")
@@ -138,15 +144,24 @@ export async function getConversationForUser(
     .maybeSingle();
 
   if (error || !data) return null;
-  if (data.initiator_id !== userId && data.owner_id !== userId) return null;
 
   const contextType = data.context_type as ChatContextType;
-  const otherUserId = data.initiator_id === userId ? data.owner_id : data.initiator_id;
-  // برای گفتگوی پشتیبانی، owner_id همیشه همان حساب ادمین است؛ یعنی وقتی otherUserId برابر
-  // owner_id شد، یعنی بیننده‌ی فعلی «کاربر عادی» است و طرف مقابلش ادمین است — نه برعکس.
   const isAdminSupportChat = contextType === "admin_support";
+
+  const isAuthorized =
+    data.initiator_id === userId ||
+    data.owner_id === userId ||
+    (isAdminSupportChat && viewerIsAdmin);
+
+  if (!isAuthorized) return null;
+
+  const otherUserId = data.initiator_id === userId ? data.owner_id : data.initiator_id;
+  // برای گفتگوی پشتیبانی، owner_id همیشه همان حساب ادمینِ ثابتِ صندوق پشتیبانی است؛ یعنی وقتی
+  // otherUserId برابر owner_id شد، یعنی بیننده‌ی فعلی «کاربر عادی» است و طرف مقابلش ادمین است.
   const otherSideIsSupportAdmin = isAdminSupportChat && otherUserId === data.owner_id;
-  const viewerIsSupportAdmin = isAdminSupportChat && data.owner_id === userId;
+  // viewerIsSupportAdmin دیگر فقط به تطابقِ دقیق با owner_id وابسته نیست: هر ادمینی که این گفتگو
+  // را باز می‌کند، از دید رابط کاربری باید «طرفِ پشتیبانی» در نظر گرفته شود.
+  const viewerIsSupportAdmin = isAdminSupportChat && (data.owner_id === userId || viewerIsAdmin);
 
   const [{ data: otherUser }, contextInfo] = await Promise.all([
     supabaseAdminClient.from("users").select("name, vip_expires_at").eq("id", otherUserId).maybeSingle(),
