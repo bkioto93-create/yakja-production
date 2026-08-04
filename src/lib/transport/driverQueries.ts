@@ -92,8 +92,13 @@ type RawActiveDriverRow = {
   total_count: number;
 };
 
+// **به‌روزرسانی — فیلتر نوع وسیله در صفحه‌ی حمل‌ونقل:** پارامتر تازه‌ی vehicleType اضافه شد —
+// دقیقاً هم‌الگو با province (اختیاری، null یعنی «همه‌ی انواع وسیله»)، مستقیم به p_vehicle_type
+// تابع Postgres get_active_drivers پاس داده می‌شود (رجوع کنید به
+// database/2026_08_transport_vehicle_filter.sql).
 export async function getActiveDrivers(params: {
   province?: string | null;
+  vehicleType?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   limit?: number;
@@ -104,6 +109,7 @@ export async function getActiveDrivers(params: {
     p_province: params.province ?? null,
     p_lat: params.latitude ?? null,
     p_lng: params.longitude ?? null,
+    p_vehicle_type: params.vehicleType ?? null,
     p_limit: params.limit ?? 20,
     p_offset: params.offset ?? 0,
   });

@@ -50,6 +50,8 @@ export type StoryViewerDict = {
   justNow: string;
   minutesAgoTemplate: string; // شامل {minutes}
   hoursAgoTemplate: string; // شامل {hours}
+  previousLabel: string;
+  nextLabel: string;
 };
 
 function formatRelativeTime(createdAt: string, dict: StoryViewerDict): string {
@@ -194,66 +196,97 @@ export function StoryViewer({
 
         <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
 
-        <div className="absolute top-3 inset-x-3 flex gap-1">
-          {localStories.map((story, i) => (
-            <ProgressSegment
-              key={story.id}
-              status={i < index ? "done" : i === index ? "active" : "upcoming"}
-              durationSeconds={storyDurationSeconds(story)}
-            />
-          ))}
-        </div>
-
-        <div className="absolute top-7 inset-x-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-bold text-white text-sm truncate drop-shadow">{ownerName}</span>
-            <span className="text-white/70 text-xs shrink-0">
-              {formatRelativeTime(currentStory.createdAt, dict)}
-            </span>
+        {/* رفع باگ (دکمه‌ی ضربدر/حذف کار نمی‌کرد): قبلاً تپ‌زون‌های ناوبری پایین همین فایل با
+            `inset-y-0` کل ارتفاع صفحه (از جمله دقیقاً همین ناحیه‌ی هدر) را می‌پوشاندند، و چون در
+            ترتیب DOM بعد از هدر می‌آمدند، بدون z-index صریح روی دکمه‌های هدر می‌نشستند و کلیک را
+            قبل از رسیدن به دکمه‌ی ضربدر/حذف می‌قاپیدند. راه‌حل: به این ناحیه (نوار پیشرفت + هدر)
+            صریحاً z-20 داده شد — همیشه بالاتر از تپ‌زون‌ها (z-0) و دکمه‌های جهت‌نما (z-10)
+            می‌ماند، فارغ از ترتیب DOM. */}
+        <div className="absolute top-0 inset-x-0 z-20">
+          <div className="pt-3 px-3 flex gap-1">
+            {localStories.map((story, i) => (
+              <ProgressSegment
+                key={story.id}
+                status={i < index ? "done" : i === index ? "active" : "upcoming"}
+                durationSeconds={storyDurationSeconds(story)}
+              />
+            ))}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {isOwnStories && (
+
+          <div className="pt-4 px-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-bold text-white text-sm truncate drop-shadow">{ownerName}</span>
+              <span className="text-white/70 text-xs shrink-0">
+                {formatRelativeTime(currentStory.createdAt, dict)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {isOwnStories && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(true)}
+                  aria-label={dict.deleteLabel}
+                  className="w-9 h-9 flex items-center justify-center text-white/90 active:scale-90 transition-transform"
+                >
+                  <TrashIcon className="w-[18px] h-[18px]" />
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => setConfirmingDelete(true)}
-                aria-label={dict.deleteLabel}
-                className="w-9 h-9 flex items-center justify-center text-white/90 active:scale-90 transition-transform"
+                onClick={onClose}
+                aria-label={dict.closeLabel}
+                className="w-9 h-9 flex items-center justify-center text-white active:scale-90 transition-transform"
               >
-                <TrashIcon className="w-[18px] h-[18px]" />
+                <Icons.X className="w-6 h-6" />
               </button>
-            )}
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label={dict.closeLabel}
-              className="w-9 h-9 flex items-center justify-center text-white active:scale-90 transition-transform"
-            >
-              <Icons.X className="w-6 h-6" />
-            </button>
+            </div>
           </div>
         </div>
 
-        {/* تپ‌زون‌های ناوبری — راست=بعدی (۷۰٪ عرض)، چپ=قبلی (۳۰٪ عرض)، عمداً بدون فلیپ RTL
-            (رجوع کنید به یادداشت بالای فایل). */}
+        {/* دکمه‌های واضحِ قبلی/بعدی (دقیقاً مثل نسخه‌ی وب اینستاگرام) — علاوه بر تپ‌زون‌های
+            نامرئی پایین، تا کاربر یک نشانه‌ی بصریِ روشن برای «رفتن به بعدی/قبلی» هم داشته باشد،
+            نه فقط حدس بزند کجا باید لمس کند. z-10: بالاتر از تپ‌زون‌ها (پس همیشه قابل‌کلیک‌اند)
+            ولی پایین‌تر از هدر (z-20، که هرگز نباید توسط این‌ها پوشانده شود).
+            جهت: راست=بعدی، چپ=قبلی — عمداً بدون فلیپ RTL (رجوع کنید به یادداشت بالای فایل). */}
+        <button
+          type="button"
+          onClick={goPrev}
+          disabled={index === 0}
+          aria-label={dict.previousLabel}
+          className="absolute z-10 top-1/2 -translate-y-1/2 left-2 w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm disabled:opacity-0 disabled:pointer-events-none transition-opacity"
+        >
+          <Icons.ArrowRight className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
+          onClick={goNext}
+          aria-label={dict.nextLabel}
+          className="absolute z-10 top-1/2 -translate-y-1/2 right-2 w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition-opacity"
+        >
+          <Icons.ArrowRight className="w-5 h-5 rotate-180" />
+        </button>
+
+        {/* تپ‌زون‌های نامرئی — عمداً از top-20 شروع می‌شوند (نه inset-y-0)، تا هرگز روی ناحیه‌ی
+            هدر (z-20) ننشینند؛ راست=بعدی (۷۰٪ عرض)، چپ=قبلی (۳۰٪ عرض). */}
         <button
           type="button"
           onClick={goNext}
           aria-hidden="true"
           tabIndex={-1}
-          className="absolute inset-y-0 right-0 w-[70%] focus:outline-none"
+          className="absolute z-0 top-20 bottom-0 right-0 w-[70%] focus:outline-none"
         />
         <button
           type="button"
           onClick={goPrev}
           aria-hidden="true"
           tabIndex={-1}
-          className="absolute inset-y-0 left-0 w-[30%] focus:outline-none"
+          className="absolute z-0 top-20 bottom-0 left-0 w-[30%] focus:outline-none"
         />
       </div>
 
       {confirmingDelete && (
         <div
-          className="absolute inset-0 z-10 bg-black/70 flex items-center justify-center p-6"
+          className="absolute inset-0 z-30 bg-black/70 flex items-center justify-center p-6"
           onClick={() => !isDeleting && setConfirmingDelete(false)}
         >
           <div

@@ -27,6 +27,10 @@
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** ۱) VipBadge کنار نام نوع وسیله، فقط اگر driver.ownerIsVip؛
 // ۲) اگر راننده ویدئوی VIP دارد (driver.videoPath)، یک پخش‌کننده‌ی کوچک <video> زیر ردیف بالای
 // کارت نمایش داده می‌شود — طبق بند ۵ پرامپت VIP («کارت راننده»).
+// **به‌روزرسانی — فیلتر نوع وسیله:** طبق درخواست صریح کارفرما، یک ردیف فیلتر افقی (آیکون هر نوع
+// وسیله + «همه») بالای فهرست اضافه شد. با زدن هرکدام، فهرست فقط همان نوع وسیله را نشان می‌دهد،
+// همچنان با همان مرتب‌سازیِ «نزدیک‌ترین اول» (اگر GPS داده شده باشد). فیلتر state محلی است (نه
+// query string)، دقیقاً هم‌الگو با فیلتر GPS موجود.
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
@@ -37,7 +41,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { ReportButton } from "@/components/reports/ReportButton";
 import { VipBadge } from "@/components/vip/VipBadge";
 import { ChatButton, type ChatButtonDict } from "@/components/chat/ChatButton";
-import { VEHICLE_TYPES } from "@/lib/transport/vehicleTypes";
+import { VEHICLE_TYPES, type VehicleTypeId } from "@/lib/transport/vehicleTypes";
 import { getDriverImageUrl, getDriverVideoUrl } from "@/lib/transport/images";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
 import { searchActiveDriversAction } from "./actions";
@@ -59,6 +63,7 @@ type TransportListDict = {
   loadMoreButton: string;
   loadingButton: string;
   callButton: string;
+  allVehicleTypesLabel: string;
 };
 
 // تسک ۳ فاز ۰۶ — برچسب دکمه‌ی «گزارش تخلف»؛ از dict.reports.reportButtonLabel خوانده و از
@@ -99,6 +104,7 @@ export function ActiveDriversList({
 }) {
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [selectedVehicleType, setSelectedVehicleType] = useState<VehicleTypeId | null>(null);
   const [items, setItems] = useState<ActiveDriverSummary[]>(initialItems);
   const [totalCount, setTotalCount] = useState(initialTotalCount);
   const [isPending, startTransition] = useTransition();
@@ -112,6 +118,7 @@ export function ActiveDriversList({
     startTransition(async () => {
       const result = await searchActiveDriversAction({
         province: selectedProvince,
+        vehicleType: selectedVehicleType,
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
         offset,
@@ -123,7 +130,12 @@ export function ActiveDriversList({
     });
   }
 
-  // جستجوی مجدد هر بار که مختصات کاربر تغییر کند (پس از زدن دکمه‌ی «نمایش نزدیک‌ترین‌ها»).
+  function handleSelectVehicleType(vehicleType: VehicleTypeId | null) {
+    if (vehicleType === selectedVehicleType) return;
+    setSelectedVehicleType(vehicleType);
+  }
+
+  // جستجوی مجدد هر بار که مختصات کاربر، ولایت، یا فیلتر نوع وسیله تغییر کند.
   const isFirstRun = useRef(true);
   useEffect(() => {
     if (isFirstRun.current) {
@@ -134,7 +146,7 @@ export function ActiveDriversList({
     // فاز ۱۰: وقتی کاربر از نوار سراسری ولایتش را عوض می‌کند، router.refresh() این prop را
     // مقدار تازه می‌دهد و همین effect دوباره اجرا می‌شود.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coords, selectedProvince]);
+  }, [coords, selectedProvince, selectedVehicleType]);
 
   // اشتراک زنده‌ی Realtime — تسک ۸.
   useEffect(() => {
@@ -204,6 +216,68 @@ export function ActiveDriversList({
         <p className="text-xs text-text-muted">
           {locationStatus === "granted" ? dict.sortedByDistanceNotice : dict.sortedByNewestNotice}
         </p>
+      </div>
+
+      {/* فیلتر نوع وسیله — ردیف افقی اسکرول‌شونده، دقیقاً مثل اپ‌های تاکسی‌یابی. زدن هرکدام
+          فهرست را فقط به همان نوع محدود می‌کند (state محلی، بدون query string، هم‌الگو با فیلتر
+          GPS بالا). */}
+      <div className="flex gap-2.5 overflow-x-auto -mx-1 px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          type="button"
+          onClick={() => handleSelectVehicleType(null)}
+          className={`shrink-0 flex flex-col items-center gap-1.5 w-16 py-2 rounded-2xl transition-colors ${
+            selectedVehicleType === null ? "bg-primary/10" : ""
+          }`}
+        >
+          <span
+            className={`w-11 h-11 rounded-full flex items-center justify-center border-2 ${
+              selectedVehicleType === null
+                ? "border-primary text-primary bg-white"
+                : "border-slate-200 text-text-muted bg-white"
+            }`}
+          >
+            <Icons.Truck className="w-5 h-5" />
+          </span>
+          <span
+            className={`text-[11px] font-bold text-center leading-tight ${
+              selectedVehicleType === null ? "text-primary" : "text-text-muted"
+            }`}
+          >
+            {dict.allVehicleTypesLabel}
+          </span>
+        </button>
+
+        {VEHICLE_TYPES.map((vehicle) => {
+          const VehicleTypeIcon = vehicle.icon;
+          const isActive = selectedVehicleType === vehicle.id;
+          return (
+            <button
+              key={vehicle.id}
+              type="button"
+              onClick={() => handleSelectVehicleType(vehicle.id)}
+              className={`shrink-0 flex flex-col items-center gap-1.5 w-16 py-2 rounded-2xl transition-colors ${
+                isActive ? "bg-primary/10" : ""
+              }`}
+            >
+              <span
+                className={`w-11 h-11 rounded-full flex items-center justify-center border-2 ${
+                  isActive
+                    ? "border-primary text-primary bg-white"
+                    : "border-slate-200 text-text-muted bg-white"
+                }`}
+              >
+                <VehicleTypeIcon className="w-5 h-5" />
+              </span>
+              <span
+                className={`text-[11px] font-bold text-center leading-tight truncate w-full ${
+                  isActive ? "text-primary" : "text-text-muted"
+                }`}
+              >
+                {vehicleTypesDict[vehicle.id]}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {selectedProvince && (

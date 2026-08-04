@@ -24,6 +24,12 @@ export default {
       "noMiddleman": "مستقیم، پرته له منځګړي",
       "bilingual": "په دري او پښتو ژبو کې"
     },
+    "banners": {
+      "listings": "د یکجا اپلیکیشن کې د هرډول توکو، محصولاتو او حیواناتو پیرود او پلورل. همدا اوس کلیک وکړئ او خپل اعلان ثبت کړئ.",
+      "transport": "ټکسي غواړئ؟ همدا اوس ژر یو دانه راوغواړئ.",
+      "services": "کار لټوئ که کارګر ته اړتیا لرئ؟ همدا اوس یو اعلان ثبت کړئ او په څو دقیقو کې اړیکه ونیسئ.",
+      "realEstate": "د افغانستان په ټوله کې د هرډول ځمکې، ملکیت او دوکان پیرود او پلورل."
+    },
     "sections": {
       "drivers": {
         "title": "نوي موټر چلوونکي",
@@ -179,7 +185,7 @@ export default {
       "homeGoods": "د کور توکي",
       "motorcycle": "موټرسایکل",
       "car": "موټر",
-      "livestock": "څاروي",
+      "livestock": "حیوانات",
       "agriculture": "کرنیز محصولات",
       "other": "نور"
     },
@@ -296,7 +302,8 @@ export default {
       "emptyDesc": "لږ وروسته بیا هڅه وکړئ یا پخپله د موټر چلوونکي په توګه ثبت شئ.",
       "loadMoreButton": "نور موارد وښایاست",
       "loadingButton": "لوډ کیږي...",
-      "callButton": "له موټر چلوونکي سره اړیکه"
+      "callButton": "له موټر چلوونکي سره اړیکه",
+      "allVehicleTypesLabel": "ټول"
     },
     "driverProfile": {
       "title": "د موټر چلوونکي پروفایل",
@@ -1060,7 +1067,9 @@ export default {
       "deleteFailedError": "د سټوري ړنګول ونشول؛ بیا هڅه وکړئ.",
       "justNow": "همدا اوس",
       "minutesAgoTemplate": "{minutes} دقیقې مخکې",
-      "hoursAgoTemplate": "{hours} ساعته مخکې"
+      "hoursAgoTemplate": "{hours} ساعته مخکې",
+      "previousLabel": "پخوانی سټوري",
+      "nextLabel": "راتلونکی سټوري"
     },
     "addSection": {
       "title": "سټوري ولیږئ",

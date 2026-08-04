@@ -23,6 +23,16 @@
 // **فاز ۱۴ (قابلیت استوری):** ردیف «تازه‌ترین استوری‌ها» بلافاصله بعد از بنر VIP اضافه شد
 // (src/app/[lang]/StoriesShowcase.tsx) — رجوع کنید به یادداشت کنار خودِ آن کامپوننت در JSX
 // پایین همین فایل برای دلیل چیدمان.
+// **به‌روزرسانی (بازخورد کارفرما):**
+//   ۱) ردیف استوری به بالاترین نقطه‌ی محتوا منتقل شد — حتی بالاتر از «دسترسی سریع» (پیش‌تر بین
+//      بنر VIP و بنرهای پیش‌رونده بود). طبق تصمیم صریح کارفرما: «استوری‌ها همیشه بالاترین قسمت
+//      یک پروژه هستند».
+//   ۲) رفع باگ نامرکز بودن کارت‌های دسترسی سریع روی موبایل — علتش: کارت‌ها `max-w-[200px]`
+//      داشتند اما سلولِ گرید (grid-cols-2) روی خیلی از گوشی‌ها عریض‌تر از ۲۰۰px است؛ بدون
+//      `mx-auto`، عنصر به‌جای وسط‌چین‌شدن در فضای اضافه، به سمت لبه‌ی شروع (که در RTL همان راست
+//      است) می‌چسبید و فضای خالی سمت چپ می‌افتاد. اضافه‌شدن `mx-auto` این را حل کرد.
+//   ۳) یک بنر اسپلیت (متن راست/عکس چپ) بالای هر یک از چهار ردیف «تازه‌ترین‌ها» اضافه شد
+//      (src/components/home/CategoryBanner.tsx) — رجوع کنید به یادداشت همان فایل برای جزئیات.
 import { getDictionary } from "@/dictionaries/getDictionary";
 import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
@@ -32,6 +42,7 @@ import { HeroIllustration } from "./HeroIllustration";
 import { QuickAccessIcon } from "./QuickAccessIcon";
 import { VipHomeBanner } from "@/components/home/VipHomeBanner";
 import { StoriesShowcase } from "./StoriesShowcase";
+import { CategoryBanner } from "@/components/home/CategoryBanner";
 import {
   DriversShowcase,
   ProvidersShowcase,
@@ -160,6 +171,17 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
 
       <div className="flex-1 px-[24px] md:px-12 mt-8 w-full z-10 flex flex-col justify-start align-top content-start justify-items-start space-y-12">
 
+         {/* قابلیت استوری — طبق تصمیم صریح کارفرما، استوری همیشه «بالاترین قسمت» صفحه است؛ حالا
+             حتی بالاتر از «دسترسی سریع» هم قرار گرفته (پیش‌تر بعد از بنر VIP بود). */}
+         <StoriesShowcase
+           items={latestStories}
+           viewerId={viewer?.id ?? null}
+           dict={dict.home.sections.stories}
+           ringAriaLabelTemplate={dict.stories.ringAriaLabelTemplate}
+           loadErrorMessage={dict.stories.loadErrorMessage}
+           viewerDict={dict.stories.viewer}
+         />
+
          {/* دسترسی سریع به چهار ماژول */}
          <div className="space-y-4">
            <h2 className="text-[17px] md:text-lg font-bold text-text-main inline-block border-r-4 border-accent pr-[10px] mt-2 mb-[12px] opacity-90 block">
@@ -171,7 +193,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                 <Link
                   href={item.href}
                   key={item.id}
-                  className="block outline-none select-none active:scale-95 md:hover:-translate-y-1 transition-transform origin-center ease-out w-full max-w-[200px] md:max-w-none"
+                  className="block outline-none select-none active:scale-95 md:hover:-translate-y-1 transition-transform origin-center ease-out w-full max-w-[200px] mx-auto md:max-w-none md:mx-0"
                 >
                    <div className="bg-white border-[1px] border-slate-100/70 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.02)] md:hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] h-[250px] md:h-[270px] p-[16px] flex flex-col items-center justify-center text-center gap-y-4 relative w-full aspect-auto transition-shadow">
                       {/* رفع باگ (۲۰۲۶-۰۷-۲۶): اندازه‌ی آیکون (باکس + پدینگ) دقیقاً ۲ برابر شد */}
@@ -194,21 +216,21 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
          {/* بنر VIP — فاز ۱۱، بند ۷ پرامپت VIP: بین «دسترسی سریع» و «چرا یکجا؟» */}
          <VipHomeBanner lang={lang} dict={dict.vip.homeBanner} />
 
-         {/* قابلیت استوری — ردیف «تازه‌ترین استوری‌ها»، عمداً بلافاصله بعد از بنر VIP و قبل از
-             بنرهای پیش‌رونده‌ی دیگر: چون استوری محتوای زمان‌محور و لحظه‌ای است، باید زودتر از
-             محتوای نسبتاً پایدارتر (رانندگان/متخصصین/آگهی‌ها) دیده شود — دقیقاً همان منطق چیدمانی
-             که اینستاگرام هم برای ردیف استوری‌اش (بلافاصله زیر هدر) استفاده می‌کند. */}
-         <StoriesShowcase
-           items={latestStories}
-           viewerId={viewer?.id ?? null}
-           dict={dict.home.sections.stories}
-           ringAriaLabelTemplate={dict.stories.ringAriaLabelTemplate}
-           loadErrorMessage={dict.stories.loadErrorMessage}
-           viewerDict={dict.stories.viewer}
-         />
-
-         {/* بنرهای پیش‌رونده‌ی افقی — رانندگان/متخصصین/کالا/ملک تازه (درخواست صریح کارفرما) */}
+         {/* بنرهای پیش‌رونده‌ی افقی — رانندگان/متخصصین/کالا/ملک تازه (درخواست صریح کارفرما)،
+             هرکدام با یک بنر اسپلیت معرفی‌کننده‌ی همان دسته بالای خودش (درخواست تازه‌ی کارفرما).
+             بنرها داخل px-[24px] جداگانه قرار گرفته‌اند چون خودِ این div با -mx-[24px] پدینگ
+             والد را خنثی کرده (تا ردیف‌های اسکرول‌شونده تا لبه‌ی صفحه بروند)؛ بنر برخلاف ردیف‌ها
+             نباید تا لبه برود، پس پدینگ را برای خودش دوباره برمی‌گرداند. */}
          <div className="-mx-[24px] md:mx-0 space-y-8">
+           <div className="px-[24px] md:px-0">
+             <CategoryBanner
+               variant="transport"
+               href={`/${lang}/transport`}
+               title={dict.dashboard.categories.transport}
+               description={dict.home.banners.transport}
+               imageSrc="/banners/transport-banner.webp"
+             />
+           </div>
            <DriversShowcase
              items={newestDrivers}
              dict={dict.home.sections.drivers}
@@ -216,12 +238,32 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
              vehicleTypeLabels={dict.transport.vehicleTypes}
              lang={lang}
            />
+
+           <div className="px-[24px] md:px-0">
+             <CategoryBanner
+               variant="services"
+               href={`/${lang}/services`}
+               title={dict.dashboard.categories.services}
+               description={dict.home.banners.services}
+               imageSrc="/banners/services-banner.webp"
+             />
+           </div>
            <ProvidersShowcase
              items={newestProviders}
              dict={dict.home.sections.providers}
              memberFallbackLabel={dict.home.memberFallbackLabel}
              lang={lang}
            />
+
+           <div className="px-[24px] md:px-0">
+             <CategoryBanner
+               variant="listings"
+               href={`/${lang}/listings`}
+               title={dict.dashboard.categories.listings}
+               description={dict.home.banners.listings}
+               imageSrc="/banners/marketplace-banner.webp"
+             />
+           </div>
            <ListingsShowcase
              items={newestListings}
              dict={dict.home.sections.listings}
@@ -229,6 +271,16 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
              categoryLabels={dict.marketplace.categories}
              lang={lang}
            />
+
+           <div className="px-[24px] md:px-0">
+             <CategoryBanner
+               variant="realEstate"
+               href={`/${lang}/real-estate`}
+               title={dict.dashboard.categories.realEstate}
+               description={dict.home.banners.realEstate}
+               imageSrc="/banners/real-estate-banner.webp"
+             />
+           </div>
            <RealEstateShowcase
              items={newestRealEstate}
              dict={dict.home.sections.realEstate}

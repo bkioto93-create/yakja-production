@@ -10,10 +10,12 @@
 
 import { getActiveDrivers, type ActiveDriverSummary } from "@/lib/transport/driverQueries";
 import { isValidProvince } from "@/lib/provinces";
+import { isValidVehicleType } from "@/lib/transport/vehicleTypes";
 import { DRIVERS_PAGE_SIZE } from "./constants";
 
 export async function searchActiveDriversAction(input: {
   province?: string | null;
+  vehicleType?: string | null;
   latitude?: number | null;
   longitude?: number | null;
   limit?: number;
@@ -21,6 +23,11 @@ export async function searchActiveDriversAction(input: {
 }): Promise<{ items: ActiveDriverSummary[]; totalCount: number }> {
   // فاز ۱۰: province=null یعنی «همه‌ی افغانستان» (هم اگر صراحتاً انتخاب شده، هم اگر نامعتبر باشد).
   const province = input.province && isValidProvince(input.province) ? input.province : null;
+
+  // فیلتر نوع وسیله — همان قاعده‌ی province: مقدار نامعتبر بی‌صدا به «همه‌ی انواع» (null) برمی‌گردد،
+  // نه یک خطا؛ چون این فقط یک فیلتر نمایشی است، نه یک ورودی حساس امنیتی.
+  const vehicleType =
+    input.vehicleType && isValidVehicleType(input.vehicleType) ? input.vehicleType : null;
 
   const latitude =
     typeof input.latitude === "number" && Number.isFinite(input.latitude) ? input.latitude : null;
@@ -37,5 +44,5 @@ export async function searchActiveDriversAction(input: {
       ? (input.limit as number)
       : DRIVERS_PAGE_SIZE;
 
-  return getActiveDrivers({ province, latitude, longitude, limit, offset });
+  return getActiveDrivers({ province, vehicleType, latitude, longitude, limit, offset });
 }

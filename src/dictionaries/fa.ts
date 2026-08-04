@@ -14,6 +14,12 @@ export default {
       "noMiddleman": "مستقیم و بدون واسطه",
       "bilingual": "به زبان دری و پشتو"
     },
+    "banners": {
+      "listings": "خرید و فروش انواع کالا، محصول و حیوانات در اپلیکیشن یکجا. همین حالا کلیک کن و آگهی‌ت رو ثبت کن.",
+      "transport": "تاکسی می‌خوای؟ همین حالا سریع یکی خبر کن.",
+      "services": "دنبال کاری یا به نیروی کار نیاز داری؟ همین حالا یک آگهی ثبت کن و در چند دقیقه وصل شو.",
+      "realEstate": "خرید و فروش انواع زمین، ملک و مغازه در سراسر افغانستان."
+    },
     "sections": {
       "drivers": {
         "title": "رانندگان تازه",
@@ -168,8 +174,8 @@ export default {
       "clothing": "پوشاک",
       "homeGoods": "لوازم منزل",
       "motorcycle": "موتورسیکلت",
-      "car": "خودرو",
-      "livestock": "دام",
+      "car": "موتر",
+      "livestock": "حیوانات",
       "agriculture": "محصولات کشاورزی",
       "other": "سایر"
     },
@@ -286,7 +292,8 @@ export default {
       "emptyDesc": "کمی بعد دوباره سر بزنید یا خودتان به‌عنوان راننده ثبت‌نام کنید.",
       "loadMoreButton": "نمایش موارد بیشتر",
       "loadingButton": "در حال بارگذاری...",
-      "callButton": "تماس با راننده"
+      "callButton": "تماس با راننده",
+      "allVehicleTypesLabel": "همه"
     },
     "driverProfile": {
       "title": "پروفایل راننده",
@@ -1050,7 +1057,9 @@ export default {
       "deleteFailedError": "حذف استوری با مشکل مواجه شد؛ دوباره امتحان کن.",
       "justNow": "همین حالا",
       "minutesAgoTemplate": "{minutes} دقیقه پیش",
-      "hoursAgoTemplate": "{hours} ساعت پیش"
+      "hoursAgoTemplate": "{hours} ساعت پیش",
+      "previousLabel": "استوری قبلی",
+      "nextLabel": "استوری بعدی"
     },
     "addSection": {
       "title": "استوری بگذار",
