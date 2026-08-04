@@ -4,33 +4,16 @@
 // supabaseAdminClient انجام می‌شود، چون auth.uid() در معماری نشست سفارشی این پروژه همیشه null
 // است (بند ۸.۴ سند راهبردی) و Policyهای RLS جدول drivers صرفاً دفاع‌در-عمق‌اند.
 // عملیات saveDriverProfileAction یک upsert واحد است: اگر کاربر از قبل پروفایل راننده دارد، همان
-// ردیف به‌روزرسانی می‌شود؛ در غیر این صورت ردیف جدید ساخته می‌شود. یکتایی هر کاربر=یک پروفایل
-// راننده با Unique Constraint روی drivers.owner_id (فایل 08_phase_03_drivers_owner_unique.sql)
-// در دیتابیس تضمین شده است.
+// ردیف به‌روزرسانی می‌شود؛ در غیر این صورت ردیف جدید ساخته می‌شود.
 //
-// **به‌روزرسانی (تصمیم محصول تایید‌شده توسط کارفرما، ۱۴۰۵/۰۴/۳۰):** ستون drivers.images
-// (20_phase_08b_transport_services_photos.sql) به‌همراه یک اکشن جدید createDriverSignedUploadSlotsAction
-// اضافه شد — دقیقاً هم‌الگو با createSignedUploadSlotsAction در listings/new/actions.ts (فاز ۰۲):
-// چون auth.uid() همیشه null است، مرورگر با Anon Key نمی‌تواند مستقیم در باکت drivers-images
-// بنویسد؛ این سرور چند «آدرس آپلود امضاشده‌ی موقت» صادر می‌کند و مرورگر مستقیماً (بدون عبور از
-// سرور Next.js) عکس فشرده‌شده را به همان آدرس می‌فرستد — سبک‌تر برای اینترنت ۲G/۳G. عکس کاملاً
-// اختیاری است (برخلاف آگهی کالا که حداقل ۱ عکس الزامی بود)؛ حداکثر ۵ عکس.
-//
-// **به‌روزرسانی نظافت (۱۴۰۵/۰۵ — پیگیری یادداشت ممیزی تسک ۱ فاز ۰۸):** saveDriverProfileAction
-// پیش از upsert، آرایه‌ی images *فعلاً ذخیره‌شده در دیتابیس* را می‌خواند. بعد از upsert موفق، هر
-// مسیری که در آرایه‌ی قدیم بود ولی در آرایه‌ی تازه‌ی ورودی نیست (یعنی کاربر آن عکس را در حالت
-// ویرایش حذف کرده) با storage.remove از باکت drivers-images هم واقعاً پاک می‌شود — قبل از این،
-// فقط از ستون images حذف می‌شد و خودِ فایل در Storage یتیم می‌ماند (رفتاری بی‌خطر ولی ناقص که در
-// ممیزی تسک ۱ همین فاز مستند شده بود). این پاک‌سازی عمداً best-effort و بعد از موفقیت upsert
-// است: اگر خودِ حذف فایل با خطا مواجه شود، ذخیره‌ی پروفایل که واقعاً موفق بوده نباید به کاربر
-// «شکست‌خورده» نشان داده شود؛ در بدترین حالت یک فایل یتیم باقی می‌ماند که در ذخیره‌ی بعدی همین
-// پروفایل (یا یک پاک‌سازی دوره‌ای جداگانه در آینده) جبران می‌شود.
-//
-// **به‌روزرسانی فاز ۱۱ (عضویت VIP):** createDriverSignedVideoUploadSlotAction اضافه شد (دقیقاً
-// هم‌الگو با نسخه‌ی مشابهش در listings/new/actions.ts، گیت‌شده سمت سرور با isUserVip).
-// saveDriverProfileAction هم videoPath را می‌پذیرد و همان منطق نظافتِ فایل یتیم که برای عکس‌ها
-// وجود داشت، برای ویدئوی جایگزین‌شده/حذف‌شده هم اعمال شد. پروفایل راننده مشمول سقف روزانه‌ی ۲
-// آگهی نیست (طبق تعریف src/lib/vip/dailyPostLimit.ts، آن سقف فقط listings+real_estate است).
+// **به‌روزرسانی (بازطراحی عکس‌ها — درخواست صریح کارفرما):** سیستم قدیمی «حداکثر ۵ عکس در یک
+// آرایه‌ی بی‌معنا» با دو اسلات معنادار جایگزین شد:
+//   ۱) عکس خودِ راننده (personalPhotoPath) — الزامی؛ بدون آن saveDriverProfileAction رد می‌شود.
+//   ۲) عکس وسیله‌ی نقلیه (vehiclePhotoPath) — اختیاری.
+// createDriverSignedUploadSlotsAction (جمع، بر اساس تعداد) با createDriverPhotoUploadSlotAction
+// (یکی، بر اساس نوع عکس) جایگزین شد — چون دیگر «چند عکس یکسان» نداریم، هر اسلات یک هویت مشخص
+// دارد؛ مسیر فایل هم شامل همان نوع می‌شود (مثلاً owner-id/personal_...jpg) تا در صورت بازرسی
+// مستقیم باکت هم بلافاصله معلوم باشد این فایل مربوط به کدام اسلات است.
 "use server";
 
 import { supabaseAdminClient } from "@/lib/supabase/server";
@@ -43,42 +26,35 @@ import { isUserVip } from "@/lib/vip/vipStatus";
 
 const DRIVERS_BUCKET = "drivers-images";
 const DRIVERS_VIDEOS_BUCKET = "drivers-videos";
-const MAX_IMAGES = 5;
 
 export type SignedUploadSlot = { path: string; token: string };
+export type DriverPhotoType = "personal" | "vehicle";
 
-// اکشن جدید — صدور آدرس‌های آپلود امضاشده برای عکس‌های پروفایل راننده، دقیقاً هم‌الگو با
-// createSignedUploadSlotsAction در listings/new/actions.ts (فاز ۰۲)؛ تنها تفاوت: سقف تعداد بدون
-// کف حداقلی (۰ تا ۵)، چون عکس اینجا اختیاری است.
-export async function createDriverSignedUploadSlotsAction(
-  count: number
-): Promise<{ success: true; slots: SignedUploadSlot[] } | { success: false; error: string }> {
+// صدور یک آدرس آپلود امضاشده برای دقیقاً یک عکس (نه چند تا) — چون هر اسلات (خودِ راننده/وسیله)
+// معنای مشخصی دارد، این تابع نوع عکس را می‌گیرد و مسیر فایل را متناسب با همان نوع می‌سازد.
+export async function createDriverPhotoUploadSlotAction(
+  photoType: DriverPhotoType
+): Promise<{ success: true; slot: SignedUploadSlot } | { success: false; error: string }> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "unauthenticated" };
 
-  if (!Number.isInteger(count) || count < 0 || count > MAX_IMAGES) {
-    return { success: false, error: "invalidImageCount" };
+  if (photoType !== "personal" && photoType !== "vehicle") {
+    return { success: false, error: "invalidPhotoType" };
   }
 
-  const slots: SignedUploadSlot[] = [];
-  for (let i = 0; i < count; i++) {
-    // قرارداد مسیر فایل طبق فاز ۰۰: {owner_id}/{filename} — سرور خودش مسیر را می‌سازد، پس
-    // کلاینت هیچ‌وقت نمی‌تواند مسیری بیرون از پوشه‌ی خودش تولید کند.
-    const path = `${user.id}/${Date.now()}_${i}.jpg`;
-    const { data, error } = await supabaseAdminClient.storage
-      .from(DRIVERS_BUCKET)
-      .createSignedUploadUrl(path);
+  // قرارداد مسیر فایل طبق فاز ۰۰: {owner_id}/{filename} — سرور خودش مسیر را می‌سازد، پس
+  // کلاینت هیچ‌وقت نمی‌تواند مسیری بیرون از پوشه‌ی خودش تولید کند.
+  const path = `${user.id}/${photoType}_${Date.now()}.jpg`;
+  const { data, error } = await supabaseAdminClient.storage
+    .from(DRIVERS_BUCKET)
+    .createSignedUploadUrl(path);
 
-    if (error || !data) {
-      return { success: false, error: "uploadFailed" };
-    }
-    slots.push({ path: data.path, token: data.token });
-  }
+  if (error || !data) return { success: false, error: "uploadFailed" };
 
-  return { success: true, slots };
+  return { success: true, slot: { path: data.path, token: data.token } };
 }
 
-// فاز ۱۱ — یک ویدئوی تکی، فقط برای کاربر VIP؛ گیت‌کردن واقعی سمت سرور.
+// فاز ۱۱ — یک ویدئوی تکی، فقط برای کاربر VIP؛ گیت‌کردن واقعی سمت سرور. (بدون تغییر)
 export async function createDriverSignedVideoUploadSlotAction(): Promise<
   { success: true; slot: SignedUploadSlot } | { success: false; error: string }
 > {
@@ -101,7 +77,8 @@ export async function saveDriverProfileAction(input: {
   province: string;
   vehicleDetails: string;
   contactPhone: string;
-  imagePaths: string[];
+  personalPhotoPath: string;
+  vehiclePhotoPath: string | null;
   videoPath?: string | null;
 }): Promise<{ success: true } | { success: false; error: string }> {
   const user = await getCurrentUser();
@@ -121,14 +98,16 @@ export async function saveDriverProfileAction(input: {
   const contactPhone = normalizeAfghanPhone(toAsciiDigits(input.contactPhone));
   if (!contactPhone) return { success: false, error: "invalidPhone" };
 
-  if (!Array.isArray(input.imagePaths) || input.imagePaths.length > MAX_IMAGES) {
-    return { success: false, error: "invalidImageCount" };
+  // عکس خودِ راننده الزامی است — طبق درخواست صریح کارفرما («یه عکس از خودش جداگانه که حتمی باید
+  // بزاره»). دفاع در عمق: هم خالی‌نبودن، هم مالکیتِ مسیر (باید داخل پوشه‌ی خودِ همین کاربر باشد).
+  if (!input.personalPhotoPath || !input.personalPhotoPath.startsWith(`${user.id}/`)) {
+    return { success: false, error: "personalPhotoRequired" };
   }
 
-  // دفاع در عمق: هیچ مسیر تصویری نباید بیرون از پوشه‌ی خودِ همین کاربر باشد — دقیقاً هم‌الگو با
-  // createListingAction (فاز ۰۲).
-  const ownsAllPaths = input.imagePaths.every((p) => p.startsWith(`${user.id}/`));
-  if (!ownsAllPaths) return { success: false, error: "invalidImageData" };
+  // عکس وسیله اختیاری است؛ اگر فرستاده شده، همان بررسی مالکیت روی آن هم اعمال می‌شود.
+  if (input.vehiclePhotoPath && !input.vehiclePhotoPath.startsWith(`${user.id}/`)) {
+    return { success: false, error: "invalidImageData" };
+  }
 
   // فاز ۱۱ — گیت‌کردن واقعی ویدئو، دوباره سمت سرور.
   let videoPath: string | null = null;
@@ -140,16 +119,16 @@ export async function saveDriverProfileAction(input: {
 
   const vehicleDetails = input.vehicleDetails.trim() || null;
 
-  // نظافت تصاویر/ویدئوی یتیم: پیش از upsert، مقادیر فعلی (پیش از این ذخیره) خوانده می‌شوند تا
-  // بعداً بتوان مسیرهای حذف‌شده توسط کاربر را تشخیص داد. اگر ردیفی هنوز وجود نداشته باشد (اولین
-  // ثبت پروفایل)، previousImages/previousVideoPath به‌درستی خالی/null خواهند بود.
+  // نظافت فایل یتیم: پیش از upsert، مقادیر فعلی (پیش از این ذخیره) خوانده می‌شوند تا بعداً
+  // بتوان مسیرهای جایگزین‌شده/حذف‌شده توسط کاربر را تشخیص داد و از Storage هم واقعاً پاک کرد.
   const { data: existingRow } = await supabaseAdminClient
     .from("drivers")
-    .select("images, video_path")
+    .select("personal_photo_path, vehicle_photo_path, video_path")
     .eq("owner_id", user.id)
     .maybeSingle();
 
-  const previousImages: string[] = existingRow?.images ?? [];
+  const previousPersonalPhotoPath: string | null = existingRow?.personal_photo_path ?? null;
+  const previousVehiclePhotoPath: string | null = existingRow?.vehicle_photo_path ?? null;
   const previousVideoPath: string | null = existingRow?.video_path ?? null;
 
   const { error } = await supabaseAdminClient
@@ -161,16 +140,18 @@ export async function saveDriverProfileAction(input: {
         province: input.province,
         vehicle_details: vehicleDetails,
         contact_phone: contactPhone,
-        images: input.imagePaths,
+        personal_photo_path: input.personalPhotoPath,
+        vehicle_photo_path: input.vehiclePhotoPath,
         video_path: videoPath,
       },
       { onConflict: "owner_id" }
     );
 
   if (error) {
-    // پاک‌سازی تصاویر/ویدئوی یتیم در صورت شکست ثبت — دقیقاً هم‌الگو با createListingAction.
+    // پاک‌سازی عکس‌ها/ویدئوی یتیم در صورت شکست ثبت — دقیقاً هم‌الگو با createListingAction.
     try {
-      await supabaseAdminClient.storage.from(DRIVERS_BUCKET).remove(input.imagePaths);
+      const orphanedPaths = [input.personalPhotoPath, ...(input.vehiclePhotoPath ? [input.vehiclePhotoPath] : [])];
+      await supabaseAdminClient.storage.from(DRIVERS_BUCKET).remove(orphanedPaths);
       if (videoPath) await supabaseAdminClient.storage.from(DRIVERS_VIDEOS_BUCKET).remove([videoPath]);
     } catch {
       // نادیده گرفته می‌شود
@@ -178,32 +159,34 @@ export async function saveDriverProfileAction(input: {
     return { success: false, error: "dbError" };
   }
 
-  // upsert موفق بود. حالا مسیرهایی که در آرایه/مقدار قدیم بودند ولی کاربر آن‌ها را در همین ذخیره
-  // حذف/جایگزین کرده را از باکت Storage هم پاک می‌کنیم. عمداً best-effort و بعد از موفقیت upsert.
-  const removedPaths = previousImages.filter((p) => !input.imagePaths.includes(p));
-  if (removedPaths.length > 0) {
+  // upsert موفق بود. حالا هر مسیر قدیمی که با مسیر تازه فرق دارد (یعنی کاربر آن عکس را عوض یا
+  // حذف کرده) از Storage هم پاک می‌شود. عمداً best-effort و بعد از موفقیت upsert.
+  const staleImagePaths: string[] = [];
+  if (previousPersonalPhotoPath && previousPersonalPhotoPath !== input.personalPhotoPath) {
+    staleImagePaths.push(previousPersonalPhotoPath);
+  }
+  if (previousVehiclePhotoPath && previousVehiclePhotoPath !== input.vehiclePhotoPath) {
+    staleImagePaths.push(previousVehiclePhotoPath);
+  }
+  if (staleImagePaths.length > 0) {
     try {
-      await supabaseAdminClient.storage.from(DRIVERS_BUCKET).remove(removedPaths);
+      await supabaseAdminClient.storage.from(DRIVERS_BUCKET).remove(staleImagePaths);
     } catch {
-      // نادیده گرفته می‌شود — دلیل بالا
+      // نادیده گرفته می‌شود
     }
   }
   if (previousVideoPath && previousVideoPath !== videoPath) {
     try {
       await supabaseAdminClient.storage.from(DRIVERS_VIDEOS_BUCKET).remove([previousVideoPath]);
     } catch {
-      // نادیده گرفته می‌شود — دلیل بالا
+      // نادیده گرفته می‌شود
     }
   }
 
   return { success: true };
 }
 
-// تسک ۵ فاز ۰۳ — اکشن سوییچ ساده‌ی «فعال/غیرفعال» راننده. عمداً یک اکشن کاملاً مجزا از
-// saveDriverProfileAction است (نه بخشی از همان upsert) چون این دو عملیات، رویدادهای کاربری کاملاً
-// متفاوتی هستند: یکی «ذخیره‌ی فرم پروفایل» و دیگری «صرفاً یک کلیک روی سوییچ»؛ جدا نگه‌داشتن‌شان
-// باعث می‌شود با هر بار زدن سوییچ، کل فرم (نوع وسیله/مشخصات/شماره تماس/عکس‌ها) دوباره به سرور
-// ارسال نشود — مهم روی اینترنت ضعیف (بند ۵.۳ سند راهبردی).
+// تسک ۵ فاز ۰۳ — اکشن سوییچ ساده‌ی «فعال/غیرفعال» راننده. (بدون تغییر)
 export async function setDriverActiveStatusAction(
   isActive: boolean
 ): Promise<{ success: true } | { success: false; error: string }> {

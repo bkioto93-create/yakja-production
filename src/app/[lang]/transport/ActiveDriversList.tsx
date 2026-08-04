@@ -16,10 +16,12 @@
 // ۰۲) و صفحه‌ی «تماس با ما». هیچ تغییر SQL/کوئری لازم نبود چون contact_phone از همان تسک ۸ در
 // ActiveDriverSummary موجود بود؛ این تسک صرفاً یک عنصر رابط کاربری اضافه کرد.
 //
-// **به‌روزرسانی (تصمیم محصول تایید‌شده توسط کارفرما، ۱۴۰۵/۰۴/۳۰):** اگر راننده حداقل یک عکس داشته
-// باشد، همان اولین عکس به‌جای آیکون وسیله در آواتار کارت نمایش داده می‌شود — دقیقاً هم‌الگو با
-// ActiveServiceProvidersList.tsx. اگر عکسی نداشته باشد (پروفایل‌های قدیمی)، همان آیکون وسیله‌ی
-// قبلی بدون هیچ تغییری نمایش داده می‌شود.
+// **به‌روزرسانی (بازطراحی عکس‌ها — درخواست صریح کارفرما):** آواتار کارت حالا همیشه از
+// driver.personalPhotoPath می‌آید (نه دیگر اولین عضو یک آرایه‌ی بی‌معنا) — چون این ستون همیشه
+// دقیقاً «عکس خودِ راننده» است، نه هر عکس دلبخواهی. علاوه بر آن، اگر راننده عکس وسیله هم گذاشته
+// باشد (driver.vehiclePhotoPath، اختیاری)، یک نوار عکسِ پهن‌تر زیر ردیف بالای کارت نمایش داده
+// می‌شود — دقیقاً همان‌جایی که قبلاً پخش‌کننده‌ی ویدئوی VIP بود؛ اگر هم عکس وسیله هم ویدئوی VIP
+// موجود باشد، هردو پشت‌سرهم (عکس بالاتر، چون همیشگی‌تر است؛ ویدئو زیرش، چون ویژگی VIP است).
 //
 // **رفع خطای Build:** DRIVERS_PAGE_SIZE دیگر از actions.ts (فایل "use server") ایمپورت
 // نمی‌شود، بلکه از constants.ts می‌آید.
@@ -304,7 +306,7 @@ export function ActiveDriversList({
         <div className="flex flex-col gap-3">
           {items.map((driver) => {
             const VehicleIcon = vehicleIcon(driver.vehicleType);
-            const avatarPhoto = driver.images[0] ?? null;
+            const avatarPhoto = driver.personalPhotoPath;
             return (
               <Card key={driver.id} className="p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-3">
@@ -338,6 +340,19 @@ export function ActiveDriversList({
                     )}
                   </div>
                 </div>
+
+                {/* عکس وسیله‌ی نقلیه (اختیاری) — یک نوار پهن، جدا از آواتار دایره‌ای شخصی، تا
+                    کاربر پیش از تماس، هم چهره‌ی راننده هم خودِ وسیله را ببیند. */}
+                {driver.vehiclePhotoPath && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={getDriverImageUrl(driver.vehiclePhotoPath)}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full aspect-video object-cover rounded-xl border border-slate-100"
+                  />
+                )}
 
                 {/* فاز ۱۱ — ویدئوی اختیاری VIP */}
                 {driver.videoPath && (

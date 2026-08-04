@@ -1,13 +1,14 @@
 // مسیر فایل: src/app/[lang]/transport/driver/DriverProfileClient.tsx
 // تسک ۴ فاز ۰۳ — بخش تعاملی فرم ثبت/ویرایش پروفایل راننده.
 //
-// **به‌روزرسانی (تصمیم محصول تایید‌شده توسط کارفرما، ۱۴۰۵/۰۴/۳۰):** یک بخش «عکس‌ها» به فرم اضافه
-// شد — دقیقاً هم‌الگو با مرحله‌ی عکسِ NewListingWizard.tsx (فاز ۰۲): گرید ۳ ستونه، فشرده‌سازی
-// سمت کلاینت با compressImageFile (نسخه‌ی transport)، حداکثر ۵ عکس. برخلاف ثبت آگهی، اینجا عکس
-// کاملاً اختیاری است (راننده می‌تواند بدون هیچ عکسی هم پروفایلش را ثبت کند). عکس‌های موجود (در
-// حالت ویرایش) با getDriverImageUrl نمایش داده می‌شوند و هرکدام قابل حذف است؛ عکس‌های تازه ابتدا
-// فشرده و پیش‌نمایش می‌شوند و فقط هنگام ذخیره‌ی نهایی فرم، با createDriverSignedUploadSlotsAction
-// آپلود می‌شوند — دقیقاً همان جریان دو-مرحله‌ای آگهی کالا (فاز ۰۲).
+// **به‌روزرسانی (بازطراحی عکس‌ها — درخواست صریح کارفرما):** بخش «عکس‌ها» که قبلاً یک گرید عمومی
+// تا ۵ عکسِ بی‌معنا بود («همه‌ی عکس‌ها رو یه جا میزاریم»)، با دو کارت آپلود مجزا و برچسب‌دار
+// جایگزین شد — دقیقاً همان چیزی که کارفرما خواسته بود: «روی کارتش نوشته شده باشه این عکس برای
+// آپلود عکس ماشین یا عکس خودتان»:
+//   ۱) «عکس خودتان» — الزامی (بدون آن ثبت فرم رد می‌شود).
+//   ۲) «عکس وسیله‌ی نقلیه» — اختیاری.
+// فشرده‌سازی همچنان با همان compressImageFile قبلی انجام می‌شود (بدون تغییر در موتور
+// فشرده‌سازی خودش)، فقط حالا هرکدام مستقل و جداگانه است، نه یک آرایه‌ی مشترک.
 //
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** یک بخش «ویدئو» بعد از بخش «عکس‌ها» اضافه شد — همان الگوی
 // دو-حالته‌ی مرحله‌ی ۲ NewListingWizard.tsx: کاربر VIP یک ابزار آپلود/پیش‌نمایش/حذف تک‌ویدئویی
@@ -33,8 +34,9 @@ import {
   saveDriverProfileAction,
   setDriverActiveStatusAction,
   updateDriverLocationAction,
-  createDriverSignedUploadSlotsAction,
+  createDriverPhotoUploadSlotAction,
   createDriverSignedVideoUploadSlotAction,
+  type DriverPhotoType,
 } from "./actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { Locale } from "@/lib/i18n/constants";
@@ -43,10 +45,85 @@ import { ProvinceSelectField } from "@/components/province/ProvinceSelectField";
 
 type Dict = Awaited<ReturnType<typeof getDictionary>>;
 
-const MAX_IMAGES = 5;
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
 
 type LocationTrackingStatus = "idle" | "active" | "denied" | "unsupported";
+
+// یک کارت واحد آپلود عکس — یک‌بار نوشته شده و دوبار استفاده می‌شود (عکس خودتان + عکس وسیله)،
+// چون هردو از نظر ظاهری کاملاً یکسان‌اند و فقط برچسب/الزامی‌بودن فرق دارد. طبق درخواست صریح
+// کارفرما، برچسب («این عکس برای...») همیشه بالای خودِ کارت نوشته شده است — کاربر هرگز نباید حدس
+// بزند کدام اسلات برای چیست.
+function DriverPhotoSlot({
+  title,
+  badgeLabel,
+  badgeColorClass,
+  previewUrl,
+  isCompressing,
+  onPick,
+  onRemove,
+  addButtonLabel,
+  removeLabel,
+  loadingLabel,
+}: {
+  title: string;
+  badgeLabel: string;
+  badgeColorClass: string;
+  previewUrl: string | null;
+  isCompressing: boolean;
+  onPick: (file: File | undefined) => void;
+  onRemove: () => void;
+  addButtonLabel: string;
+  removeLabel: string;
+  loadingLabel: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold text-text-main">{title}</span>
+        <span className={`text-[10px] font-bold rounded-full px-2 py-0.5 shrink-0 ${badgeColorClass}`}>
+          {badgeLabel}
+        </span>
+      </div>
+
+      {previewUrl ? (
+        <div className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={previewUrl} alt="" className="w-full h-full object-cover" />
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={removeLabel}
+            className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
+          >
+            ×
+          </button>
+        </div>
+      ) : (
+        <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1.5 text-text-muted cursor-pointer active:scale-95 transition-transform">
+          {isCompressing ? (
+            <Spinner className="w-6 h-6" label={loadingLabel} />
+          ) : (
+            <>
+              <Icons.Camera className="w-6 h-6" />
+              <span className="text-xs font-bold text-center px-2">{addButtonLabel}</span>
+            </>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            disabled={isCompressing}
+            onChange={(e) => {
+              onPick(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
 
 export function DriverProfileClient({
   lang,
@@ -79,13 +156,20 @@ export function DriverProfileClient({
   );
   const [isSubmitting, startSubmitting] = useTransition();
 
-  // عکس‌های از قبل ذخیره‌شده (حالت ویرایش) — آرایه‌ای از مسیر فایل، نه بایت تصویر.
-  const [existingImages, setExistingImages] = useState<string[]>(existingProfile?.images ?? []);
-  // عکس‌های تازه‌ی انتخاب‌شده در همین جلسه — فقط هنگام ذخیره‌ی فرم آپلود می‌شوند.
-  const [newImages, setNewImages] = useState<CompressedImage[]>([]);
-  const [isCompressing, setIsCompressing] = useState(false);
+  // عکس خودِ راننده — الزامی. existing = مسیر ذخیره‌شده‌ی قبلی (حالت ویرایش)؛ new = عکس تازه‌ی
+  // فشرده‌شده در همین جلسه (فقط هنگام ذخیره‌ی فرم واقعاً آپلود می‌شود).
+  const [existingPersonalPhotoPath, setExistingPersonalPhotoPath] = useState<string | null>(
+    existingProfile?.personalPhotoPath ?? null
+  );
+  const [newPersonalPhoto, setNewPersonalPhoto] = useState<CompressedImage | null>(null);
+  const [isCompressingPersonal, setIsCompressingPersonal] = useState(false);
 
-  const totalImagesCount = existingImages.length + newImages.length;
+  // عکس وسیله‌ی نقلیه — اختیاری، همان الگوی بالا.
+  const [existingVehiclePhotoPath, setExistingVehiclePhotoPath] = useState<string | null>(
+    existingProfile?.vehiclePhotoPath ?? null
+  );
+  const [newVehiclePhoto, setNewVehiclePhoto] = useState<CompressedImage | null>(null);
+  const [isCompressingVehicle, setIsCompressingVehicle] = useState(false);
 
   // فاز ۱۱ — ویدئوی موجود (حالت ویرایش) + ویدئوی تازه‌ی انتخاب‌شده در همین جلسه.
   const [existingVideoPath, setExistingVideoPath] = useState<string | null>(
@@ -101,36 +185,37 @@ export function DriverProfileClient({
 
   const errorText = (code: string) => errorsDict[code] ?? errorsDict.generic;
 
-  async function handleAddImages(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0) return;
-    const remainingSlots = MAX_IMAGES - totalImagesCount;
-    if (remainingSlots <= 0) return;
+  async function handlePickPhoto(photoType: DriverPhotoType, file: File | undefined) {
+    if (!file) return;
+    const setIsCompressingFor =
+      photoType === "personal" ? setIsCompressingPersonal : setIsCompressingVehicle;
+    const setNewPhotoFor = photoType === "personal" ? setNewPersonalPhoto : setNewVehiclePhoto;
+    const currentNewPhoto = photoType === "personal" ? newPersonalPhoto : newVehiclePhoto;
 
-    const filesToProcess = Array.from(fileList).slice(0, remainingSlots);
-    setIsCompressing(true);
+    setIsCompressingFor(true);
     try {
-      const compressed: CompressedImage[] = [];
-      for (const file of filesToProcess) {
-        compressed.push(await compressImageFile(file));
-      }
-      setNewImages((prev) => [...prev, ...compressed]);
+      const compressed = await compressImageFile(file);
+      // اگر قبلاً یک عکسِ تازه‌ی دیگر برای همین اسلات انتخاب شده بود (و هنوز آپلود نشده)، پیش از
+      // جایگزینی، URL پیش‌نمایش قدیمی آزاد می‌شود — جلوگیری از نشتِ حافظه‌ی مرورگر.
+      if (currentNewPhoto) URL.revokeObjectURL(currentNewPhoto.previewUrl);
+      setNewPhotoFor(compressed);
     } catch {
       showToast(errorText("compressionFailed"), "error");
     } finally {
-      setIsCompressing(false);
+      setIsCompressingFor(false);
     }
   }
 
-  function handleRemoveExistingImage(index: number) {
-    setExistingImages((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function handleRemoveNewImage(index: number) {
-    setNewImages((prev) => {
-      const target = prev[index];
-      if (target) URL.revokeObjectURL(target.previewUrl);
-      return prev.filter((_, i) => i !== index);
-    });
+  function handleRemovePhoto(photoType: DriverPhotoType) {
+    if (photoType === "personal") {
+      if (newPersonalPhoto) URL.revokeObjectURL(newPersonalPhoto.previewUrl);
+      setNewPersonalPhoto(null);
+      setExistingPersonalPhotoPath(null);
+    } else {
+      if (newVehiclePhoto) URL.revokeObjectURL(newVehiclePhoto.previewUrl);
+      setNewVehiclePhoto(null);
+      setExistingVehiclePhotoPath(null);
+    }
   }
 
   function handleAddVideo(fileList: FileList | null) {
@@ -167,30 +252,53 @@ export function DriverProfileClient({
       showToast(errorText("invalidPhone"), "error");
       return;
     }
+    // عکس خودِ راننده الزامی است — یا از قبل ثبت شده (existing) یا همین الان انتخاب شده (new)؛
+    // اگر هیچ‌کدام نبود، فرم اصلاً به سرور ارسال نمی‌شود.
+    if (!existingPersonalPhotoPath && !newPersonalPhoto) {
+      showToast(errorText("personalPhotoRequired"), "error");
+      return;
+    }
 
     startSubmitting(async () => {
-      // آپلود عکس‌های تازه (اگر وجود داشته باشند) — دقیقاً هم‌جریان NewListingWizard (فاز ۰۲).
-      const uploadedPaths: string[] = [];
-      if (newImages.length > 0) {
-        const slotsResult = await createDriverSignedUploadSlotsAction(newImages.length);
-        if (!slotsResult.success) {
-          showToast(errorText(slotsResult.error), "error");
+      // آپلود عکس تازه‌ی «خودِ راننده» (اگر انتخاب شده) — دقیقاً هم‌جریان NewListingWizard
+      // (فاز ۰۲)، فقط حالا برای یک اسلات مشخص به‌جای یک آرایه.
+      let finalPersonalPhotoPath: string | null = existingPersonalPhotoPath;
+      if (newPersonalPhoto) {
+        const slotResult = await createDriverPhotoUploadSlotAction("personal");
+        if (!slotResult.success) {
+          showToast(errorText(slotResult.error), "error");
           return;
         }
-
-        for (let i = 0; i < slotsResult.slots.length; i++) {
-          const slot = slotsResult.slots[i];
-          const { error: uploadError } = await supabaseBrowserClient.storage
-            .from("drivers-images")
-            .uploadToSignedUrl(slot.path, slot.token, newImages[i].blob, {
-              contentType: "image/jpeg",
-            });
-          if (uploadError) {
-            showToast(errorText("uploadFailed"), "error");
-            return;
-          }
-          uploadedPaths.push(slot.path);
+        const { error: uploadError } = await supabaseBrowserClient.storage
+          .from("drivers-images")
+          .uploadToSignedUrl(slotResult.slot.path, slotResult.slot.token, newPersonalPhoto.blob, {
+            contentType: "image/jpeg",
+          });
+        if (uploadError) {
+          showToast(errorText("uploadFailed"), "error");
+          return;
         }
+        finalPersonalPhotoPath = slotResult.slot.path;
+      }
+
+      // همان الگو برای عکس وسیله‌ی نقلیه — اختیاری، پس فقط اگر واقعاً انتخاب شده آپلود می‌شود.
+      let finalVehiclePhotoPath: string | null = existingVehiclePhotoPath;
+      if (newVehiclePhoto) {
+        const slotResult = await createDriverPhotoUploadSlotAction("vehicle");
+        if (!slotResult.success) {
+          showToast(errorText(slotResult.error), "error");
+          return;
+        }
+        const { error: uploadError } = await supabaseBrowserClient.storage
+          .from("drivers-images")
+          .uploadToSignedUrl(slotResult.slot.path, slotResult.slot.token, newVehiclePhoto.blob, {
+            contentType: "image/jpeg",
+          });
+        if (uploadError) {
+          showToast(errorText("uploadFailed"), "error");
+          return;
+        }
+        finalVehiclePhotoPath = slotResult.slot.path;
       }
 
       // فاز ۱۱ — آپلود ویدئوی تازه (اگر وجود داشته باشد و کاربر VIP باشد).
@@ -213,12 +321,21 @@ export function DriverProfileClient({
         finalVideoPath = videoSlotResult.slot.path;
       }
 
+      // اگر به هر دلیلی (مثلاً کاربر همین الان در همین لحظه عکسش را برداشته) هنوز عکس خودش را
+      // ندارد، دوباره همان پیام روشن را نشان می‌دهیم — یک لایه‌ی محافظ دوم، سمت کلاینت، درست
+      // قبل از فراخوانی سرور (که خودش هم دوباره همین را بررسی می‌کند).
+      if (!finalPersonalPhotoPath) {
+        showToast(errorText("personalPhotoRequired"), "error");
+        return;
+      }
+
       const result = await saveDriverProfileAction({
         vehicleType,
         province: province as string,
         vehicleDetails,
         contactPhone,
-        imagePaths: [...existingImages, ...uploadedPaths],
+        personalPhotoPath: finalPersonalPhotoPath,
+        vehiclePhotoPath: finalVehiclePhotoPath,
         videoPath: finalVideoPath,
       });
 
@@ -357,84 +474,42 @@ export function DriverProfileClient({
         />
       </Card>
 
-      {/* بخش عکس‌ها — کاملاً اختیاری، حداکثر ۵ عکس (خودِ راننده + وسیله). */}
+      {/* بخش عکس‌ها — دو کارت مجزا و برچسب‌دار: عکس خودتان (الزامی) + عکس وسیله (اختیاری). */}
       <div className="flex flex-col gap-2">
         <h2 className="font-bold text-text-main text-center">{formDict.photosSectionTitle}</h2>
         <p className="text-sm text-text-muted text-center">{formDict.photosHint}</p>
 
-        <div className="grid grid-cols-3 gap-3">
-          {existingImages.map((path, index) => (
-            <div
-              key={`existing-${path}`}
-              className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={getDriverImageUrl(path)}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => handleRemoveExistingImage(index)}
-                aria-label={formDict.removePhotoLabel}
-                className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-
-          {newImages.map((img, index) => (
-            <div
-              key={`new-${index}`}
-              className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.previewUrl}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-              <button
-                type="button"
-                onClick={() => handleRemoveNewImage(index)}
-                aria-label={formDict.removePhotoLabel}
-                className="absolute top-1.5 left-1.5 w-7 h-7 rounded-full bg-black/60 text-white flex items-center justify-center text-sm font-bold"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-
-          {totalImagesCount < MAX_IMAGES && (
-            <label className="aspect-square rounded-2xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center gap-1.5 text-text-muted cursor-pointer active:scale-95 transition-transform">
-              {isCompressing ? (
-                <Spinner className="w-6 h-6" label={dict.common.loading} />
-              ) : (
-                <>
-                  <Icons.Camera className="w-6 h-6" />
-                  <span className="text-xs font-bold text-center px-1">{formDict.addPhotoButton}</span>
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                multiple
-                className="hidden"
-                disabled={isCompressing}
-                onChange={(e) => {
-                  handleAddImages(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          )}
+        <div className="grid grid-cols-2 gap-3">
+          <DriverPhotoSlot
+            title={formDict.personalPhotoLabel}
+            badgeLabel={formDict.requiredBadge}
+            badgeColorClass="bg-red-50 text-red-500"
+            previewUrl={
+              newPersonalPhoto?.previewUrl ??
+              (existingPersonalPhotoPath ? getDriverImageUrl(existingPersonalPhotoPath) : null)
+            }
+            isCompressing={isCompressingPersonal}
+            onPick={(file) => handlePickPhoto("personal", file)}
+            onRemove={() => handleRemovePhoto("personal")}
+            addButtonLabel={formDict.addPersonalPhotoButton}
+            removeLabel={formDict.removePhotoLabel}
+            loadingLabel={dict.common.loading}
+          />
+          <DriverPhotoSlot
+            title={formDict.vehiclePhotoLabel}
+            badgeLabel={formDict.optionalBadge}
+            badgeColorClass="bg-slate-100 text-text-muted"
+            previewUrl={
+              newVehiclePhoto?.previewUrl ??
+              (existingVehiclePhotoPath ? getDriverImageUrl(existingVehiclePhotoPath) : null)
+            }
+            isCompressing={isCompressingVehicle}
+            onPick={(file) => handlePickPhoto("vehicle", file)}
+            onRemove={() => handleRemovePhoto("vehicle")}
+            addButtonLabel={formDict.addVehiclePhotoButton}
+            removeLabel={formDict.removePhotoLabel}
+            loadingLabel={dict.common.loading}
+          />
         </div>
       </div>
 
@@ -534,8 +609,8 @@ export function DriverProfileClient({
       <Button
         variant="primary"
         fullWidth
-        loading={isSubmitting || isCompressing}
-        disabled={isSubmitting || isCompressing}
+        loading={isSubmitting || isCompressingPersonal || isCompressingVehicle}
+        disabled={isSubmitting || isCompressingPersonal || isCompressingVehicle}
         onClick={handleSubmit}
       >
         {isEditMode ? formDict.submitButtonUpdate : formDict.submitButtonCreate}

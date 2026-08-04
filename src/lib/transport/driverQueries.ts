@@ -5,14 +5,15 @@
 // می‌شود — فقط ستون‌های ساده‌ی پروفایل (نوع وسیله، مشخصات، شماره تماس، وضعیت فعال/غیرفعال) لازم
 // است؛ یک select ساده روی جدول drivers کافی است.
 //
-// **به‌روزرسانی (تصمیم محصول تایید‌شده توسط کارفرما، ۱۴۰۵/۰۴/۳۰):** ستون drivers.images
-// (20_phase_08b_transport_services_photos.sql) به هر دو تابع این فایل اضافه شد — هم به
-// getMyDriverProfile (برای نمایش عکس‌های موجود در حالت ویرایش پروفایل) و هم به تابع Postgres
-// get_active_drivers که getActiveDrivers از آن استفاده می‌کند (برای فهرست عمومی).
-//
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** getMyDriverProfile فیلد تازه‌ی videoPath گرفت (برای نمایش
 // ویدئوی موجود در حالت ویرایش)؛ ActiveDriverSummary فیلدهای videoPath و ownerIsVip گرفت (برای
 // VipBadge و پخش‌کننده‌ی ویدئو در کارت راننده، طبق بند ۵ پرامپت VIP).
+//
+// **به‌روزرسانی — دو عکس اختصاصی (خودِ راننده + وسیله‌ی نقلیه):** طبق درخواست صریح کارفرما،
+// ستون عمومی images (که همه‌ی عکس‌ها را بی‌معنا با هم قاطی نگه می‌داشت) با دو ستون معنادار
+// جایگزین شد: personal_photo_path (عکس خودِ راننده) و vehicle_photo_path (عکس وسیله). این تغییر
+// هم در MyDriverProfile (برای فرم ویرایش) هم در ActiveDriverSummary/RawActiveDriverRow (برای
+// فهرست عمومی رانندگان) اعمال شده — رجوع کنید به database/2026_08_driver_dedicated_photos.sql.
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import type { VehicleTypeId } from "./vehicleTypes";
@@ -24,7 +25,8 @@ export type MyDriverProfile = {
   contactPhone: string;
   province: string | null;
   isActive: boolean;
-  images: string[];
+  personalPhotoPath: string | null;
+  vehiclePhotoPath: string | null;
   videoPath: string | null;
 };
 
@@ -33,7 +35,9 @@ export type MyDriverProfile = {
 export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfile | null> {
   const { data, error } = await supabaseAdminClient
     .from("drivers")
-    .select("id, vehicle_type, vehicle_details, contact_phone, province, is_active, images, video_path")
+    .select(
+      "id, vehicle_type, vehicle_details, contact_phone, province, is_active, personal_photo_path, vehicle_photo_path, video_path"
+    )
     .eq("owner_id", ownerId)
     .maybeSingle();
 
@@ -46,7 +50,8 @@ export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfi
     contactPhone: data.contact_phone,
     province: data.province ?? null,
     isActive: data.is_active,
-    images: data.images ?? [],
+    personalPhotoPath: data.personal_photo_path ?? null,
+    vehiclePhotoPath: data.vehicle_photo_path ?? null,
     videoPath: data.video_path ?? null,
   };
 }
@@ -55,18 +60,14 @@ export async function getMyDriverProfile(ownerId: string): Promise<MyDriverProfi
 // (PostGIS) در صورت داشتن مختصات کاربر، وگرنه بر اساس آخرین به‌روزرسانی موقعیت. هم‌الگو با
 // searchListings (فاز ۰۲، تسک ۷): از تابع Postgres get_active_drivers از طریق rpc(...) استفاده
 // می‌شود، نه select مستقیم، چون بازگرداندن ستون geography مستقیماً شکننده است.
-//
-// contact_phone عمداً از همین تسک در نوع/کوئری برگردانده می‌شود، هرچند هنوز در رابط کاربری
-// (ActiveDriversList.tsx) نمایش داده نمی‌شود — طبق متن دقیق تسک ۹ («افزودن دکمه‌ی تماس») که این
-// کار را جدا مشخص کرده؛ این کار باعث می‌شود تسک ۹ فقط یک تغییر رابط کاربری ساده باشد، بدون نیاز
-// به تغییر SQL یا این لایه‌ی خواندن.
 export type ActiveDriverSummary = {
   id: string;
   ownerId: string;
   vehicleType: VehicleTypeId;
   vehicleDetails: string | null;
   contactPhone: string;
-  images: string[];
+  personalPhotoPath: string | null;
+  vehiclePhotoPath: string | null;
   videoPath: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -82,7 +83,8 @@ type RawActiveDriverRow = {
   vehicle_type: string;
   vehicle_details: string | null;
   contact_phone: string;
-  images: string[] | null;
+  personal_photo_path: string | null;
+  vehicle_photo_path: string | null;
   video_path: string | null;
   latitude: number | null;
   longitude: number | null;
@@ -92,10 +94,6 @@ type RawActiveDriverRow = {
   total_count: number;
 };
 
-// **به‌روزرسانی — فیلتر نوع وسیله در صفحه‌ی حمل‌ونقل:** پارامتر تازه‌ی vehicleType اضافه شد —
-// دقیقاً هم‌الگو با province (اختیاری، null یعنی «همه‌ی انواع وسیله»)، مستقیم به p_vehicle_type
-// تابع Postgres get_active_drivers پاس داده می‌شود (رجوع کنید به
-// database/2026_08_transport_vehicle_filter.sql).
 export async function getActiveDrivers(params: {
   province?: string | null;
   vehicleType?: string | null;
@@ -125,7 +123,8 @@ export async function getActiveDrivers(params: {
       vehicleType: row.vehicle_type as VehicleTypeId,
       vehicleDetails: row.vehicle_details,
       contactPhone: row.contact_phone,
-      images: row.images ?? [],
+      personalPhotoPath: row.personal_photo_path,
+      vehiclePhotoPath: row.vehicle_photo_path,
       videoPath: row.video_path,
       latitude: row.latitude,
       longitude: row.longitude,
