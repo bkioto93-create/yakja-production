@@ -78,8 +78,13 @@ export default async function PublicUserProfilePage({
           loadErrorMessage={dict.stories.loadErrorMessage}
           viewerDict={dict.stories.viewer}
         >
-          <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center">
-            <Icons.User className="w-8 h-8" />
+          <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+            {profile.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.photoUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <Icons.User className="w-8 h-8" />
+            )}
           </div>
         </UserStoryAvatar>
         <div className="flex-1 min-w-0">

@@ -46,6 +46,10 @@
 // یک هلپر کاملاً جدا، از یک کوئری اضافه‌ی تکراری در هر صفحه جلوگیری می‌کند. برای تبدیل این مقدار
 // خام به یک boolean «آیا الان VIP است؟»، از `isUserVip` در `src/lib/vip/vipStatus.ts` استفاده
 // کن — نه یک محاسبه‌ی پراکنده‌ی جدید.
+// **به‌روزرسانی — عکس پروفایل کاربر:** دو تغییر افزایشی/Additive دیگر، دقیقاً هم‌الگو با
+// vipExpiresAt بالا — `photoPath` و `photoStatus` هم به همین select اضافه شدند (نه یک کوئری
+// جداگانه در هر صفحه)، چون کارت هویت پروفایل (و هرجای دیگری که بعداً عکس واقعی کاربر لازم شود)
+// همین‌جوری هم `getCurrentUser()` را صدا می‌زند.
 import "server-only";
 import { cookies, headers } from "next/headers";
 import crypto from "node:crypto";
@@ -73,6 +77,8 @@ function sign(payload: string): string {
   return crypto.createHmac("sha256", getSecret()).update(payload).digest("hex");
 }
 
+export type SessionUserPhotoStatus = "pending" | "approved" | "rejected";
+
 export type SessionUser = {
   id: string;
   phoneNumber: string;
@@ -81,6 +87,8 @@ export type SessionUser = {
   language: string;
   authMethod: SessionAuthMethod;
   vipExpiresAt: string | null;
+  photoPath: string | null;
+  photoStatus: SessionUserPhotoStatus | null;
 };
 
 // `authMethod` پیش‌فرض `"otp"` دارد تا فراخوانی‌های موجود (جریان تایید OTP) بدون تغییر امضا هم
@@ -176,7 +184,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const { data, error } = await supabaseAdminClient
     .from("users")
-    .select("id, phone_number, name, role, language, is_blocked, vip_expires_at")
+    .select("id, phone_number, name, role, language, is_blocked, vip_expires_at, photo_path, photo_status")
     .eq("id", session.userId)
     .maybeSingle();
 
@@ -190,6 +198,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     language: data.language,
     authMethod: session.authMethod,
     vipExpiresAt: data.vip_expires_at,
+    photoPath: data.photo_path,
+    photoStatus: data.photo_status,
   };
 }
 

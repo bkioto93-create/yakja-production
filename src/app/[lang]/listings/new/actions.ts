@@ -18,6 +18,12 @@
 //      (src/lib/vip/dailyPostLimit.ts) — دوباره، سمت سرور، نه فقط سمت کلاینت.
 //   ۳) ورودی videoPath (اختیاری) پذیرفته و در ستون تازه‌ی listings.video_path ذخیره می‌شود؛ اگر
 //      کاربر VIP نباشد ولی videoPath فرستاده باشد (تلاش برای دور زدن UI)، درخواست رد می‌شود.
+//
+// **به‌روزرسانی (رفع باگ «ویدئو فشرده نمی‌شد»):** createSignedVideoUploadSlotAction حالا یک
+// mimeType هم می‌پذیرد — چون کلاینت از این پس واقعاً ویدئو را با موتور مشترک
+// src/lib/media/videoCompression.ts فشرده می‌کند، و بسته به مرورگر کاربر خروجی گاهی mp4 و گاهی
+// webm است (رجوع کنید به یادداشت همان فایل)؛ پسوند فایل باید با محتوای واقعی هماهنگ باشد، نه
+// همیشه فرضِ ثابتِ mp4.
 "use server";
 
 import { supabaseAdminClient } from "@/lib/supabase/server";
@@ -64,10 +70,17 @@ export async function createSignedUploadSlotsAction(
   return { success: true, slots };
 }
 
+// پسوند فایل مناسب را از روی mimeType واقعیِ خروجیِ فشرده‌سازی تعیین می‌کند — دقیقاً هم‌الگو با
+// resolveFileExtension در src/app/[lang]/profile/storyActions.ts.
+function resolveVideoExtension(mimeType: string): string {
+  if (mimeType.startsWith("video/mp4")) return "mp4";
+  return "webm";
+}
+
 // فاز ۱۱ — یک ویدئوی تکی (طبق تصمیم پذیرفته‌شده‌ی سوال باز ۲ پرامپت VIP)، فقط برای کاربر VIP.
-export async function createSignedVideoUploadSlotAction(): Promise<
-  { success: true; slot: SignedUploadSlot } | { success: false; error: string }
-> {
+export async function createSignedVideoUploadSlotAction(
+  mimeType: string
+): Promise<{ success: true; slot: SignedUploadSlot } | { success: false; error: string }> {
   const user = await getCurrentUser();
   if (!user) return { success: false, error: "unauthenticated" };
 
@@ -76,7 +89,8 @@ export async function createSignedVideoUploadSlotAction(): Promise<
     return { success: false, error: "notVip" };
   }
 
-  const path = `${user.id}/${Date.now()}.mp4`;
+  const extension = resolveVideoExtension(mimeType);
+  const path = `${user.id}/${Date.now()}.${extension}`;
   const { data, error } = await supabaseAdminClient.storage
     .from(LISTINGS_VIDEOS_BUCKET)
     .createSignedUploadUrl(path);

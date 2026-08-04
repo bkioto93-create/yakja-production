@@ -217,6 +217,8 @@ export default {
       "videoTitle": "ویدئوی کوتاه (اختیاری، ویژه‌ی VIP)",
       "addVideoButton": "افزودن ویدئو",
       "removeVideoLabel": "حذف این ویدئو",
+      "compressingVideoLabel": "در حال فشرده‌سازی ویدئو...",
+      "videoTrimNoticeTemplate": "فقط {seconds} ثانیه‌ی اول ویدئو استفاده می‌شود",
       "errors": {
         "unauthenticated": "ابتدا باید وارد حساب خود شوید.",
         "invalidCategory": "لطفاً یک دسته را انتخاب کنید.",
@@ -230,10 +232,16 @@ export default {
         "dbError": "ثبت آگهی با مشکل مواجه شد؛ دوباره امتحان کنید.",
         "compressionFailed": "پردازش این عکس ممکن نشد؛ عکس دیگری امتحان کنید.",
         "invalidVideoType": "فقط فایل ویدئویی قابل قبول است.",
-        "videoTooLarge": "حجم ویدئو نباید بیشتر از ۲۰ مگابایت باشد.",
+        "videoTooLarge": "حجم فایل ویدئوی انتخابی خیلی زیاد است؛ ویدئوی کوچک‌تری انتخاب کنید.",
         "invalidVideoData": "ویدئوی انتخاب‌شده قابل پردازش نیست.",
         "notVip": "افزودن ویدئو فقط برای اعضای VIP فعال است.",
         "dailyLimitReached": "شما امروز به سقف ۲ آگهی رایگان رسیده‌اید. برای ثبت آگهی نامحدود، عضو VIP شوید.",
+        "videoRecordingUnsupported": "مرورگرت از فشرده‌سازی ویدئو پشتیبانی نمی‌کند؛ لطفاً از مرورگر دیگری استفاده کن یا بدون ویدئو ادامه بده.",
+        "videoFileTooLarge": "حجم فایل ویدئوی انتخابی خیلی زیاد است؛ ویدئوی کوچک‌تری انتخاب کنید.",
+        "videoUnreadable": "این ویدئو قابل خواندن نیست؛ ویدئوی دیگری انتخاب کنید.",
+        "canvasContextUnavailable": "مرورگرت این قابلیت را پشتیبانی نمی‌کند.",
+        "videoCompressionFailed": "فشرده‌سازی ویدئو با مشکل مواجه شد؛ دوباره امتحان کنید.",
+        "videoTooLargeAfterCompression": "حتی بعد از فشرده‌سازی هم حجم ویدئو زیاد است؛ ویدئوی کوتاه‌تری انتخاب کنید.",
         "generic": "مشکلی پیش آمد؛ دوباره امتحان کنید."
       }
     },
@@ -623,7 +631,19 @@ export default {
       "statusBlocked": "مسدود",
       "blockButton": "مسدودسازی",
       "unblockButton": "رفع مسدودی",
-      "updateError": "به‌روزرسانی وضعیت با مشکل مواجه شد؛ دوباره امتحان کنید."
+      "updateError": "به‌روزرسانی وضعیت با مشکل مواجه شد؛ دوباره امتحان کنید.",
+      "photoStatusTabs": {
+        "all": "همه",
+        "pending": "در انتظار تایید عکس",
+        "approved": "عکس تاییدشده",
+        "rejected": "عکس ردشده"
+      },
+      "photoPendingLabel": "عکس در انتظار تایید",
+      "photoApprovedLabel": "عکس تاییدشده",
+      "photoRejectedLabel": "عکس ردشده",
+      "photoApproveButton": "تایید عکس",
+      "photoRejectButton": "رد عکس",
+      "photoUpdateError": "به‌روزرسانی وضعیت عکس با مشکل مواجه شد؛ دوباره امتحان کنید."
     },
     "listings": {
       "title": "تایید یا حذف آگهی‌ها",
@@ -833,7 +853,29 @@ export default {
     "languageDesc": "زبان نمایش تمام صفحه‌ها را از همین‌جا تغییر بده.",
     "languageFa": "دری",
     "languagePs": "پښتو",
-    "logout": "خروج از حساب"
+    "logout": "خروج از حساب",
+    "photo": {
+      "title": "عکس پروفایل",
+      "description": "یک عکس واضح از خودت بگذار؛ بعد از تایید مدیریت در همه‌جا نمایش داده می‌شود.",
+      "changeButton": "تغییر عکس پروفایل",
+      "addButton": "افزودن عکس پروفایل",
+      "compressingLabel": "در حال آماده‌سازی...",
+      "uploadingLabel": "در حال آپلود...",
+      "successMessage": "عکس پروفایل با موفقیت ارسال شد و در انتظار تایید مدیریت است.",
+      "statusPending": "در حال تایید مدیریت",
+      "statusApproved": "تایید شده",
+      "statusRejected": "رد شده — یک عکس تازه امتحان کن",
+      "errors": {
+        "unauthenticated": "برای تغییر عکس پروفایل ابتدا وارد حساب خود شو.",
+        "invalidPhotoData": "مشکلی در داده‌ی عکس پیش آمد؛ دوباره امتحان کن.",
+        "uploadFailed": "آپلود عکس با مشکل مواجه شد؛ دوباره امتحان کن.",
+        "dbError": "یک مشکل فنی پیش آمد؛ دوباره امتحان کن.",
+        "imageUnreadable": "این عکس قابل خواندن نیست؛ عکس دیگری انتخاب کن.",
+        "imageConversionFailed": "پردازش عکس با مشکل مواجه شد؛ دوباره امتحان کن.",
+        "canvasContextUnavailable": "مرورگرت این قابلیت را پشتیبانی نمی‌کند.",
+        "generic": "مشکلی پیش آمد؛ دوباره امتحان کن."
+      }
+    }
   },
   "reports": {
     "reportButtonLabel": "گزارش تخلف",

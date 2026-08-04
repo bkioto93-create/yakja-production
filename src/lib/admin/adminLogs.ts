@@ -29,6 +29,10 @@ import { supabaseAdminClient } from "@/lib/supabase/server";
 // انواع هدف قابل‌ثبت — پنج مقدار اولیه‌ی تسک‌های ۲/۳/۵ فاز ۰۷، به‌علاوه‌ی "system" (تسک ۸ فاز ۰۷،
 // دکمه‌ی بک‌آپ)، "vip_request" (فاز ۱۱، تایید/رد درخواست VIP) و "conversation" (فاز ۱۳، تایید/رد
 // درخواست چت پشتیبانی).
+// **به‌روزرسانی — گردش تایید عکس پروفایل:** مقدار تازه‌ی "user_photo" اضافه شد — برای اقدام
+// تایید/رد عکس پروفایل یک کاربر در src/app/[lang]/admin/(protected)/users/photoActions.ts.
+// طبق یادداشت بالا، چون ستون target_type بدون CHECK constraint دیتابیسی است، این مقدار تازه
+// بدون هیچ migration اضافه‌ای هم‌اکنون قابل‌درج است — فقط همین یونیون تایپ‌اسکریپتی به‌روزرسانی شد.
 export type AdminLogTargetType =
   | "user"
   | "listing"
@@ -37,7 +41,8 @@ export type AdminLogTargetType =
   | "service_provider"
   | "system"
   | "vip_request"
-  | "conversation";
+  | "conversation"
+  | "user_photo";
 
 export async function logAdminAction(params: {
   adminId: string;

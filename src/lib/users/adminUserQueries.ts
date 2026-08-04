@@ -9,8 +9,14 @@
 // دقیقاً هم‌الگو با getReportsQueue (فاز ۰۶/۰۷، تسک ۴/۵): فقط ستون‌های لازم خوانده می‌شوند،
 // جدیدترین کاربران اول. برخلاف آن فایل، اینجا صفحه‌بندی واقعی (limit/offset) لازم است چون تعداد
 // کل کاربران برخلاف صف گزارش‌ها می‌تواند خیلی بزرگ شود.
+// **به‌روزرسانی — عکس پروفایل کاربر:** دو ستون تازه (photo_path/photo_status) خوانده می‌شوند
+// (رجوع کنید به database/2026_08_profile_photo.sql)، و یک فیلتر تازه‌ی اختیاری (photoStatus)
+// اضافه شد — دقیقاً هم‌الگو با فیلتر status در getListingsQueue (فاز ۰۷، تسک ۳)، تا صف تایید
+// عکس‌های در-انتظار در پنل ادمین قابل مرور باشد.
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
+
+export type AdminUserPhotoStatus = "pending" | "approved" | "rejected";
 
 export type AdminUserRow = {
   id: string;
@@ -19,6 +25,8 @@ export type AdminUserRow = {
   role: string;
   isBlocked: boolean;
   createdAt: string;
+  photoPath: string | null;
+  photoStatus: AdminUserPhotoStatus | null;
 };
 
 export const ADMIN_USERS_PAGE_SIZE = 20;
@@ -35,6 +43,7 @@ function sanitizeSearchTerm(raw: string): string {
 export async function getUsersPage(params: {
   search?: string;
   page?: number;
+  photoStatus?: AdminUserPhotoStatus | "all";
 }): Promise<{ items: AdminUserRow[]; totalCount: number; pageSize: number }> {
   const page = params.page && params.page > 0 ? Math.floor(params.page) : 1;
   const from = (page - 1) * ADMIN_USERS_PAGE_SIZE;
@@ -42,13 +51,19 @@ export async function getUsersPage(params: {
 
   let query = supabaseAdminClient
     .from("users")
-    .select("id, name, phone_number, role, is_blocked, created_at", { count: "exact" })
+    .select("id, name, phone_number, role, is_blocked, created_at, photo_path, photo_status", {
+      count: "exact",
+    })
     .order("created_at", { ascending: false })
     .range(from, to);
 
   const search = params.search ? sanitizeSearchTerm(params.search) : "";
   if (search) {
     query = query.or(`name.ilike.%${search}%,phone_number.ilike.%${search}%`);
+  }
+
+  if (params.photoStatus && params.photoStatus !== "all") {
+    query = query.eq("photo_status", params.photoStatus);
   }
 
   const { data, error, count } = await query;
@@ -65,6 +80,8 @@ export async function getUsersPage(params: {
       role: row.role as string,
       isBlocked: row.is_blocked as boolean,
       createdAt: row.created_at as string,
+      photoPath: row.photo_path as string | null,
+      photoStatus: row.photo_status as AdminUserPhotoStatus | null,
     })),
     totalCount: count ?? 0,
     pageSize: ADMIN_USERS_PAGE_SIZE,

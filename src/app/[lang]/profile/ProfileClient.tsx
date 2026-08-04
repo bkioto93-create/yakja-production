@@ -31,6 +31,7 @@ import { VipBadge } from "@/components/vip/VipBadge";
 import { AdminSupportChatEntry } from "@/components/chat/AdminSupportChatEntry";
 import { UserStoryAvatar } from "@/components/stories/UserStoryAvatar";
 import { AddStorySection } from "@/components/stories/AddStorySection";
+import { ProfilePhotoUploader } from "@/components/profile/ProfilePhotoUploader";
 import { switchLanguageAction, logoutAction } from "./actions";
 import { isUserVip } from "@/lib/vip/vipStatus";
 import type { getDictionary } from "@/dictionaries/getDictionary";
@@ -48,6 +49,8 @@ export function ProfileClient({
   dailyStoryCount,
   dailyStoryLimit,
   ownHasActiveStory,
+  ownPhotoPreviewUrl,
+  approvedPhotoUrl,
 }: {
   lang: Locale;
   dict: Dict;
@@ -56,6 +59,8 @@ export function ProfileClient({
   dailyStoryCount: number;
   dailyStoryLimit: number;
   ownHasActiveStory: boolean;
+  ownPhotoPreviewUrl: string | null;
+  approvedPhotoUrl: string | null;
 }) {
   const [pendingLang, setPendingLang] = useState<Locale | null>(null);
   const [isSwitchingLang, startSwitchingLang] = useTransition();
@@ -95,8 +100,13 @@ export function ProfileClient({
             loadErrorMessage={dict.stories.loadErrorMessage}
             viewerDict={dict.stories.viewer}
           >
-            <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center">
-              <Icons.User className="w-8 h-8" />
+            <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center overflow-hidden">
+              {approvedPhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={approvedPhotoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <Icons.User className="w-8 h-8" />
+              )}
             </div>
           </UserStoryAvatar>
           <div className="flex-1 min-w-0">
@@ -129,6 +139,15 @@ export function ProfileClient({
             </Button>
           </Link>
         </Card>
+      )}
+
+      {/* عکس پروفایل — کارت مستقل، فقط برای کاربر واردشده. */}
+      {user && (
+        <ProfilePhotoUploader
+          currentPhotoUrl={ownPhotoPreviewUrl}
+          photoStatus={user.photoStatus}
+          dict={dict.profile.photo}
+        />
       )}
 
       {/* فاز ۱۴ — کارت «افزودن استوری»، فقط برای کاربر واردشده. */}

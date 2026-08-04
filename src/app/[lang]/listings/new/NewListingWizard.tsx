@@ -9,9 +9,14 @@
 // انتهای همان مرحله‌ی ۲ (عکس‌ها) اضافه شد — عمداً یک مرحله‌ی تازه‌ی مستقل ساخته نشد، تا شماره‌ی
 // کل مراحل (TOTAL_STEPS=4) و منطق Stepper دست‌نخورده بماند؛ ویدئو از نظر کاربر ادامه‌ی طبیعی
 // «رسانه‌ی آگهی» است، نه یک مرحله‌ی مجزا. کاربر غیر-VIP به‌جای ابزار آپلود، همان کامپوننت مشترک
-// VipUpsellNotice را می‌بیند. ویدئو برخلاف عکس، فشرده (compress) نمی‌شود — فقط حجم (حداکثر
-// ۲۰ مگابایت، هم‌سو با محدودیت باکت listings-videos) و نوع فایل سمت کلاینت اعتبارسنجی می‌شود؛
-// اعتبارسنجی واقعی و غیرقابل‌دورزدن همچنان سمت سرور در actions.ts انجام می‌شود.
+// VipUpsellNotice را می‌بیند.
+//
+// **به‌روزرسانی (رفع باگ «ویدئو فشرده نمی‌شد»):** طبق تصمیم اولیه‌ی این تسک، ویدئو فقط حجم خامش
+// اعتبارسنجی می‌شد، بدون فشرده‌سازی واقعی — یعنی یک ویدئوی ۱۸ مگابایتی همان ۱۸ مگابایت در باکت
+// Storage محدود پروژه ذخیره می‌شد. حالا دقیقاً هم‌الگو با قابلیت استوری (که بعداً ساخته شد)، از
+// همان موتور مشترک src/lib/media/videoCompression.ts استفاده می‌شود: ویدئو سمت مرورگر واقعاً
+// فشرده می‌شود (رزولوشن + بیت‌ریت کاهش می‌یابد) پیش از آپلود — با پارامترهای کمی سخاوتمندانه‌تر
+// از استوری (مدت‌زمان مجاز بیشتر، چون این یک ویدئوی نمایشیِ محصول است نه یک استوری زودگذر).
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
@@ -25,6 +30,7 @@ import { useToast } from "@/components/ui/ToastProvider";
 import { VipUpsellNotice } from "@/components/vip/VipUpsellNotice";
 import { LISTING_CATEGORIES, type ListingCategoryId } from "@/lib/marketplace/categories";
 import { compressImageFile, type CompressedImage } from "@/lib/marketplace/imageCompression";
+import { compressVideoFile, isVideoCompressionSupported } from "@/lib/media/videoCompression";
 import { sanitizePriceInput, toAsciiDigits } from "@/lib/marketplace/numbers";
 import { normalizeAfghanPhone } from "@/lib/phone";
 import { supabaseBrowserClient } from "@/lib/supabase/client";
@@ -42,7 +48,17 @@ type Dict = Awaited<ReturnType<typeof getDictionary>>;
 const TOTAL_STEPS = 4;
 const MIN_IMAGES = 1;
 const MAX_IMAGES = 5;
-const MAX_VIDEO_BYTES = 20 * 1024 * 1024; // ۲۰ مگابایت — هم‌سو با محدودیت باکت listings-videos
+// سقف حفاظتی روی حجم فایل خامِ ورودی (پیش از فشرده‌سازی) — چون از این پس واقعاً فشرده می‌شود،
+// این عدد فقط برای جلوگیری از تلاش برای پردازش یک فایل غیرمنطقی‌بزرگ در مرورگر گوشی است، نه یک
+// سقفِ واقعیِ حجمِ نهایی (که حالا با VIDEO_TARGET_MAX_BYTES کنترل می‌شود).
+const MAX_SOURCE_VIDEO_BYTES = 200 * 1024 * 1024;
+// پارامترهای فشرده‌سازی ویدئو — کمی سخاوتمندانه‌تر از استوری (که فقط ۱۵ ثانیه/۷۲۰px/۳ مگابایت
+// است)، چون این یک ویدئوی نمایشیِ محصول است: مدت‌زمان مجاز بیشتر (یک دقیقه کامل)، رزولوشن کمی
+// بالاتر (برای وضوح جزئیات محصول)، و سقف بیت‌ریت بالاتر (کیفیت بهتر برای کلیپ‌های کوتاه).
+const VIDEO_MAX_DURATION_SECONDS = 60;
+const VIDEO_MAX_DIMENSION_PX = 960;
+const VIDEO_TARGET_MAX_BYTES = 10 * 1024 * 1024;
+const VIDEO_MAX_BITRATE_BPS = 4_000_000;
 
 export function NewListingWizard({
   lang,
@@ -65,7 +81,11 @@ export function NewListingWizard({
   const [category, setCategory] = useState<ListingCategoryId | "">("");
   const [images, setImages] = useState<CompressedImage[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
-  const [video, setVideo] = useState<{ file: File; previewUrl: string } | null>(null);
+  const [video, setVideo] = useState<{ blob: Blob; previewUrl: string; mimeType: string } | null>(
+    null
+  );
+  const [isCompressingVideo, setIsCompressingVideo] = useState(false);
+  const [videoCompressionProgress, setVideoCompressionProgress] = useState(0);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [address, setAddress] = useState("");
@@ -120,7 +140,7 @@ export function NewListingWizard({
     });
   }
 
-  function handleAddVideo(fileList: FileList | null) {
+  async function handleAddVideo(fileList: FileList | null) {
     const file = fileList?.[0];
     if (!file) return;
 
@@ -128,13 +148,43 @@ export function NewListingWizard({
       showToast(errorText("invalidVideoType"), "error");
       return;
     }
-    if (file.size > MAX_VIDEO_BYTES) {
+    if (file.size > MAX_SOURCE_VIDEO_BYTES) {
       showToast(errorText("videoTooLarge"), "error");
+      return;
+    }
+    if (!isVideoCompressionSupported()) {
+      showToast(errorText("videoRecordingUnsupported"), "error");
       return;
     }
 
     if (video) URL.revokeObjectURL(video.previewUrl);
-    setVideo({ file, previewUrl: URL.createObjectURL(file) });
+    setVideo(null);
+    setIsCompressingVideo(true);
+    setVideoCompressionProgress(0);
+
+    try {
+      const compressed = await compressVideoFile(
+        file,
+        {
+          maxDurationSeconds: VIDEO_MAX_DURATION_SECONDS,
+          maxDimensionPx: VIDEO_MAX_DIMENSION_PX,
+          targetMaxBytes: VIDEO_TARGET_MAX_BYTES,
+          maxBitrateBps: VIDEO_MAX_BITRATE_BPS,
+        },
+        (ratio) => setVideoCompressionProgress(ratio)
+      );
+      setVideo({
+        blob: compressed.blob,
+        previewUrl: compressed.previewUrl,
+        mimeType: compressed.mimeType,
+      });
+    } catch (err) {
+      const code = err instanceof Error ? err.message : "generic";
+      showToast(errorText(code), "error");
+    } finally {
+      setIsCompressingVideo(false);
+      setVideoCompressionProgress(0);
+    }
   }
 
   function handleRemoveVideo() {
@@ -213,18 +263,21 @@ export function NewListingWizard({
         imagePaths.push(slot.path);
       }
 
-      // فاز ۱۱ — آپلود ویدئوی اختیاری، فقط اگر کاربر VIP است و ویدئویی انتخاب کرده.
+      // فاز ۱۱ — آپلود ویدئوی اختیاری (حالا واقعاً فشرده‌شده)، فقط اگر کاربر VIP است و ویدئویی
+      // انتخاب کرده. mimeType واقعیِ خروجیِ فشرده‌سازی به سرور پاس داده می‌شود، چون بسته به
+      // مرورگر کاربر گاهی mp4 و گاهی webm تولید می‌شود (رجوع کنید به یادداشت
+      // src/lib/media/videoCompression.ts) — سرور باید پسوند فایل را متناسب با همین انتخاب کند.
       let videoPath: string | null = null;
       if (isVip && video) {
-        const videoSlotResult = await createSignedVideoUploadSlotAction();
+        const videoSlotResult = await createSignedVideoUploadSlotAction(video.mimeType);
         if (!videoSlotResult.success) {
           showToast(errorText(videoSlotResult.error), "error");
           return;
         }
         const { error: videoUploadError } = await supabaseBrowserClient.storage
           .from("listings-videos")
-          .uploadToSignedUrl(videoSlotResult.slot.path, videoSlotResult.slot.token, video.file, {
-            contentType: video.file.type || "video/mp4",
+          .uploadToSignedUrl(videoSlotResult.slot.path, videoSlotResult.slot.token, video.blob, {
+            contentType: video.mimeType,
           });
         if (videoUploadError) {
           showToast(errorText("uploadFailed"), "error");
@@ -263,7 +316,7 @@ export function NewListingWizard({
       totalSteps={TOTAL_STEPS}
       onNext={handleNext}
       onBack={handleBack}
-      busy={isCompressing || isSubmitting}
+      busy={isCompressing || isCompressingVideo || isSubmitting}
       texts={{
         next: dict.common.next,
         back: dict.common.back,
@@ -339,6 +392,14 @@ export function NewListingWizard({
 
             {!isVip ? (
               <VipUpsellNotice lang={lang} message={dict.vip.upsell.videoMessage} buttonLabel={dict.vip.upsell.button} />
+            ) : isCompressingVideo ? (
+              <div className="max-w-xs mx-auto w-full aspect-video rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-amber-600">
+                <Spinner className="w-6 h-6" label={dict.common.loading} />
+                <span className="text-xs font-bold">
+                  {wizardDict.compressingVideoLabel}
+                  {videoCompressionProgress > 0 ? ` ${Math.round(videoCompressionProgress * 100)}%` : ""}
+                </span>
+              </div>
             ) : video ? (
               <div className="relative rounded-2xl overflow-hidden border border-slate-200 max-w-xs mx-auto w-full">
                 <video src={video.previewUrl} controls className="w-full aspect-video bg-black" />
@@ -352,19 +413,27 @@ export function NewListingWizard({
                 </button>
               </div>
             ) : (
-              <label className="max-w-xs mx-auto w-full aspect-video rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 cursor-pointer active:scale-95 transition-transform">
-                <Icons.Camera className="w-6 h-6" />
-                <span className="text-xs font-bold text-center px-2">{wizardDict.addVideoButton}</span>
-                <input
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    handleAddVideo(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+              <>
+                <label className="max-w-xs mx-auto w-full aspect-video rounded-2xl border-2 border-dashed border-amber-300 bg-amber-50/50 flex flex-col items-center justify-center gap-1.5 text-amber-600 cursor-pointer active:scale-95 transition-transform">
+                  <Icons.Camera className="w-6 h-6" />
+                  <span className="text-xs font-bold text-center px-2">{wizardDict.addVideoButton}</span>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      void handleAddVideo(e.target.files);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <p className="text-[11px] text-text-muted text-center max-w-xs mx-auto">
+                  {wizardDict.videoTrimNoticeTemplate.replace(
+                    "{seconds}",
+                    String(VIDEO_MAX_DURATION_SECONDS)
+                  )}
+                </p>
+              </>
             )}
           </div>
         </div>

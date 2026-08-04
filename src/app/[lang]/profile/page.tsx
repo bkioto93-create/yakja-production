@@ -12,11 +12,17 @@
 // تعداد استوری‌های امروزِ کاربر (برای نمایش «هنوز X از ۱ استوری رایگان مانده») و دسته‌ی کامل
 // استوری‌های فعال خودش (برای این‌که کارت هویت حساب هم — دقیقاً مثل اینستاگرام — حلقه‌ی هایلایت
 // دور آواتار خودش را نشان بدهد و بشود روی آن کلیک کرد).
+// **به‌روزرسانی — عکس پروفایل کاربر:** آدرس عکس فقط وقتی ساخته و پاس داده می‌شود که
+// photo_status==='approved' باشد — نه هر وقت photo_path مقدار داشته باشد؛ یعنی تا وقتی ادمین
+// تایید نکرده، این آدرس همیشه null است و هیچ‌جای دیگر UI (کارت هویت، پروفایل عمومی، حلقه‌ی
+// استوری) عکسِ در-انتظار/ردشده را نشان نمی‌دهد. کارت آپلود خودش (ProfilePhotoUploader) برای
+// پیش‌نمایش، مستقل از این منطق، مسیر خام را می‌گیرد (رجوع کنید به JSX پایین‌تر همین صفحه).
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMyLatestVipRequest } from "@/lib/vip/vipQueries";
 import { getUserDailyStoryCount, FREE_DAILY_STORY_LIMIT } from "@/lib/stories/storyLimits";
 import { hasActiveStory } from "@/lib/stories/storyQueries";
+import { getProfilePhotoUrl } from "@/lib/users/profilePhotoUrl";
 import { ProfileClient } from "./ProfileClient";
 import type { Locale } from "@/lib/i18n/constants";
 
@@ -36,6 +42,14 @@ export default async function ProfilePage({
     ? await Promise.all([getUserDailyStoryCount(user.id), hasActiveStory(user.id)])
     : [0, false];
 
+  // آدرس عکس برای پیش‌نمایش داخل کارت آپلود: هر وضعیتی (در انتظار/تاییدشده/ردشده) که باشد، خودِ
+  // کاربر باید همیشه بتواند عکسی که فرستاده را ببیند — این با «آیا در بقیه‌ی اپ نشان داده شود؟»
+  // (که فقط approved است) یک منطق کاملاً جداست.
+  const ownPhotoPreviewUrl = user?.photoPath ? getProfilePhotoUrl(user.photoPath) : null;
+  // آدرس عکسِ «تاییدشده» برای کارت هویت (که همه‌جا، از جمله بیرون از خودِ این صفحه، دیده می‌شود).
+  const approvedPhotoUrl =
+    user?.photoPath && user.photoStatus === "approved" ? getProfilePhotoUrl(user.photoPath) : null;
+
   return (
     <ProfileClient
       lang={lang as Locale}
@@ -45,6 +59,8 @@ export default async function ProfilePage({
       dailyStoryCount={dailyStoryCount}
       dailyStoryLimit={FREE_DAILY_STORY_LIMIT}
       ownHasActiveStory={ownHasActiveStory}
+      ownPhotoPreviewUrl={ownPhotoPreviewUrl}
+      approvedPhotoUrl={approvedPhotoUrl}
     />
   );
 }

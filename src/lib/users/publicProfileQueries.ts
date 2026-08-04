@@ -12,10 +12,14 @@
 // **به‌روزرسانی فاز ۱۴ (قابلیت استوری):** فیلد hasActiveStory اضافه شد — دقیقاً هم‌الگو با isVip
 // (یک بولین سبک، بدون نیاز کامپوننت مصرف‌کننده به دانستن جزئیات جدول stories)، تا حلقه‌ی
 // هایلایت دور آواتار این صفحه هم — دقیقاً مثل اینستاگرام — نشان داده شود.
+// **به‌روزرسانی — عکس پروفایل کاربر:** فیلد photoUrl اضافه شد — فقط وقتی photo_status==='approved'
+// مقدار می‌گیرد (وگرنه null)؛ دقیقاً همان قاعده‌ی «فقط تاییدشده در معرض دید عمومی» که در
+// src/app/[lang]/profile/page.tsx هم برای approvedPhotoUrl رعایت شد.
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import { isUserVip } from "@/lib/vip/vipStatus";
 import { hasActiveStory as checkHasActiveStory } from "@/lib/stories/storyQueries";
+import { getProfilePhotoUrl } from "@/lib/users/profilePhotoUrl";
 
 export type PublicUserProfile = {
   id: string;
@@ -25,6 +29,7 @@ export type PublicUserProfile = {
   realEstateCount: number;
   isVip: boolean;
   hasActiveStory: boolean;
+  photoUrl: string | null;
 };
 
 // خواندن پروفایل عمومیِ یک کاربر برای صفحه‌ی src/app/[lang]/users/[id]/page.tsx.
@@ -32,7 +37,7 @@ export type PublicUserProfile = {
 export async function getPublicUserProfile(id: string): Promise<PublicUserProfile | null> {
   const { data: user, error } = await supabaseAdminClient
     .from("users")
-    .select("id, name, created_at, is_blocked, vip_expires_at")
+    .select("id, name, created_at, is_blocked, vip_expires_at, photo_path, photo_status")
     .eq("id", id)
     .maybeSingle();
 
@@ -54,6 +59,11 @@ export async function getPublicUserProfile(id: string): Promise<PublicUserProfil
     checkHasActiveStory(id),
   ]);
 
+  const photoUrl =
+    user.photo_path && user.photo_status === "approved"
+      ? getProfilePhotoUrl(user.photo_path as string)
+      : null;
+
   return {
     id: user.id,
     name: user.name,
@@ -62,5 +72,6 @@ export async function getPublicUserProfile(id: string): Promise<PublicUserProfil
     realEstateCount: realEstateResult.count ?? 0,
     isVip: isUserVip(user.vip_expires_at as string | null),
     hasActiveStory: ownerHasActiveStory,
+    photoUrl,
   };
 }

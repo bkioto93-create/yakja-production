@@ -227,6 +227,8 @@ export default {
       "videoTitle": "لنډه ویډیو (اختیاري، د VIP لپاره)",
       "addVideoButton": "ویډیو ورزیاتول",
       "removeVideoLabel": "دغه ویډیو ړنګول",
+      "compressingVideoLabel": "د ویډیو فشردول روان دي...",
+      "videoTrimNoticeTemplate": "یوازې د ویډیو لومړني {seconds} ثانیې کارول کیږي",
       "errors": {
         "unauthenticated": "لومړی باید خپل حساب ته ننوځئ.",
         "invalidCategory": "مهرباني وکړئ یوه ډله وټاکئ.",
@@ -240,10 +242,16 @@ export default {
         "dbError": "د اعلان ثبتول ونشول؛ بیا هڅه وکړئ.",
         "compressionFailed": "دغه انځور نه شي چمتو کیدای؛ بل انځور هڅه کړئ.",
         "invalidVideoType": "یوازې د ویډیو فایل منل کیږي.",
-        "videoTooLarge": "د ویډیو اندازه باید له ۲۰ میګابایټو زیاته نه وي.",
+        "videoTooLarge": "ستاسو ټاکل شوې ویډیو حجم ډېر زیات دی؛ کوچنۍ ویډیو غوره کړئ.",
         "invalidVideoData": "ټاکل شوې ویډیو نه شي پروسس کیدای.",
         "notVip": "ویډیو ورزیاتول یوازې فعال VIP غړو لپاره دي.",
         "dailyLimitReached": "تاسو نن ورځ د ۲ وړیا اعلانونو حد ته ورسیدئ. د نامحدود اعلان لپاره VIP غړی شئ.",
+        "videoRecordingUnsupported": "ستاسو براوزر د ویډیو فشردولو ملاتړ نه کوي؛ مهرباني وکړئ بل براوزر وکاروئ یا پرته له ویډیو دوام ورکړئ.",
+        "videoFileTooLarge": "ستاسو ټاکل شوې ویډیو حجم ډېر زیات دی؛ کوچنۍ ویډیو غوره کړئ.",
+        "videoUnreadable": "دا ویډیو د لوستلو وړ نه ده؛ بله ویډیو غوره کړئ.",
+        "canvasContextUnavailable": "ستاسو براوزر دا ځانګړنه ملاتړ نه کوي.",
+        "videoCompressionFailed": "د ویډیو فشردول ونشول؛ بیا هڅه وکړئ.",
+        "videoTooLargeAfterCompression": "حتی د فشردولو وروسته هم د ویډیو حجم زیات دی؛ لنډه ویډیو غوره کړئ.",
         "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
       }
     },
@@ -633,7 +641,19 @@ export default {
       "statusBlocked": "بند شوی",
       "blockButton": "بندول",
       "unblockButton": "خلاصول",
-      "updateError": "د حالت نوي کول ونشول؛ بیا هڅه وکړئ."
+      "updateError": "د حالت نوي کول ونشول؛ بیا هڅه وکړئ.",
+      "photoStatusTabs": {
+        "all": "ټول",
+        "pending": "د انځور تایید ته انتظار",
+        "approved": "تایید شوی انځور",
+        "rejected": "رد شوی انځور"
+      },
+      "photoPendingLabel": "انځور تایید ته انتظار باسي",
+      "photoApprovedLabel": "انځور تایید شوی",
+      "photoRejectedLabel": "انځور رد شوی",
+      "photoApproveButton": "د انځور تایید",
+      "photoRejectButton": "د انځور رد",
+      "photoUpdateError": "د انځور د حالت نوي کول ونشول؛ بیا هڅه وکړئ."
     },
     "listings": {
       "title": "د اعلانونو تایید یا ړنګول",
@@ -843,7 +863,29 @@ export default {
     "languageDesc": "د ټولو پاڼو ژبه له دې ځایه بدله کړئ.",
     "languageFa": "دري",
     "languagePs": "پښتو",
-    "logout": "له حساب څخه وتل"
+    "logout": "له حساب څخه وتل",
+    "photo": {
+      "title": "د پروفایل انځور",
+      "description": "د ځان یو روښانه انځور ورزیات کړئ؛ د مدیریت له تایید وروسته به هرچېرې وښودل شي.",
+      "changeButton": "د پروفایل انځور بدلول",
+      "addButton": "د پروفایل انځور ورزیاتول",
+      "compressingLabel": "چمتووالی روان دی...",
+      "uploadingLabel": "اپلوډ روان دی...",
+      "successMessage": "ستاسو د پروفایل انځور ولېږل شو او اوس د مدیریت تایید ته انتظار باسي.",
+      "statusPending": "د مدیریت تایید ته انتظار",
+      "statusApproved": "تایید شوی",
+      "statusRejected": "رد شوی — یو تازه انځور هڅه کړئ",
+      "errors": {
+        "unauthenticated": "د پروفایل انځور بدلولو لپاره لومړی خپل حساب ته ننوځئ.",
+        "invalidPhotoData": "د انځور په معلوماتو کې ستونزه رامنځته شوه؛ بیا هڅه وکړئ.",
+        "uploadFailed": "د انځور اپلوډ ونشو؛ بیا هڅه وکړئ.",
+        "dbError": "یوه تخنیکي ستونزه رامنځته شوه؛ بیا هڅه وکړئ.",
+        "imageUnreadable": "دا انځور د لوستلو وړ نه دی؛ بل انځور غوره کړئ.",
+        "imageConversionFailed": "د انځور پروسس ونشو؛ بیا هڅه وکړئ.",
+        "canvasContextUnavailable": "ستاسو براوزر دا ځانګړنه ملاتړ نه کوي.",
+        "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
+      }
+    }
   },
   "reports": {
     "reportButtonLabel": "د تخلف راپور",

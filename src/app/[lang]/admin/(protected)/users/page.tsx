@@ -7,31 +7,54 @@
 // useRouter/debounce): این‌طور صفحه بدون هیچ جاوااسکریپتی هم کار می‌کند و روی اینترنت ضعیف
 // (بند ۵.۳ سند راهبردی) سریع‌تر بارگذاری می‌شود؛ دقیقاً هم‌رویکرد با تب‌های وضعیت در
 // src/app/[lang]/admin/reports/page.tsx که با Link ساده (نه state) کار می‌کنند.
+//
+// **به‌روزرسانی — گردش تایید عکس پروفایل:** یک ردیف تب تازه (همه/در انتظار/تاییدشده/ردشده) برای
+// فیلترکردن بر اساس وضعیت عکس اضافه شد — دقیقاً هم‌الگو با تب‌های وضعیت در
+// admin/listings/page.tsx (query string، بدون جاوااسکریپت). پیش‌فرض «همه» است (نه «در انتظار»)
+// چون برخلاف صفِ آگهی‌ها، بیشتر کاربران اصلاً عکسی آپلود نمی‌کنند — نگه‌داشتن رفتار پیش‌فرض فعلی
+// (نمایش همه‌ی کاربران) برای ادمینی که فقط دنبال یک کاربر خاص می‌گردد مهم‌تر است؛ تب «در انتظار
+// تایید» همیشه در دسترس است تا هر وقت خواست، مستقیم به صفِ بررسی برود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
-import { getUsersPage } from "@/lib/users/adminUserQueries";
+import { getUsersPage, type AdminUserPhotoStatus } from "@/lib/users/adminUserQueries";
 import { UsersTable } from "./UsersTable";
 
 export const dynamic = "force-dynamic";
+
+const PHOTO_STATUS_TABS: Array<AdminUserPhotoStatus | "all"> = [
+  "all",
+  "pending",
+  "approved",
+  "rejected",
+];
 
 export default async function AdminUsersPage({
   params,
   searchParams,
 }: {
   params: Promise<{ lang: string }>;
-  searchParams: Promise<{ q?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; page?: string; photoStatus?: string }>;
 }) {
   const { lang } = await params;
-  const { q, page: rawPage } = await searchParams;
+  const { q, page: rawPage, photoStatus: rawPhotoStatus } = await searchParams;
   const search = q?.trim() || "";
   const page = Number(rawPage) > 0 ? Number(rawPage) : 1;
+  const activePhotoStatus: AdminUserPhotoStatus | "all" = PHOTO_STATUS_TABS.includes(
+    rawPhotoStatus as AdminUserPhotoStatus
+  )
+    ? (rawPhotoStatus as AdminUserPhotoStatus)
+    : "all";
 
   const dict = await getDictionary(lang);
-  const { items, totalCount, pageSize } = await getUsersPage({ search, page });
+  const { items, totalCount, pageSize } = await getUsersPage({
+    search,
+    page,
+    photoStatus: activePhotoStatus,
+  });
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
-  const pageHref = (p: number) =>
-    `/${lang}/admin/users?${search ? `q=${encodeURIComponent(search)}&` : ""}page=${p}`;
+  const pageHref = (p: number, photoStatus: AdminUserPhotoStatus | "all" = activePhotoStatus) =>
+    `/${lang}/admin/users?${search ? `q=${encodeURIComponent(search)}&` : ""}photoStatus=${photoStatus}&page=${p}`;
 
   return (
     <div className="flex flex-col gap-4">
@@ -41,6 +64,7 @@ export default async function AdminUsersPage({
       </div>
 
       <form action={`/${lang}/admin/users`} method="get" className="flex gap-2">
+        <input type="hidden" name="photoStatus" value={activePhotoStatus} />
         <input
           type="text"
           name="q"
@@ -55,6 +79,22 @@ export default async function AdminUsersPage({
           {dict.admin.users.searchButton}
         </button>
       </form>
+
+      <div className="flex gap-2 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0 border-b border-slate-100 pb-2">
+        {PHOTO_STATUS_TABS.map((status) => (
+          <Link
+            key={status}
+            href={pageHref(1, status)}
+            className={`px-3 py-1.5 rounded-full text-sm font-bold whitespace-nowrap shrink-0 ${
+              activePhotoStatus === status
+                ? "bg-primary text-white"
+                : "text-text-muted bg-slate-50 hover:bg-slate-100"
+            }`}
+          >
+            {dict.admin.users.photoStatusTabs[status]}
+          </Link>
+        ))}
+      </div>
 
       {items.length === 0 ? (
         <p className="text-sm text-text-muted text-center py-10">{dict.admin.users.empty}</p>

@@ -20,6 +20,8 @@ import { Card } from "@/components/ui/Card";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { setUserBlockedAction } from "./actions";
+import { setUserPhotoStatusAction } from "./photoActions";
+import { getProfilePhotoUrl } from "@/lib/users/profilePhotoUrl";
 import type { AdminUserRow } from "@/lib/users/adminUserQueries";
 
 type Dict = {
@@ -35,6 +37,12 @@ type Dict = {
   blockButton: string;
   unblockButton: string;
   updateError: string;
+  photoPendingLabel: string;
+  photoApprovedLabel: string;
+  photoRejectedLabel: string;
+  photoApproveButton: string;
+  photoRejectButton: string;
+  photoUpdateError: string;
 };
 
 export function UsersTable({
@@ -50,6 +58,12 @@ export function UsersTable({
   const [isPending, startTransition] = useTransition();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
+
+  // استیت مجزا برای اکشن‌های عکس (تایید/رد) — عمداً از استیت مسدودسازی جدا نگه داشته شده، چون
+  // این دو اکشن کاملاً مستقل‌اند و ممکن است هم‌زمان (روی دو کاربر متفاوت) در جریان باشند.
+  const [isPhotoPending, startPhotoTransition] = useTransition();
+  const [photoPendingId, setPhotoPendingId] = useState<string | null>(null);
+  const [photoErrorId, setPhotoErrorId] = useState<string | null>(null);
 
   const locale = lang === "ps" ? "fa-AF" : "fa-IR";
 
@@ -69,6 +83,22 @@ export function UsersTable({
     });
   }
 
+  function handlePhotoStatus(id: string, status: "approved" | "rejected") {
+    setPhotoErrorId(null);
+    setPhotoPendingId(id);
+    startPhotoTransition(async () => {
+      const result = await setUserPhotoStatusAction(lang, id, status);
+      if (result.success) {
+        setRows((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, photoStatus: status } : r))
+        );
+      } else {
+        setPhotoErrorId(id);
+      }
+      setPhotoPendingId(null);
+    });
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {rows.map((row) => {
@@ -77,16 +107,38 @@ export function UsersTable({
         return (
           <Card key={row.id} className="p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex flex-col gap-1 min-w-0">
-                <Link
-                  href={`/${lang}/users/${row.id}`}
-                  className="font-bold text-text-main hover:text-primary hover:underline truncate"
-                >
-                  {row.name || dict.noNameLabel}
-                </Link>
-                <span className="text-sm text-text-muted" dir="ltr">
-                  {row.phoneNumber}
-                </span>
+              <div className="flex items-center gap-3 min-w-0">
+                {/* عکس پروفایل — اگر آپلود کرده باشد (فارغ از وضعیت تایید)، به‌عنوان یک آواتار
+                    کوچک دیده می‌شود؛ حلقه‌ی نارنجی یعنی «در انتظار بررسی همین شما». */}
+                {row.photoPath && (
+                  <div
+                    className={`w-11 h-11 shrink-0 rounded-full overflow-hidden border-2 ${
+                      row.photoStatus === "pending"
+                        ? "border-amber-400"
+                        : row.photoStatus === "rejected"
+                          ? "border-red-300"
+                          : "border-transparent"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getProfilePhotoUrl(row.photoPath)}
+                      alt=""
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col gap-1 min-w-0">
+                  <Link
+                    href={`/${lang}/users/${row.id}`}
+                    className="font-bold text-text-main hover:text-primary hover:underline truncate"
+                  >
+                    {row.name || dict.noNameLabel}
+                  </Link>
+                  <span className="text-sm text-text-muted" dir="ltr">
+                    {row.phoneNumber}
+                  </span>
+                </div>
               </div>
               <span className="text-xs font-bold text-text-muted bg-bg-base rounded-full px-2 py-1 whitespace-nowrap shrink-0">
                 {dict.roleLabels[row.role] ?? row.role}
@@ -96,6 +148,57 @@ export function UsersTable({
             <div className="text-xs text-text-muted">
               {dict.colJoined}: {new Date(row.createdAt).toLocaleDateString(locale)}
             </div>
+
+            {/* بخش تایید عکس — فقط اگر کاربر اصلاً عکسی آپلود کرده باشد نمایش داده می‌شود. */}
+            {row.photoPath && (
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                <span
+                  className={`font-bold text-sm ${
+                    row.photoStatus === "approved"
+                      ? "text-emerald-600"
+                      : row.photoStatus === "rejected"
+                        ? "text-red-500"
+                        : "text-amber-600"
+                  }`}
+                >
+                  {row.photoStatus === "approved"
+                    ? dict.photoApprovedLabel
+                    : row.photoStatus === "rejected"
+                      ? dict.photoRejectedLabel
+                      : dict.photoPendingLabel}
+                </span>
+
+                {row.photoStatus === "pending" && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={isPhotoPending && photoPendingId === row.id}
+                      onClick={() => handlePhotoStatus(row.id, "rejected")}
+                      className="flex items-center gap-1.5 rounded-xl px-3 min-h-[40px] text-sm font-bold bg-red-50 text-red-500 active:bg-red-100 disabled:opacity-60 transition-colors"
+                    >
+                      <Icons.X className="w-4 h-4" />
+                      {dict.photoRejectButton}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isPhotoPending && photoPendingId === row.id}
+                      onClick={() => handlePhotoStatus(row.id, "approved")}
+                      className="flex items-center gap-1.5 rounded-xl px-3 min-h-[40px] text-sm font-bold bg-emerald-50 text-emerald-600 active:bg-emerald-100 disabled:opacity-60 transition-colors"
+                    >
+                      {isPhotoPending && photoPendingId === row.id ? (
+                        <Spinner className="w-4 h-4" label={dict.photoApproveButton} />
+                      ) : (
+                        <Icons.CheckCircle className="w-4 h-4" />
+                      )}
+                      {dict.photoApproveButton}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {photoErrorId === row.id && (
+              <p className="text-xs text-red-500">{dict.photoUpdateError}</p>
+            )}
 
             <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
               <span
