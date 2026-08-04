@@ -101,7 +101,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   ];
 
   const trustBadges = [
-    dict.home.trustBadges.fourServices,
+    dict.home.trustBadges.allServices,
     dict.home.trustBadges.noMiddleman,
     dict.home.trustBadges.bilingual,
   ];

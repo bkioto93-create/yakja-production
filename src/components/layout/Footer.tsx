@@ -1,10 +1,25 @@
 // مسیر فایل: src/components/layout/Footer.tsx
-// **اصلاح مهم چیدمان دسکتاپ:** نسخه‌ی قبلی این فایل محتوا را داخل `max-w-5xl mx-auto` (یک ستون
-// وسط‌چین با عرض ثابت) می‌گذاشت، در حالی که همه‌جای دیگر سایت — هدر دسکتاپ
-// (src/components/layout/DesktopHeader.tsx) و محتوای اصلی صفحه (src/app/[lang]/page.tsx) — از
-// الگوی «تمام‌عرض + پدینگ کناری» (`px-8`/`md:px-12`, بدون max-width) استفاده می‌کنند. همین
-// ناهماهنگی باعث می‌شد لبه‌ی چپ/راست فوتر با لبه‌ی هدر/محتوای بالای آن هم‌تراز نباشد و در عرض
-// کامل مانیتور «بهم‌ریخته» به‌نظر برسد. حالا فوتر هم دقیقاً همان الگوی تمام‌عرض را می‌گیرد.
+// **بازطراحی کامل چیدمان (درخواست کارفرما: «فوتر بهم‌ریخته است، نظم ندارد... شماره‌ی موبایل
+// بهم‌ریخته... یک بک‌گراند اختصاصی به شماره بده... در حالت دسکتاپ و تمام‌عرض و کوچک و موبایل»).**
+//
+// مشکلات نسخه‌ی قبلی و رفعِ هرکدام:
+//
+//   ۱) **گریدِ نامتوازن:** ستون «درباره» با `sm:col-span-2` دو خانه از چهار خانه را می‌گرفت و دو
+//      ستون دیگر در انتها فشرده می‌شدند؛ در عرض کامل مانیتور یک فضای خالیِ بزرگ وسط می‌افتاد.
+//      حالا گرید ۱۲ستونی است با نسبت‌های صریح (۵ / ۳ / ۴)، پس در هر عرضی متوازن می‌ماند.
+//
+//   ۲) **شماره‌ی تلفن بهم‌ریخته:** علتِ دقیقش این بود که روی یک عنصرِ `flex`، هم‌زمان
+//      `dir="ltr"` گذاشته شده بود. `dir` جهتِ چیدمانِ آیتم‌های فلکس را هم برمی‌گرداند، پس آیکون
+//      و شماره در جهتِ مخالفِ بقیه‌ی فوتر می‌نشستند و ردیف ناهماهنگ به‌نظر می‌رسید. حالا شماره
+//      یک «چیپ» مستقل با پس‌زمینه‌ی اختصاصی است: ظرفِ بیرونی جهتِ RTL صفحه را نگه می‌دارد و فقط
+//      خودِ رشته‌ی عدد داخل یک `<bdi dir="ltr">` قرار می‌گیرد — یعنی شماره همیشه درست و از چپ
+//      به راست خوانده می‌شود، بدون این‌که چیدمانِ اطرافش را بهم بزند.
+//
+//   ۳) **ترازِ ناهماهنگ:** سرستون‌ها و لینک‌ها ترازهای متفاوتی می‌گرفتند. حالا روی موبایل همه‌چیز
+//      وسط‌چین و از `sm` به بالا راست‌چین است — یکدست، با یک نشانگرِ کوچکِ رنگی زیر هر سرستون.
+//
+//   ۴) **هدف لمس (Touch target):** لینک‌های فوتر ارتفاع مشخصی نداشتند و روی موبایل زدنشان سخت
+//      بود. حالا هرکدام حداقل ۴۴px ارتفاع مؤثر دارند.
 //
 // **حذف گوگل‌پلی:** طبق تصمیم صریح کارفرما، اپلیکیشن در گوگل‌پلی منتشر نمی‌شود؛ فقط یک لینک
 // دانلود مستقیم فایل نصب اندروید (APK) بعداً اینجا قرار می‌گیرد. تا وقتی
@@ -26,28 +41,45 @@ export function Footer({ lang, dict }: { lang: string; dict: Dictionary }) {
     { href: `/${lang}/real-estate`, label: dict.dashboard.categories.realEstate },
   ];
 
+  // شماره‌ی تماس بدون فاصله — فقط برای مقدارِ href="tel:"؛ متنِ نمایشی همان نسخه‌ی خواناست.
+  const phoneHref = `tel:${dict.contact.phoneVal.replace(/\s/g, "")}`;
+
   return (
     <footer className="mt-8 border-t border-slate-200 bg-white w-full">
-      <div className="w-full px-8 md:px-12 py-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-        {/* درباره‌ی یکجا */}
-        <div className="flex flex-col gap-3 sm:col-span-2">
-          <div className="flex items-center gap-2">
+      {/* ───────── بخش اصلی: سه ستونِ متوازن ───────── */}
+      <div className="w-full px-6 sm:px-8 md:px-12 py-10 md:py-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 md:gap-10 text-center sm:text-right">
+
+        {/* ستون ۱ — برند و معرفی */}
+        <div className="flex flex-col gap-3 sm:col-span-2 lg:col-span-5">
+          <div className="flex items-center justify-center sm:justify-start gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/yakja-icon-64.png" alt="یکجا" className="w-9 h-9 rounded-xl" />
+            <img
+              src="/icons/yakja-icon-64.png"
+              alt=""
+              className="w-10 h-10 rounded-xl shrink-0 border border-slate-100"
+            />
             <span className="font-extrabold text-text-main text-lg">{dict.contact.brandVal}</span>
           </div>
-          <p className="text-sm text-text-muted leading-relaxed max-w-sm">
+          <p className="text-sm text-text-muted leading-relaxed max-w-md mx-auto sm:mx-0">
             {dict.footer.aboutUsText}
           </p>
         </div>
 
-        {/* دسترسی سریع */}
-        <div className="flex flex-col gap-3">
-          <h3 className="font-bold text-text-main text-sm">{dict.footer.quickLinksTitle}</h3>
-          <ul className="flex flex-col gap-2">
+        {/* ستون ۲ — دسترسی */}
+        <div className="flex flex-col gap-3 lg:col-span-3">
+          <h3 className="font-extrabold text-text-main text-sm flex flex-col items-center sm:items-start gap-1.5">
+            {dict.footer.quickLinksTitle}
+            <span className="block h-[3px] w-8 rounded-full bg-accent" />
+          </h3>
+          <ul className="flex flex-col">
             {quickLinks.map((link) => (
               <li key={link.href}>
-                <Link href={link.href} className="text-sm text-text-muted hover:text-primary">
+                <Link
+                  href={link.href}
+                  className="group flex items-center justify-center sm:justify-start gap-1.5 min-h-[44px] text-sm text-text-muted hover:text-primary transition-colors"
+                >
+                  {/* نقطه‌ی کوچکِ نشانگر — فقط هنگام هاور پررنگ می‌شود */}
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-primary transition-colors shrink-0" />
                   {link.label}
                 </Link>
               </li>
@@ -55,35 +87,58 @@ export function Footer({ lang, dict }: { lang: string; dict: Dictionary }) {
           </ul>
         </div>
 
-        {/* پشتیبانی */}
-        <div className="flex flex-col gap-3">
-          <h3 className="font-bold text-text-main text-sm">{dict.footer.supportTitle}</h3>
+        {/* ستون ۳ — پشتیبانی */}
+        <div className="flex flex-col gap-3 lg:col-span-4">
+          <h3 className="font-extrabold text-text-main text-sm flex flex-col items-center sm:items-start gap-1.5">
+            {dict.footer.supportTitle}
+            <span className="block h-[3px] w-8 rounded-full bg-primary" />
+          </h3>
+
+          {/* چیپِ شماره‌ی تماس — پس‌زمینه‌ی اختصاصی (درخواست کارفرما).
+              نکته‌ی مهم: dir="ltr" فقط روی خودِ <bdi> عددی است، نه روی ظرفِ فلکس؛ وگرنه دوباره
+              جای آیکون و متن برعکس می‌شد. */}
           <a
-            href={`tel:${dict.contact.phoneVal.replace(/\s/g, "")}`}
-            dir="ltr"
-            className="flex items-center gap-2 text-sm font-bold text-primary"
+            href={phoneHref}
+            className="inline-flex items-center justify-center sm:justify-start gap-2.5 rounded-2xl bg-primary/[0.07] border border-primary/15 px-4 min-h-[52px] w-full sm:w-auto sm:self-start hover:bg-primary/[0.12] hover:border-primary/30 active:scale-[0.98] transition-all"
           >
-            <Icons.Phone className="w-4 h-4" />
-            {dict.contact.phoneVal}
+            <span className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Icons.Phone className="w-[18px] h-[18px] text-primary" />
+            </span>
+            <span className="flex flex-col items-start leading-tight min-w-0">
+              <span className="text-[11px] font-semibold text-text-muted">
+                {dict.footer.callButton}
+              </span>
+              <bdi dir="ltr" className="text-[15px] font-extrabold text-primary tracking-wide">
+                {dict.contact.phoneVal}
+              </bdi>
+            </span>
           </a>
+
           <Link
             href={`/${lang}/contact`}
-            className="text-sm text-text-muted hover:text-primary"
+            className="group flex items-center justify-center sm:justify-start gap-1.5 min-h-[44px] text-sm text-text-muted hover:text-primary transition-colors"
           >
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 group-hover:bg-primary transition-colors shrink-0" />
             {dict.footer.contact}
           </Link>
         </div>
       </div>
 
-      {/* دانلود اپلیکیشن موبایل */}
-      <div className="border-t border-slate-100 w-full">
-        <div className="w-full px-8 md:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+      {/* ───────── نوار دانلود اپلیکیشن ───────── */}
+      <div className="border-t border-slate-100 w-full bg-slate-50/60">
+        <div className="w-full px-6 sm:px-8 md:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-5">
+          <div className="flex items-center gap-3 text-center sm:text-right">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icons/yakja-icon-64.png" alt="یکجا" className="w-10 h-10 rounded-xl shrink-0" />
-            <div>
-              <p className="font-bold text-sm text-text-main">{dict.home.appDownload.title}</p>
-              <p className="text-xs text-text-muted max-w-xs">{dict.home.appDownload.subtitle}</p>
+            <img
+              src="/icons/yakja-icon-64.png"
+              alt=""
+              className="w-11 h-11 rounded-xl shrink-0 border border-slate-100 hidden sm:block"
+            />
+            <div className="min-w-0">
+              <p className="font-extrabold text-sm text-text-main">{dict.home.appDownload.title}</p>
+              <p className="text-xs text-text-muted leading-relaxed max-w-md mt-0.5">
+                {dict.home.appDownload.subtitle}
+              </p>
             </div>
           </div>
 
@@ -92,13 +147,13 @@ export function Footer({ lang, dict }: { lang: string; dict: Dictionary }) {
               href={ANDROID_APP_DOWNLOAD_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-xl bg-text-main text-white px-4 min-h-[48px] font-bold text-sm shrink-0"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-text-main text-white px-6 min-h-[48px] font-bold text-sm shrink-0 w-full sm:w-auto hover:opacity-90 active:scale-[0.98] transition-all"
             >
               <Icons.Android className="w-5 h-5" />
               {dict.home.appDownload.androidButton}
             </a>
           ) : (
-            <span className="flex items-center gap-2 rounded-xl bg-slate-100 text-slate-400 px-4 min-h-[48px] font-bold text-sm shrink-0 cursor-not-allowed">
+            <span className="flex items-center justify-center gap-2 rounded-2xl bg-slate-100 text-slate-400 px-6 min-h-[48px] font-bold text-sm shrink-0 w-full sm:w-auto cursor-not-allowed border border-slate-200">
               <Icons.Android className="w-5 h-5" />
               {dict.footer.androidComingSoon}
             </span>
@@ -106,13 +161,14 @@ export function Footer({ lang, dict }: { lang: string; dict: Dictionary }) {
         </div>
       </div>
 
-      <div className="border-t border-slate-100 py-5 text-center flex flex-col items-center gap-1.5">
+      {/* ───────── نوار پایانی ───────── */}
+      <div className="border-t border-slate-100 px-6 py-5 flex flex-col items-center gap-1.5 text-center">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-text-muted">
           {dict.footer.madeWithLoveBefore}
-          <Icons.Heart className="w-3.5 h-3.5 text-red-500" />
+          <Icons.Heart className="w-3.5 h-3.5 text-red-500 shrink-0" />
           {dict.footer.madeWithLoveAfter}
         </span>
-        <span className="opacity-70 text-xs font-semibold">{dict.footer.copyright}</span>
+        <span className="text-xs font-semibold text-text-muted/70">{dict.footer.copyright}</span>
       </div>
     </footer>
   );

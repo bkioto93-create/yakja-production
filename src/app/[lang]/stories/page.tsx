@@ -21,7 +21,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { fetchStoriesPage } from "@/lib/stories/storyQueries";
 import { Icons } from "@/components/ui/Icons";
 import { AllStoriesClient } from "./AllStoriesClient";
-import { STORIES_PAGE_SIZE } from "./actions";
+import { STORIES_PAGE_SIZE } from "./constants";
 
 // عنوان/توضیح اختصاصی این صفحه برای تب مرورگر و اشتراک‌گذاری — هم‌الگو با generateMetadata
 // لایوت زبان (src/app/[lang]/layout.tsx)، فقط با متن‌های مخصوص همین صفحه.
