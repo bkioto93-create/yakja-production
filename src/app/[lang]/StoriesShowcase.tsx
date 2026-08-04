@@ -2,14 +2,30 @@
 // قابلیت استوری — ردیف «تازه‌ترین استوری‌ها»ی صفحه‌ی اصلی. طبق درخواست صریح کارفرما: «یه فضای
 // بسیار شیک... به شدت حرفه‌ای» و «مثل یه ریل یا نوار افقی، آخرین ۶ تا ۱۰ استوری کاربرها».
 //
-// خودِ این فایل Server Component است (بدون "use client")، دقیقاً هم‌الگو با
-// src/app/[lang]/HomeShowcaseBanners.tsx — داده را والد (page.tsx) از src/lib/home/homeQueries.ts
-// (نسخه‌ی کش‌شده‌ی fetchLatestStoriesForHome) می‌گیرد. تنها بخش تعاملیِ این صفحه (باز کردنِ
-// Viewer با کلیک) داخل UserStoryAvatar کپسوله شده — یک کامپوننت کلاینتِ کاملاً مجزا که این فایل
-// فقط آن را رندر می‌کند؛ ترکیب Server Component + یک فرزند Client Component، الگوی استاندارد
-// Next.js App Router.
-import { UserStoryAvatar } from "@/components/stories/UserStoryAvatar";
-import type { StoryViewerDict } from "@/components/stories/StoryViewer";
+// **به‌روزرسانی (زنجیره‌ی استوری بین کاربرها، دقیقاً مثل اینستاگرام):** طبق درخواست صریح
+// کارفرما، این ردیف — و فقط همین ردیف، نه پروفایل خودم/عمومی — باید وقتی به آخرین استوریِ یک
+// کاربر می‌رسیم و «بعدی» زده می‌شود، به‌جای بسته‌شدنِ Viewer، برود سراغ اولین استوریِ کاربرِ
+// بعدیِ همین ردیف؛ و برعکس، از اولین استوری یک کاربر «قبلی» زدن، برود به آخرین استوریِ کاربرِ
+// قبلی. فقط وقتی واقعاً هیچ کاربرِ بعدی/قبلی‌ای در ردیف نمانده، Viewer بسته می‌شود.
+//
+// چون این رفتار نیازمند دانستنِ «کل فهرست کاربرهای ردیف» است (نه فقط یک کاربر، آن‌طور که
+// UserStoryAvatar کپسوله می‌کند)، این فایل دیگر از UserStoryAvatar استفاده نمی‌کند — خودش
+// مستقیماً StoryRing (کاملاً نمایشی) را می‌چیند و state «کدام کاربر الان باز است» را نگه
+// می‌دارد. UserStoryAvatar دست‌نخورده باقی ماند و همچنان در پروفایل خودم/عمومی استفاده می‌شود
+// (جایی که اصلاً مفهومِ «کاربر بعدی» وجود ندارد).
+//
+// چون این state‌داری، این فایل از Server Component به Client Component تبدیل شد — والد
+// (page.tsx) همچنان داده را سمت سرور می‌خواند و به‌عنوان prop پاس می‌دهد؛ فقط تعامل کلیک/ناوبری
+// اینجا سمت کلاینت است.
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/ToastProvider";
+import { StoryRing } from "@/components/stories/StoryRing";
+import { StoryViewer, type StoryViewerDict } from "@/components/stories/StoryViewer";
+import { getUserStoriesAction } from "@/app/[lang]/profile/storyActions";
+import type { ActiveStory } from "@/lib/stories/storyQueries";
 import type { HomeStoryPreview } from "@/lib/home/homeQueries";
 
 export type StoriesShowcaseDict = {
@@ -29,13 +45,105 @@ export function StoriesShowcase({
   items: HomeStoryPreview[];
   viewerId: string | null;
   dict: StoriesShowcaseDict;
-  // این سه مقدار عمداً از dict.stories (همان namespace مشترکی که پروفایل هم استفاده می‌کند)
-  // پاس داده می‌شوند، نه یک کپی جداگانه زیر dict.home.sections.stories — تا همان متن‌های ترجمه
-  // (برچسب حلقه، پیام خطای بارگذاری، متن‌های کامل Viewer) دوبار در دیکشنری تکرار نشوند.
   ringAriaLabelTemplate: string;
   loadErrorMessage: string;
   viewerDict: StoryViewerDict;
 }) {
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  // کدام کاربرِ ردیف الان در Viewer باز است (index داخل items) — null یعنی بسته.
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openStories, setOpenStories] = useState<ActiveStory[] | null>(null);
+  const [openInitialIndex, setOpenInitialIndex] = useState<number | "last">(0);
+  const [isOpening, setIsOpening] = useState(false);
+
+  // کش سبک در حافظه (نه state — چون تغییرش نباید رندر مجدد بدهد) برای این‌که وقتی کاربر بین
+  // چند نفرِ ردیف جلو/عقب می‌رود، اگر قبلاً همان نفر را دیده، دوباره از سرور نخواند.
+  const cacheRef = useRef<Record<string, ActiveStory[]>>({});
+
+  async function fetchStoriesFor(ownerId: string): Promise<ActiveStory[]> {
+    if (cacheRef.current[ownerId]) return cacheRef.current[ownerId];
+    const result = await getUserStoriesAction(ownerId);
+    cacheRef.current[ownerId] = result;
+    return result;
+  }
+
+  async function handleOpen(index: number) {
+    setIsOpening(true);
+    try {
+      const stories = await fetchStoriesFor(items[index].ownerId);
+      if (stories.length === 0) {
+        showToast(loadErrorMessage, "error");
+        return;
+      }
+      setOpenIndex(index);
+      setOpenStories(stories);
+      setOpenInitialIndex(0);
+    } catch {
+      showToast(loadErrorMessage, "error");
+    } finally {
+      setIsOpening(false);
+    }
+  }
+
+  // پیش‌بارگذاری (Prefetch) نفرِ بعدی/قبلیِ ردیف در پس‌زمینه، هر بار که کاربرِ بازشده عوض
+  // می‌شود — تا وقتی واقعاً «بعدی/قبلی» زده شد، معمولاً از قبل در کش باشد و جابه‌جایی بدون هیچ
+  // مکثی حس شود (دقیقاً همان روانیِ استوری اینستاگرام).
+  useEffect(() => {
+    if (openIndex === null) return;
+    const neighborIndexes = [openIndex - 1, openIndex + 1].filter(
+      (i) => i >= 0 && i < items.length
+    );
+    for (const i of neighborIndexes) {
+      const ownerId = items[i].ownerId;
+      if (!cacheRef.current[ownerId]) {
+        void fetchStoriesFor(ownerId);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openIndex]);
+
+  // رفتن به کاربرِ بعدیِ ردیف — اگر استوری‌های آن کاربر (مثلاً همین الان منقضی شده) خالی بود، به
+  // نفرِ بعدترش امتحان می‌کند، نه این‌که بی‌دلیل ببندد.
+  async function handleRequestNext() {
+    if (openIndex === null) return;
+    for (let i = openIndex + 1; i < items.length; i++) {
+      const stories = await fetchStoriesFor(items[i].ownerId);
+      if (stories.length > 0) {
+        setOpenIndex(i);
+        setOpenStories(stories);
+        setOpenInitialIndex(0);
+        return;
+      }
+    }
+    handleClose();
+  }
+
+  async function handleRequestPrevious() {
+    if (openIndex === null) return;
+    for (let i = openIndex - 1; i >= 0; i--) {
+      const stories = await fetchStoriesFor(items[i].ownerId);
+      if (stories.length > 0) {
+        setOpenIndex(i);
+        setOpenStories(stories);
+        setOpenInitialIndex("last");
+        return;
+      }
+    }
+    // هیچ کاربرِ قبلی‌ای نمانده — چیزی برای انجام‌دادن نیست، همان‌جا (اولین استوریِ اولین کاربر)
+    // می‌ماند.
+  }
+
+  function handleClose() {
+    setOpenIndex(null);
+    setOpenStories(null);
+  }
+
+  function handleDeleted() {
+    router.refresh();
+  }
+
   if (items.length === 0) {
     // برخلاف بقیه‌ی بخش‌های صفحه‌ی اصلی (که حتی وقتی خالی‌اند یک کارت «هنوز چیزی ثبت نشده»
     // نشان می‌دهند)، وقتی هیچ استوری فعالی در کل پلتفرم نیست، این بخش عمداً کاملاً از صفحه حذف
@@ -45,6 +153,8 @@ export function StoriesShowcase({
     return null;
   }
 
+  const openItem = openIndex !== null ? items[openIndex] : null;
+
   return (
     <section>
       <div className="px-4 md:px-0 mb-3">
@@ -53,19 +163,18 @@ export function StoriesShowcase({
       </div>
 
       <div className="flex gap-4 overflow-x-auto px-4 md:px-0 pb-1 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {items.map((story) => {
+        {items.map((story, index) => {
           const displayName = story.ownerName?.trim() ? story.ownerName : dict.ownerFallbackName;
           return (
-            <div key={story.storyId} className="flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start">
-              <UserStoryAvatar
-                userId={story.ownerId}
-                ownerName={displayName}
+            <div
+              key={story.storyId}
+              className="flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start"
+            >
+              <StoryRing
                 hasActiveStory={true}
-                isOwnStories={viewerId === story.ownerId}
+                onClick={() => handleOpen(index)}
                 size={64}
                 ariaLabel={ringAriaLabelTemplate.replace("{name}", displayName)}
-                loadErrorMessage={loadErrorMessage}
-                viewerDict={viewerDict}
               >
                 <div className="w-full h-full flex items-center justify-center bg-primary/10 overflow-hidden">
                   {story.mediaType === "image" ? (
@@ -87,7 +196,7 @@ export function StoriesShowcase({
                     />
                   )}
                 </div>
-              </UserStoryAvatar>
+              </StoryRing>
               <span className="text-[11px] font-bold text-text-main text-center truncate w-full">
                 {displayName}
               </span>
@@ -95,6 +204,32 @@ export function StoriesShowcase({
           );
         })}
       </div>
+
+      {/* یک اسپینر کوچک تمام‌صفحه فقط برای لحظه‌ی اول بازکردن (پیش از آماده‌شدنِ اولین Viewer) —
+          برای جابه‌جایی بین کاربرها (بعدی/قبلی) چون معمولاً از کش پیش‌بارگذاری‌شده می‌آید، دیگر
+          نیازی به این لودینگ نیست و Viewer قبلی بدون پرش تا لحظه‌ی آماده‌شدنِ نفر بعدی باز می‌ماند. */}
+      {isOpening && openIndex === null && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+
+      {openItem && openStories && (
+        <StoryViewer
+          key={openItem.ownerId}
+          stories={openStories}
+          ownerName={openItem.ownerName?.trim() ? openItem.ownerName : dict.ownerFallbackName}
+          isOwnStories={viewerId === openItem.ownerId}
+          onClose={handleClose}
+          onDeleted={handleDeleted}
+          dict={viewerDict}
+          initialIndex={openInitialIndex}
+          hasNextUser={openIndex !== null && openIndex < items.length - 1}
+          hasPreviousUser={openIndex !== null && openIndex > 0}
+          onRequestNextUser={handleRequestNext}
+          onRequestPreviousUser={handleRequestPrevious}
+        />
+      )}
     </section>
   );
 }

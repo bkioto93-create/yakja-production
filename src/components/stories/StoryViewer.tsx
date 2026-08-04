@@ -7,6 +7,19 @@
 //     جلوتر) گره خورده، نه با جهت متن — دقیقاً همان رفتاری که کاربران فارسی/پشتوزبانِ خودِ
 //     اینستاگرام هم از قبل به آن عادت دارند.
 //   - دکمه‌ی بستن (X) — و اگر بیننده خودِ صاحب استوری باشد، دکمه‌ی حذف زودهنگام هم کنارش.
+//
+// **رفع باگ (جهت فلش‌ها برعکس بود):** فلش سمت چپ (قبلی) باید به چپ اشاره کند و فلش سمت راست
+// (بعدی) باید به راست — دقیقاً مثل علامت‌های < و > در هر اسلایدری. قبلاً این دو برعکس بودند.
+//
+// **قابلیت تازه (فقط برای ردیف استوری‌های عمومیِ صفحه‌ی اصلی):** طبق درخواست صریح کارفرما،
+// وقتی این Viewer از ردیف صفحه‌ی اصلی باز می‌شود (نه از پروفایل خودم/عمومی که فقط یک کاربر
+// دارند)، رسیدن به آخرین استوریِ یک کاربر و زدن «بعدی» باید به‌جای بسته‌شدن، به اولین استوریِ
+// کاربرِ بعدیِ همان ردیف برود — دقیقاً مثل زنجیره‌ی استوری‌های اینستاگرام. مسئولیت این کامپوننت
+// فقط «اطلاع‌دادن» این رویداد به والدش است (via onRequestNextUser/onRequestPreviousUser)؛ خودِ
+// جابه‌جایی بین کاربرها (فچ‌کردن استوری‌های کاربر بعدی و غیره) در
+// src/app/[lang]/StoriesShowcase.tsx انجام می‌شود، چون فقط آن‌جا از «دسته‌ای از کاربرها» خبر
+// دارد. اگر hasNextUser/hasPreviousUser پاس داده نشوند (مثل UserStoryAvatar در پروفایل)، رفتار
+// دقیقاً مثل قبل می‌ماند: رسیدن به انتها می‌بندد، رسیدن به ابتدا کاری نمی‌کند.
 "use client";
 
 import { useEffect, useState, type SVGProps } from "react";
@@ -106,6 +119,11 @@ export function StoryViewer({
   onClose,
   onDeleted,
   dict,
+  initialIndex = 0,
+  hasNextUser = false,
+  hasPreviousUser = false,
+  onRequestNextUser,
+  onRequestPreviousUser,
 }: {
   stories: ActiveStory[];
   ownerName: string;
@@ -113,26 +131,45 @@ export function StoryViewer({
   onClose: () => void;
   onDeleted?: () => void;
   dict: StoryViewerDict;
+  // "last" یعنی «از آخرین استوری این کاربر شروع کن» — دقیقاً حالتی که هنگام برگشتن به کاربرِ
+  // قبلی لازم است (کاربر در حال «عقب‌رفتن» است، پس باید از انتهای همان کاربر شروع شود، نه ابتدا).
+  initialIndex?: number | "last";
+  hasNextUser?: boolean;
+  hasPreviousUser?: boolean;
+  onRequestNextUser?: () => void;
+  onRequestPreviousUser?: () => void;
 }) {
   const { showToast } = useToast();
   const [localStories, setLocalStories] = useState(stories);
-  const [index, setIndex] = useState(0);
+  const [index, setIndex] = useState(() =>
+    initialIndex === "last" ? Math.max(0, stories.length - 1) : initialIndex
+  );
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const currentStory = localStories[index];
+  const isAtLastStory = index >= localStories.length - 1;
+  const isAtFirstStory = index === 0;
 
   function goNext() {
-    setIndex((current) => {
-      if (current >= localStories.length - 1) {
-        onClose();
-        return current;
+    if (isAtLastStory) {
+      if (hasNextUser && onRequestNextUser) {
+        onRequestNextUser();
+        return;
       }
-      return current + 1;
-    });
+      onClose();
+      return;
+    }
+    setIndex((current) => current + 1);
   }
 
   function goPrev() {
+    if (isAtFirstStory) {
+      if (hasPreviousUser && onRequestPreviousUser) {
+        onRequestPreviousUser();
+      }
+      return;
+    }
     setIndex((current) => Math.max(0, current - 1));
   }
 
@@ -247,23 +284,30 @@ export function StoryViewer({
             نامرئی پایین، تا کاربر یک نشانه‌ی بصریِ روشن برای «رفتن به بعدی/قبلی» هم داشته باشد،
             نه فقط حدس بزند کجا باید لمس کند. z-10: بالاتر از تپ‌زون‌ها (پس همیشه قابل‌کلیک‌اند)
             ولی پایین‌تر از هدر (z-20، که هرگز نباید توسط این‌ها پوشانده شود).
-            جهت: راست=بعدی، چپ=قبلی — عمداً بدون فلیپ RTL (رجوع کنید به یادداشت بالای فایل). */}
+            جهت: راست=بعدی (فلش به‌سمت راست، مثل >) — چپ=قبلی (فلش به‌سمت چپ، مثل <)، عمداً بدون
+            فلیپ RTL (رجوع کنید به یادداشت بالای فایل).
+            نمایش: فلش «بعدی» فقط وقتی محو می‌شود که هم آخرین استوریِ همین کاربر باشیم هم دیگر
+            کاربر بعدی‌ای در کار نباشد (یعنی زدنش واقعاً از کل استوری‌ها خارج می‌کند)؛ همین قاعده
+            برعکس برای فلش «قبلی». */}
         <button
           type="button"
           onClick={goPrev}
-          disabled={index === 0}
           aria-label={dict.previousLabel}
-          className="absolute z-10 top-1/2 -translate-y-1/2 left-2 w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm disabled:opacity-0 disabled:pointer-events-none transition-opacity"
+          className={`absolute z-10 top-1/2 -translate-y-1/2 left-2 w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition-opacity ${
+            isAtFirstStory && !hasPreviousUser ? "opacity-0 pointer-events-none" : ""
+          }`}
         >
-          <Icons.ArrowRight className="w-5 h-5" />
+          <Icons.ArrowRight className="w-5 h-5 rotate-180" />
         </button>
         <button
           type="button"
           onClick={goNext}
           aria-label={dict.nextLabel}
-          className="absolute z-10 top-1/2 -translate-y-1/2 right-2 w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition-opacity"
+          className={`absolute z-10 top-1/2 -translate-y-1/2 right-2 w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white flex items-center justify-center backdrop-blur-sm transition-opacity ${
+            isAtLastStory && !hasNextUser ? "opacity-0 pointer-events-none" : ""
+          }`}
         >
-          <Icons.ArrowRight className="w-5 h-5 rotate-180" />
+          <Icons.ArrowRight className="w-5 h-5" />
         </button>
 
         {/* تپ‌زون‌های نامرئی — عمداً از top-20 شروع می‌شوند (نه inset-y-0)، تا هرگز روی ناحیه‌ی
