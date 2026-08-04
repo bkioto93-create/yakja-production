@@ -107,18 +107,17 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   return (
     <div className="flex flex-col min-h-screen bg-bg-base sm:border-x md:border-x-0 border-slate-100 max-w-md md:max-w-none mx-auto shadow-sm md:shadow-none pb-8 relative animate-fade-in w-full overflow-hidden">
 
-      {/* کاور برند موبایلی (فقط زیر md) — طبق معماری رنگ سند راهبردی بند ۱ */}
-      <div className="md:hidden bg-gradient-to-tr from-primary to-primary-dark text-white pt-[42px] pb-[30px] px-[28px] rounded-b-[40px] shadow-sm relative w-full isolate">
-         <div className="absolute top-[-70px] left-[-40px] w-[200px] h-[200px] bg-white opacity-[0.06] rounded-full blur-[2px] z-0"></div>
-         <div className="absolute -bottom-10 -right-10 w-[160px] h-[160px] bg-white opacity-[0.05] rounded-full blur-[2px] z-0"></div>
+      {/* کاور برند موبایلی (فقط زیر md) — بازطراحی Premium Enterprise / Dark Mode شرکتی */}
+      <div className="md:hidden bg-[#0B1121] text-white pt-[42px] pb-[30px] px-[28px] rounded-b-[40px] shadow-sm relative w-full isolate overflow-hidden">
+         {/* نورپردازی مدرن پس‌زمینه (Mesh Gradient) — ترکیب فیروزه‌ای برند و آبی، بلور عمیق */}
+         <div className="absolute top-[-90px] left-[-60px] w-[260px] h-[260px] bg-primary/40 rounded-full blur-[80px] z-0"></div>
+         <div className="absolute -bottom-16 -right-14 w-[220px] h-[220px] bg-blue-600/20 rounded-full blur-[80px] z-0"></div>
+         <div className="absolute top-[35%] right-[-30px] w-[160px] h-[160px] bg-primary/20 rounded-full blur-[70px] z-0"></div>
 
-         {/* رفع باگ (۲۰۲۶-۰۷-۲۶): آیکون قبلاً کوچک بود و کنار متن در یک گوشه جا می‌گرفت. الان
-             آیکون کاملاً وسط‌چین است، بلوک مستقل و بزرگ‌تر خودش را می‌گیرد و همه‌ی متن‌ها زیرش
-             قرار می‌گیرند. */}
+         {/* آیکون کاملاً آزاد و شناور روی بک‌گراند تاریک: بدون کادر/بک‌گراند شیشه‌ای/پدینگ،
+             سایز دقیقاً ۲ برابر قبل شد (۱۵۰px → ۳۰۰px) */}
          <div className="relative z-10 flex flex-col items-center text-center gap-3">
-           <div className="w-[150px] h-[150px] rounded-[36px] bg-white/10 backdrop-blur flex items-center justify-center p-6">
-             <HeroIllustration className="w-full h-full" />
-           </div>
+           <HeroIllustration className="w-[300px] h-[300px]" />
 
            <span className="inline-block text-[11px] font-bold bg-white/15 rounded-full px-3 py-1">
               {dict.home.heroBadge}
@@ -141,10 +140,12 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
          </div>
       </div>
 
-      {/* بنر برند دسکتاپی (فقط md به‌بالا) — همان محتوای دیکشنری، چیدمان بزرگ‌تر دوستونه */}
-      <div className="hidden md:flex items-center justify-between gap-10 bg-gradient-to-l from-primary to-primary-dark text-white px-12 py-14 w-full relative isolate overflow-hidden">
-        <div className="absolute -top-24 -left-16 w-[320px] h-[320px] bg-white opacity-[0.06] rounded-full blur-[2px] z-0"></div>
-        <div className="absolute -bottom-16 -right-10 w-[220px] h-[220px] bg-white opacity-[0.05] rounded-full blur-[2px] z-0"></div>
+      {/* بنر برند دسکتاپی (فقط md به‌بالا) — بازطراحی Premium Enterprise / Dark Mode شرکتی */}
+      <div className="hidden md:flex items-center justify-between gap-10 bg-[#0B1121] text-white px-12 py-14 w-full relative isolate overflow-hidden">
+        {/* نورپردازی مدرن پس‌زمینه (Mesh Gradient) — ترکیب فیروزه‌ای برند و آبی، بلور عمیق */}
+        <div className="absolute -top-32 -left-24 w-[420px] h-[420px] bg-primary/40 rounded-full blur-[100px] z-0"></div>
+        <div className="absolute -bottom-24 -right-16 w-[320px] h-[320px] bg-blue-600/20 rounded-full blur-[100px] z-0"></div>
+        <div className="absolute top-1/3 right-[38%] w-[220px] h-[220px] bg-primary/20 rounded-full blur-[90px] z-0"></div>
         <div className="relative z-10 max-w-xl">
           <span className="inline-block text-xs font-bold bg-white/15 rounded-full px-3 py-1 mb-4">
             {dict.home.heroBadge}
@@ -163,10 +164,9 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
             ))}
           </div>
         </div>
-        {/* رفع باگ (۲۰۲۶-۰۷-۲۶): آیکون خیلی کوچک بود؛ از ۱۶۰px به ۲۴۰px بزرگ‌تر شد */}
-        <div className="relative z-10 shrink-0 w-[240px] h-[240px] rounded-[44px] bg-white/10 backdrop-blur flex items-center justify-center p-6">
-          <HeroIllustration className="w-full h-full" />
-        </div>
+        {/* آیکون کاملاً آزاد و شناور روی بک‌گراند تاریک: بدون کادر/بک‌گراند شیشه‌ای/پدینگ،
+            سایز دقیقاً ۲ برابر قبل شد (۲۴۰px → ۴۸۰px) */}
+        <HeroIllustration className="relative z-10 shrink-0 w-[480px] h-[480px]" />
       </div>
 
       <div className="flex-1 px-[24px] md:px-12 mt-8 w-full z-10 flex flex-col justify-start align-top content-start justify-items-start space-y-12">
