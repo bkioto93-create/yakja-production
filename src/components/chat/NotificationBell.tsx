@@ -35,7 +35,8 @@ export function NotificationBell({
   dict: NotificationBellDict;
   // "header": آیکون بدون قاب برای داخل هدر/نوار ادمین.
   // "floating": دکمه‌ی شناور با پس‌زمینه‌ی سفید و سایه — مخصوص گوشه‌ی بالا-چپ موبایل.
-  variant?: "header" | "floating";
+  // "onDark": دکمه‌ی آیکونی مخصوص نوار بالای تیره‌ی موبایل (هم‌تم با بنر برند #0B1121).
+  variant?: "header" | "floating" | "onDark";
   className?: string;
 }) {
   const count = useUnreadChatCount();
@@ -48,7 +49,17 @@ export function NotificationBell({
   const baseClasses =
     variant === "floating"
       ? "w-11 h-11 rounded-full bg-white shadow-md border border-slate-100 flex items-center justify-center text-text-main active:scale-95 transition-transform"
-      : "relative w-10 h-10 rounded-xl flex items-center justify-center text-text-main hover:bg-slate-50 active:scale-95 transition-transform";
+      : variant === "onDark"
+        ? "w-11 h-11 rounded-full bg-white/10 hover:bg-white/15 flex items-center justify-center active:scale-95 transition-all"
+        : "relative w-10 h-10 rounded-xl flex items-center justify-center text-text-main hover:bg-slate-50 active:scale-95 transition-transform";
+
+  // رنگ آیکون: پیام خوانده‌نشده → فیروزه‌ای (روی هر پس‌زمینه‌ای خوب دیده می‌شود). بدون پیام:
+  // روی نوار تیره سفیدِ کم‌رنگ، وگرنه خاکستریِ ملایم قبلی.
+  const iconColor = hasUnread
+    ? "text-primary"
+    : variant === "onDark"
+      ? "text-white/85"
+      : "text-text-muted";
 
   const Icon = hasUnread ? BellSolid : BellOutline;
 
@@ -58,7 +69,7 @@ export function NotificationBell({
       aria-label={dict.ariaLabel}
       className={`relative ${baseClasses} ${className}`}
     >
-      <Icon className={`w-6 h-6 ${hasUnread ? "text-primary" : "text-text-muted"}`} />
+      <Icon className={`w-6 h-6 ${iconColor}`} />
 
       {hasUnread && (
         <span

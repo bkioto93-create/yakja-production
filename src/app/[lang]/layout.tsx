@@ -113,25 +113,33 @@ export default async function LangLayout({
       <LangHtmlSync lang={resolvedParams.lang} />
       <DisclaimerModal initiallyAcknowledged={disclaimerAcknowledged} dict={dict.disclaimer} />
       <InstallPrompt initiallyDismissed={pwaInstallDismissed} dict={dict.pwaInstall} />
-      <ProvinceBar
-        initialProvince={selectedProvince}
-        hasChosenInitially={hasChosenProvince}
-        dict={dict.province}
-      />
+      {/* **بازطراحی موبایل:** نوار ولایت به داخل UnreadChatCountProvider منتقل شد تا بتواند
+          زنگوله‌ی اعلان (که برای خواندن تعداد پیام‌های خوانده‌نشده به Context این Provider نیاز
+          دارد) را در «نوار بالای موبایلِ تیره‌ی» خودش جای دهد. زنگوله دیگر یک دکمه‌ی شناورِ
+          `fixed` نیست که روی محتوا بیفتد؛ حالا بخشی از نوار چسبانِ (`sticky`) بالای صفحه است.
+          روی دسکتاپ همان نوار ولایتِ کامل‌عرضِ روشنِ قبلی نمایش داده می‌شود و زنگوله در
+          DesktopHeader می‌ماند. */}
       <UnreadChatCountProvider initialCount={initialUnreadCount} enabled={showNotifications}>
+        <ProvinceBar
+          initialProvince={selectedProvince}
+          hasChosenInitially={hasChosenProvince}
+          dict={dict.province}
+          mobileEndSlot={
+            showNotifications ? (
+              <MobileNotificationBell
+                lang={resolvedParams.lang as Locale}
+                isAdmin={isAdmin}
+                dict={{ ariaLabel: dict.notifications.ariaLabel }}
+              />
+            ) : null
+          }
+        />
         <DesktopHeader
           lang={resolvedParams.lang}
           dict={dict}
           showNotifications={showNotifications}
           isAdmin={isAdmin}
         />
-        {showNotifications && (
-          <MobileNotificationBell
-            lang={resolvedParams.lang as Locale}
-            isAdmin={isAdmin}
-            dict={{ ariaLabel: dict.notifications.ariaLabel }}
-          />
-        )}
         {/* جدا کردن فضاسازی پایینی برای BottomNav در موبایل با `pb-bottom-nav` (پویا و آگاه از
             Safe Area، تسک ۶ فاز ۰۸)؛ در دسکتاپ چون BottomNav مخفی است، فقط یک فاصله‌ی معمولی
             (`md:pb-6`) کافی است. */}
