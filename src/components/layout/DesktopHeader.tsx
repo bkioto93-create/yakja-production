@@ -23,15 +23,16 @@ export function DesktopHeader({
   dict,
   showNotifications,
   isAdmin,
-  initialUnreadCount,
 }: {
   lang: string;
   dict: Dictionary;
-  // فاز ۱۴ — این سه پروپ فقط برای کاربر واردشده از layout پاس داده می‌شوند؛
-  // برای کاربر مهمان showNotifications=false است و زنگوله رندر نمی‌شود.
+  // فقط برای کاربر واردشده از layout پاس داده می‌شوند؛ برای کاربر مهمان showNotifications=false
+  // است و زنگوله رندر نمی‌شود.
+  //
+  // **رفع باگ:** initialUnreadCount حذف شد — NotificationBell دیگر عدد را از پروپ نمی‌گیرد،
+  // از UnreadChatCountProvider (Context) می‌خواند.
   showNotifications: boolean;
   isAdmin: boolean;
-  initialUnreadCount: number;
 }) {
   const pathname = usePathname();
   const segments = pathname.split("/");
@@ -83,7 +84,6 @@ export function DesktopHeader({
           <NotificationBell
             lang={lang as Locale}
             isAdmin={isAdmin}
-            initialCount={initialUnreadCount}
             dict={{ ariaLabel: dict.notifications.ariaLabel }}
             variant="header"
           />

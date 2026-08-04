@@ -16,6 +16,9 @@
 //
 // نکته‌ی مهم: این کامپوننت فقط برای کاربر واردشده (nonAdmin || admin) رندر
 // می‌شود. برای کاربر مهمان، پدرش (LangLayout) اصلاً آن را رندر نمی‌کند.
+//
+// **رفع باگ:** پروپ initialCount حذف شد — NotificationBell دیگر state محلی ندارد، عدد را از
+// UnreadChatCountProvider می‌خواند (رجوع کنید به یادداشت آن فایل).
 "use client";
 
 import { NotificationBell, type NotificationBellDict } from "@/components/chat/NotificationBell";
@@ -24,23 +27,15 @@ import type { Locale } from "@/lib/i18n/constants";
 export function MobileNotificationBell({
   lang,
   isAdmin,
-  initialCount,
   dict,
 }: {
   lang: Locale;
   isAdmin: boolean;
-  initialCount: number;
   dict: NotificationBellDict;
 }) {
   return (
     <div className="md:hidden fixed top-3 left-3 z-40">
-      <NotificationBell
-        lang={lang}
-        isAdmin={isAdmin}
-        initialCount={initialCount}
-        dict={dict}
-        variant="floating"
-      />
+      <NotificationBell lang={lang} isAdmin={isAdmin} dict={dict} variant="floating" />
     </div>
   );
 }

@@ -68,14 +68,10 @@ export function AdminNav({
   lang,
   dict,
   logoutAction,
-  initialUnreadCount,
 }: {
   lang: string;
   dict: NavDict;
   logoutAction: () => void | Promise<void>;
-  // فاز ۱۴ — تعداد گفتگوهای خوانده‌نشده در لحظه‌ی رندر سرور. NotificationBell خودش
-  // بعد از mount این عدد را با Realtime زنده به‌روز نگه می‌دارد.
-  initialUnreadCount: number;
 }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -115,7 +111,6 @@ export function AdminNav({
           <NotificationBell
             lang={lang as Locale}
             isAdmin={true}
-            initialCount={initialUnreadCount}
             dict={{ ariaLabel: dict.notificationsAriaLabel }}
             variant="header"
           />
@@ -184,7 +179,6 @@ export function AdminNav({
           <NotificationBell
             lang={lang as Locale}
             isAdmin={true}
-            initialCount={initialUnreadCount}
             dict={{ ariaLabel: dict.notificationsAriaLabel }}
             variant="header"
           />

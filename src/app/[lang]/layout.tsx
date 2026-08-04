@@ -19,12 +19,12 @@
 // پایین‌ترین بخش محتوای هر صفحه (مثلاً دکمه‌ی آخر یک فرم) زیر نوار پنهان بماند. `pb-bottom-nav`
 // این مقدار را با `calc()` و `env(safe-area-inset-bottom)` به‌صورت پویا محاسبه می‌کند، پس روی هر
 // گوشی، دقیق و کافی است. در دسکتاپ چیزی تغییر نکرد (`md:pb-6` دست‌نخورده باقی ماند).
-// **به‌روزرسانی فاز ۱۴ (سیستم اعلان چت):** اطلاعات کاربر فعلی و «تعداد گفتگوهای خوانده‌نشده‌ی
-// او» همین‌جا (یک نقطه، نه پراکنده در هر صفحه) از سرور خوانده می‌شوند و به‌عنوان مقدار اولیه به
-// دو نقطه‌ی نمایشِ زنگوله پاس داده می‌شوند: (۱) DesktopHeader برای دسکتاپ، (۲)
-// MobileNotificationBell (زنگوله‌ی شناور گوشه‌ی بالا-چپ) برای موبایل. برای کاربر مهمان (بدون
-// نشست)، هیچ زنگوله‌ای رندر نمی‌شود چون او اصلاً گفتگویی ندارد. خودِ کامپوننت زنگوله (سمت
-// کلاینت) پس از رندر اولیه، عدد را با یک اشتراک Supabase Realtime زنده به‌روز نگه می‌دارد.
+// **به‌روزرسانی — رفع باگ (کرش کامل صفحه، «cannot add postgres_changes callbacks... after
+// subscribe()»):** اطلاعات کاربر فعلی و «تعداد گفتگوهای خوانده‌نشده‌ی او» همچنان همین‌جا (یک
+// نقطه) از سرور خوانده می‌شود، اما اشتراک Realtime دیگر داخل خودِ کامپوننت‌های زنگوله نیست —
+// حالا فقط یک UnreadChatCountProvider (که دقیقاً همین‌جا، دور همه‌چیز از جمله {children}، پس
+// شامل پنل ادمین هم می‌شود) مالک آن اشتراک است؛ رجوع کنید به یادداشت کامل مسئله در
+// src/components/chat/UnreadChatCountProvider.tsx.
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getDictionary } from "@/dictionaries/getDictionary";
@@ -41,6 +41,7 @@ import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getUnreadChatCount } from "@/lib/chat/chatNotifications";
 import { MobileNotificationBell } from "@/components/layout/MobileNotificationBell";
+import { UnreadChatCountProvider } from "@/components/chat/UnreadChatCountProvider";
 import type { Locale } from "@/lib/i18n/constants";
 
 export async function generateMetadata({
@@ -117,27 +118,27 @@ export default async function LangLayout({
         hasChosenInitially={hasChosenProvince}
         dict={dict.province}
       />
-      <DesktopHeader
-        lang={resolvedParams.lang}
-        dict={dict}
-        showNotifications={showNotifications}
-        isAdmin={isAdmin}
-        initialUnreadCount={initialUnreadCount}
-      />
-      {showNotifications && (
-        <MobileNotificationBell
-          lang={resolvedParams.lang as Locale}
+      <UnreadChatCountProvider initialCount={initialUnreadCount} enabled={showNotifications}>
+        <DesktopHeader
+          lang={resolvedParams.lang}
+          dict={dict}
+          showNotifications={showNotifications}
           isAdmin={isAdmin}
-          initialCount={initialUnreadCount}
-          dict={{ ariaLabel: dict.notifications.ariaLabel }}
         />
-      )}
-      {/* جدا کردن فضاسازی پایینی برای BottomNav در موبایل با `pb-bottom-nav` (پویا و آگاه از
-          Safe Area، تسک ۶ فاز ۰۸)؛ در دسکتاپ چون BottomNav مخفی است، فقط یک فاصله‌ی معمولی
-          (`md:pb-6`) کافی است. */}
-      <main className="flex-1 w-full min-h-full pb-bottom-nav md:pb-6 mx-auto max-w-lg md:max-w-3xl lg:max-w-4xl bg-white/30 md:bg-white shadow-sm md:shadow-none border-x md:border-x-0 border-slate-100">
-        {children}
-      </main>
+        {showNotifications && (
+          <MobileNotificationBell
+            lang={resolvedParams.lang as Locale}
+            isAdmin={isAdmin}
+            dict={{ ariaLabel: dict.notifications.ariaLabel }}
+          />
+        )}
+        {/* جدا کردن فضاسازی پایینی برای BottomNav در موبایل با `pb-bottom-nav` (پویا و آگاه از
+            Safe Area، تسک ۶ فاز ۰۸)؛ در دسکتاپ چون BottomNav مخفی است، فقط یک فاصله‌ی معمولی
+            (`md:pb-6`) کافی است. */}
+        <main className="flex-1 w-full min-h-full pb-bottom-nav md:pb-6 mx-auto max-w-lg md:max-w-3xl lg:max-w-4xl bg-white/30 md:bg-white shadow-sm md:shadow-none border-x md:border-x-0 border-slate-100">
+          {children}
+        </main>
+      </UnreadChatCountProvider>
       <BottomNav labels={dict.nav} />
     </ToastProvider>
   );

@@ -31,10 +31,15 @@
 // کنترل‌شده) که روی گوشی به چند خط نامرتب می‌شکست و نشانگر صفحه‌ی فعال نداشت، به کامپوننت مجزای
 // AdminNav.tsx منتقل شد: زیر md یک نوار فشرده + منوی کشویی تمام‌عرض (هدف لمس حداقل ۴۸px)، از md
 // به بالا همان نوار افقی قبلی به‌علاوه‌ی هایلایت صفحه‌ی فعال. هیچ لینک/مسیری حذف یا جابه‌جا نشد.
+// **رفع باگ (کرش کامل صفحه) / حذف کوئری تکراری:** این لایه قبلاً خودش هم یک getUnreadChatCount
+// جداگانه می‌خواند و به AdminNav پاس می‌داد — دقیقاً همان کوئری‌ای که src/app/[lang]/layout.tsx
+// (لایه‌ی بیرونی، که این لایه هم داخل آن تو‌درتو است) از قبل برای همین کاربر ادمین محاسبه کرده
+// بود؛ یعنی یک کوئری کاملاً تکراری روی هر بار رندر صفحات ادمین. حالا که تعداد خوانده‌نشده از یک
+// Context مشترک (UnreadChatCountProvider، رجوع کنید به آن فایل) خوانده می‌شود، این کوئری و
+// پروپ اضافه هر دو حذف شدند.
 import { redirect } from "next/navigation";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { requireAdmin } from "@/lib/auth/session";
-import { getUnreadChatCount } from "@/lib/chat/chatNotifications";
 import { logoutAction } from "./actions";
 import { AdminNav } from "./AdminNav";
 
@@ -55,22 +60,9 @@ export default async function AdminLayout({
   const dict = await getDictionary(lang);
   const boundLogout = logoutAction.bind(null, lang);
 
-  // فاز ۱۴ — تعداد گفتگوهای خوانده‌نشده برای نشان روی زنگوله‌ی اعلانِ نوار ادمین.
-  // چون ادمین هم شامل چت‌های عادی است (اگر داشته باشد) هم صندوق مشترک پشتیبانی،
-  // isAdmin=true پاس می‌شود تا صندوق پشتیبانی هم شمرده شود.
-  const initialUnreadCount = await getUnreadChatCount({
-    userId: admin.id,
-    isAdmin: true,
-  });
-
   return (
     <div className="flex flex-col min-h-[80vh] w-full px-4 md:px-0 py-6">
-      <AdminNav
-        lang={lang}
-        dict={dict.admin.nav}
-        logoutAction={boundLogout}
-        initialUnreadCount={initialUnreadCount}
-      />
+      <AdminNav lang={lang} dict={dict.admin.nav} logoutAction={boundLogout} />
 
       {children}
     </div>
