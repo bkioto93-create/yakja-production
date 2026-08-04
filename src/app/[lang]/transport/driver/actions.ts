@@ -14,6 +14,9 @@
 // (یکی، بر اساس نوع عکس) جایگزین شد — چون دیگر «چند عکس یکسان» نداریم، هر اسلات یک هویت مشخص
 // دارد؛ مسیر فایل هم شامل همان نوع می‌شود (مثلاً owner-id/personal_...jpg) تا در صورت بازرسی
 // مستقیم باکت هم بلافاصله معلوم باشد این فایل مربوط به کدام اسلات است.
+//
+// **اصلاحیه پروداکشن**: تابع قدیمی createDriverSignedUploadSlotsAction مجدداً برای پشتیبانی و
+// جلوگیری از شکستن بیلد Vercel در لایه API موبایل (mobile/v1/.../upload-slots) اضافه شد.
 "use server";
 
 import { supabaseAdminClient } from "@/lib/supabase/server";
@@ -54,7 +57,37 @@ export async function createDriverPhotoUploadSlotAction(
   return { success: true, slot: { path: data.path, token: data.token } };
 }
 
-// فاز ۱۱ — یک ویدئوی تکی، فقط برای کاربر VIP؛ گیت‌کردن واقعی سمت سرور. (بدون تغییر)
+// لایه سازگاری برای لایه API موبایل (برای جلوگیری از خطای Build در Vercel)
+// این تابع دقیقاً عملکرد قدیمی مبتنی بر آرایه‌ای از عکس‌ها را برای اپلیکیشن موبایل فراهم می‌کند.
+export async function createDriverSignedUploadSlotsAction(
+  count: number
+): Promise<{ success: true; slots: SignedUploadSlot[] } | { success: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "unauthenticated" };
+
+  if (!Number.isInteger(count) || count < 0 || count > 5) {
+    return { success: false, error: "invalidImageCount" };
+  }
+
+  const slots: SignedUploadSlot[] = [];
+  const now = Date.now();
+
+  for (let i = 0; i < count; i++) {
+    const path = `${user.id}/${now}_${i}.jpg`;
+    const { data, error } = await supabaseAdminClient.storage
+      .from(DRIVERS_BUCKET)
+      .createSignedUploadUrl(path);
+
+    if (error || !data) {
+      return { success: false, error: "uploadFailed" };
+    }
+    slots.push({ path: data.path, token: data.token });
+  }
+
+  return { success: true, slots };
+}
+
+// فاز ۱۱ — یک ویدئوی تکی، فقط برای کاربر VIP؛ گیت‌کردن واقعی سمت سرور.
 export async function createDriverSignedVideoUploadSlotAction(): Promise<
   { success: true; slot: SignedUploadSlot } | { success: false; error: string }
 > {
