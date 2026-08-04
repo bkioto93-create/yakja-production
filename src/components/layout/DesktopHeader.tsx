@@ -1,8 +1,11 @@
 // مسیر فایل: src/components/layout/DesktopHeader.tsx
-// **فایل جدید — ارتقای بصری حرفه‌ای**: طراحی مدرن مبتنی بر Island UI و Glassmorphism.
-// اضافه شدن میکرو-اینترکشن‌ها، سایه‌های نرم، و ساختار کپسولی برای ناوبری که حس یک
-// وب‌اپلیکیشن در سطح جهانی (مانند Vercel/Linear) را به کاربر القا می‌کند.
-// هیچ متن هاردکدی اضافه نشده و منطق مسیریابی و زنگوله کاملاً دست‌نخورده باقی مانده است.
+// **فایل جدید — اصلاح ظاهری طبق بند ۶.۱۵**: هیچ منطق یا مسیر جدیدی اضافه نشده، فقط یک
+// نوار بالای صفحه که از md به‌بالا نمایش داده می‌شود (در موبایل کاملاً مخفی است؛ BottomNav
+// دقیقاً همان‌جا (زیر md) جایگزینش می‌شود — نگاه کن به تغییر یک‌خطی در BottomNav.tsx).
+// همه‌ی متون از دیکشنری موجود خوانده می‌شوند، هیچ متن هاردکد جدیدی اضافه نشده (الزام قطعی ۲).
+// **اصلاح ظاهری (۱۴۰۵/۰۴/۲۷ — بازخورد حین تست دستی)**: تب فعال حالا پس‌زمینه‌ی پررنگ‌تر و یک
+// خط زیرین (Underline) به رنگ primary دارد؛ تب‌های غیرفعال کم‌رنگ‌تر شدند (خاکستری روشن‌تر به‌جای
+// text-muted) تا فاصله‌ی بصری بین تب فعال و بقیه در نگاه اول واضح باشد. هیچ مسیر یا منطقی تغییر نکرده.
 "use client";
 
 import Link from "next/link";
@@ -23,6 +26,11 @@ export function DesktopHeader({
 }: {
   lang: string;
   dict: Dictionary;
+  // فقط برای کاربر واردشده از layout پاس داده می‌شوند؛ برای کاربر مهمان showNotifications=false
+  // است و زنگوله رندر نمی‌شود.
+  //
+  // **رفع باگ:** initialUnreadCount حذف شد — NotificationBell دیگر عدد را از پروپ نمی‌گیرد،
+  // از UnreadChatCountProvider (Context) می‌خواند.
   showNotifications: boolean;
   isAdmin: boolean;
 }) {
@@ -38,38 +46,31 @@ export function DesktopHeader({
   ];
 
   return (
-    <header className="hidden md:flex sticky top-0 z-40 w-full items-center justify-between gap-6 bg-white/75 backdrop-blur-xl border-b border-slate-200/60 px-8 h-[76px] transition-all duration-300">
-      
-      {/* بخش لوگو و برند */}
-      <Link 
-        href={`/${lang}`} 
-        className="flex items-center gap-3 shrink-0 group active:scale-95 transition-transform duration-200"
-      >
-        <div className="relative w-10 h-10 overflow-hidden rounded-[14px] shadow-sm shadow-primary/20 border border-slate-100 group-hover:shadow-md group-hover:shadow-primary/30 transition-shadow">
-          <Image
-            src="/icons/yakja-icon-64.png"
-            alt={dict.contact.brandVal}
-            fill
-            className="object-cover"
-          />
-        </div>
-        <span className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-l from-slate-900 to-slate-700 whitespace-nowrap tracking-tight">
+    <header className="hidden md:flex sticky top-0 z-40 w-full items-center justify-between gap-6 bg-white/90 backdrop-blur border-b border-slate-100 px-8 h-[72px] shadow-sm">
+      <Link href={`/${lang}`} className="flex items-center gap-3 shrink-0">
+        <Image
+          src="/icons/yakja-icon-64.png"
+          alt={dict.contact.brandVal}
+          width={36}
+          height={36}
+          className="rounded-xl"
+        />
+        <span className="text-lg font-extrabold text-text-main whitespace-nowrap">
           {dict.contact.brandVal.split(" |")[0]}
         </span>
       </Link>
 
-      {/* ناوبری مرکزی (استایل Island/کپسولی) */}
-      <nav className="flex items-center gap-1 p-1.5 bg-slate-100/60 backdrop-blur-sm rounded-2xl border border-slate-200/50 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
+      <nav className="flex items-center gap-1">
         {navItems.map((item) => {
           const isActive = pureModuleRoot === item.pattern;
           return (
             <Link
               key={item.id}
               href={item.href}
-              className={`relative px-5 py-2.5 rounded-[12px] text-sm whitespace-nowrap transition-all duration-300 ${
+              className={`px-4 py-2 rounded-xl text-sm transition-colors whitespace-nowrap border-b-2 ${
                 isActive
-                  ? "text-primary font-extrabold bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-slate-100/80"
-                  : "text-slate-500 font-semibold border-transparent hover:text-slate-800 hover:bg-slate-200/40"
+                  ? "text-primary bg-primary/10 font-extrabold border-primary"
+                  : "text-slate-400 font-semibold border-transparent hover:text-text-main hover:bg-slate-50"
               }`}
             >
               {item.label}
@@ -78,8 +79,7 @@ export function DesktopHeader({
         })}
       </nav>
 
-      {/* بخش ابزارها و پروفایل */}
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2 shrink-0">
         {showNotifications && (
           <NotificationBell
             lang={lang as Locale}
@@ -91,9 +91,9 @@ export function DesktopHeader({
 
         <Link
           href={`/${lang}/profile`}
-          className="flex items-center gap-2.5 px-5 py-2.5 rounded-[14px] border border-slate-200 bg-white/50 text-sm font-extrabold text-slate-700 shadow-sm hover:bg-slate-50 hover:text-primary hover:border-primary/30 hover:shadow-md hover:shadow-primary/5 transition-all duration-300 active:scale-95 whitespace-nowrap"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-text-main hover:bg-slate-50 transition-colors whitespace-nowrap"
         >
-          <Icons.User className="w-4.5 h-4.5" />
+          <Icons.User className="w-4 h-4" />
           {dict.nav.profile}
         </Link>
       </div>
