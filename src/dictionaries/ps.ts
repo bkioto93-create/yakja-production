@@ -48,6 +48,11 @@ export default {
         "subtitle": "تازه ثبت شوي کورونه، ځمکې او دوکانونه",
         "viewAll": "ټول کتل",
         "emptyText": "لا تر اوسه د ملکیت هیڅ اعلان نه دی ثبت شوی؛ لومړی اعلان ته ثبت کړه!"
+      },
+      "stories": {
+        "title": "تازه سټوري",
+        "subtitle": "د یکجا کاروونکو تازه شیبو ته یو نظر",
+        "ownerFallbackName": "د یکجا غړی"
       }
     },
     "features": {
@@ -998,6 +1003,54 @@ export default {
       "officialBadge": "رسمي پشتیبانی",
       "userPendingNotice": "ستاسو د خبرو اترو غوښتنه د یکجا مدیریت ټیم ته ولیږل شوه. کله چې زموږ یو همکار شتون ولري، دلته به خبرو اترو ته یوځای شي؛ که پوښتنه یا نور توضیحات لرئ، همدا اوس یې ولیکئ ترڅو د ځواب پر مهال بشپړ خبر یاست.",
       "adminPendingNotice": "دا د یو کاروونکي نوې د چت غوښتنه ده او تر اوسه ورته «فعال» نه ده شوې. د هر پیغام په لیږلو سره، دا خبرې اترې به ورته په اتوماتيک ډول فعال شي؛ یا کولی شئ د مدیریت پینل ← «چتونه» څخه یې تایید کړئ."
+    }
+  },
+  "stories": {
+    "ringAriaLabelTemplate": "د {name} سټوري لیدل",
+    "loadErrorMessage": "دا سټوري نور شتون نلري.",
+    "viewer": {
+      "closeLabel": "بندول",
+      "deleteLabel": "د سټوري ړنګول",
+      "deleteConfirmTitle": "دا سټوري ړنګ کړو؟",
+      "deleteConfirmDesc": "دا سټوري به تل لپاره ړنګ شي او بیا یې بیرته راګرځول امکان نلري.",
+      "deleteConfirmYes": "هو، ړنګ کړئ",
+      "deleteConfirmCancel": "کینسل",
+      "deleteFailedError": "د سټوري ړنګول ونشول؛ بیا هڅه وکړئ.",
+      "justNow": "همدا اوس",
+      "minutesAgoTemplate": "{minutes} دقیقې مخکې",
+      "hoursAgoTemplate": "{hours} ساعته مخکې"
+    },
+    "addSection": {
+      "title": "سټوري ولیږئ",
+      "description": "یو انځور یا لنډه ویډیو شریکه کړئ؛ تر ۲۴ ساعتونو پورې د ټولو لپاره شتون لري.",
+      "addButton": "د سټوري زیاتول",
+      "dailyLimitNoteFreeTemplate": "نن ورځ {used} د {limit} وړیا سټوریو څخه کارول شوی",
+      "dailyLimitNoteVip": "تاسو VIP غړي یاست — نامحدود سټوري",
+      "limitReachedTitle": "ستاسو د نننۍ ورځې سهمیه پوره شوه",
+      "limitReachedDesc": "عادي کاروونکي یوازې په ورځ کې ۱ سټوري لیږلی شي. د VIP غړیتوب سره، نامحدود سټوري ولیږئ.",
+      "compressingLabel": "چمتووالی روان دی...",
+      "uploadingLabel": "اپلوډ روان دی...",
+      "videoTrimNoticeTemplate": "یوازې د ویډیو لومړني {seconds} ثانیې کارول کیږي",
+      "successMessage": "ستاسو سټوري بریالیتوب سره خپور شو!",
+      "errors": {
+        "unauthenticated": "د سټوري د زیاتولو لپاره لومړی خپل حساب ته ننوځئ.",
+        "invalidMediaType": "ستاسو غوره شوی فایل ډول ملاتړ نه کیږي.",
+        "invalidMediaData": "د فایل په معلوماتو کې ستونزه رامنځته شوه؛ بیا هڅه وکړئ.",
+        "invalidVideoDuration": "د ویډیو موده ناسمه ده.",
+        "dailyLimitReached": "تاسو خپلې ورځنۍ د سټوري سهمیې ته رسیدلي یاست.",
+        "uploadFailed": "د فایل اپلوډ ونشو؛ بیا هڅه وکړئ.",
+        "dbError": "یوه تخنیکي ستونزه رامنځته شوه؛ بیا هڅه وکړئ.",
+        "imageUnreadable": "دا انځور د لوستلو وړ نه دی؛ بل انځور غوره کړئ.",
+        "imageConversionFailed": "د انځور پروسس ونشو؛ بیا هڅه وکړئ.",
+        "canvasContextUnavailable": "ستاسو براوزر دا ځانګړنه ملاتړ نه کوي.",
+        "videoUnreadable": "دا ویډیو د لوستلو وړ نه ده؛ بله ویډیو غوره کړئ.",
+        "videoFileTooLarge": "ستاسو غوره شوې ویډیو حجم ډېر زیات دی؛ کوچنۍ ویډیو غوره کړئ.",
+        "videoRecordingUnsupported": "ستاسو براوزر د ویډیو فشردولو ملاتړ نه کوي؛ یو انځور غوره کړئ.",
+        "videoCompressionFailed": "د ویډیو فشردول ونشول؛ بیا هڅه وکړئ.",
+        "videoTooLargeAfterCompression": "حتی د فشردولو وروسته هم د ویډیو حجم زیات دی؛ لنډه ویډیو غوره کړئ.",
+        "unsupportedFileType": "یوازې انځور یا ویډیو غوره کیدی شي.",
+        "generic": "یوه ستونزه رامنځته شوه؛ بیا هڅه وکړئ."
+      }
     }
   }
 };

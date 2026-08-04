@@ -7,6 +7,10 @@
 // اکنون دکمه‌ی مشترک ReportButton با target_type='user' یک مقصد واقعی دارد.
 //
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** VipBadge کنار نام نمایشی، فقط اگر profile.isVip.
+//
+// **به‌روزرسانی فاز ۱۴ (قابلیت استوری):** آواتار این صفحه هم — دقیقاً مثل کارت هویت خودِ کاربر
+// در src/app/[lang]/profile/ProfileClient.tsx — با UserStoryAvatar پیچیده شد؛ اگر profile.
+// hasActiveStory باشد، حلقه‌ی هایلایت نمایش داده می‌شود و با کلیک، Viewer باز می‌شود.
 import Link from "next/link";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -16,6 +20,7 @@ import { Button } from "@/components/ui/Button";
 import { Icons } from "@/components/ui/Icons";
 import { ReportButton } from "@/components/reports/ReportButton";
 import { VipBadge } from "@/components/vip/VipBadge";
+import { UserStoryAvatar } from "@/components/stories/UserStoryAvatar";
 
 export default async function PublicUserProfilePage({
   params,
@@ -63,9 +68,20 @@ export default async function PublicUserProfilePage({
       {/* کارت هویت — دقیقاً هم‌الگو با کارت هویت حساب در src/app/[lang]/profile/ProfileClient.tsx،
           با یک تفاوت کلیدی: اینجا شماره‌ی موبایل هرگز نمایش داده نمی‌شود (حریم خصوصی). */}
       <Card className="p-5 flex items-center gap-4">
-        <div className="w-16 h-16 shrink-0 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-          <Icons.User className="w-8 h-8" />
-        </div>
+        <UserStoryAvatar
+          userId={profile.id}
+          ownerName={displayName}
+          hasActiveStory={profile.hasActiveStory}
+          isOwnStories={isOwnProfile}
+          size={64}
+          ariaLabel={dict.stories.ringAriaLabelTemplate.replace("{name}", displayName)}
+          loadErrorMessage={dict.stories.loadErrorMessage}
+          viewerDict={dict.stories.viewer}
+        >
+          <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center">
+            <Icons.User className="w-8 h-8" />
+          </div>
+        </UserStoryAvatar>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-lg font-extrabold text-text-main truncate">{displayName}</h1>

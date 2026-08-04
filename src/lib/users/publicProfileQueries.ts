@@ -9,9 +9,13 @@
 // **به‌روزرسانی فاز ۱۱ (عضویت VIP):** فیلد isVip اضافه شد — تیک VIP کنار نام کاربر در همین صفحه‌ی
 // پروفایل عمومی هم دیده می‌شود (تکمیل طبیعی بند ۵ پرامپت VIP: «کنار نام/تماس فروشنده در همه‌ی این
 // مکان‌ها»؛ این صفحه دقیقاً همان مکان است، فقط برای هر کاربر دیگر نه فقط خودِ کاربر).
+// **به‌روزرسانی فاز ۱۴ (قابلیت استوری):** فیلد hasActiveStory اضافه شد — دقیقاً هم‌الگو با isVip
+// (یک بولین سبک، بدون نیاز کامپوننت مصرف‌کننده به دانستن جزئیات جدول stories)، تا حلقه‌ی
+// هایلایت دور آواتار این صفحه هم — دقیقاً مثل اینستاگرام — نشان داده شود.
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import { isUserVip } from "@/lib/vip/vipStatus";
+import { hasActiveStory as checkHasActiveStory } from "@/lib/stories/storyQueries";
 
 export type PublicUserProfile = {
   id: string;
@@ -20,6 +24,7 @@ export type PublicUserProfile = {
   listingsCount: number;
   realEstateCount: number;
   isVip: boolean;
+  hasActiveStory: boolean;
 };
 
 // خواندن پروفایل عمومیِ یک کاربر برای صفحه‌ی src/app/[lang]/users/[id]/page.tsx.
@@ -35,7 +40,7 @@ export async function getPublicUserProfile(id: string): Promise<PublicUserProfil
 
   // دو شمارشِ سبک (count-only، بدون خواندن ردیف‌ها) برای «آگهی‌های فعال این کاربر» — فقط
   // آگهی‌های status='approved' شمرده می‌شوند، دقیقاً هم‌قاعده‌ی صفحه‌ی جزئیات هر آگهی.
-  const [listingsResult, realEstateResult] = await Promise.all([
+  const [listingsResult, realEstateResult, ownerHasActiveStory] = await Promise.all([
     supabaseAdminClient
       .from("listings")
       .select("id", { count: "exact", head: true })
@@ -46,6 +51,7 @@ export async function getPublicUserProfile(id: string): Promise<PublicUserProfil
       .select("id", { count: "exact", head: true })
       .eq("owner_id", id)
       .eq("status", "approved"),
+    checkHasActiveStory(id),
   ]);
 
   return {
@@ -55,5 +61,6 @@ export async function getPublicUserProfile(id: string): Promise<PublicUserProfil
     listingsCount: listingsResult.count ?? 0,
     realEstateCount: realEstateResult.count ?? 0,
     isVip: isUserVip(user.vip_expires_at as string | null),
+    hasActiveStory: ownerHasActiveStory,
   };
 }

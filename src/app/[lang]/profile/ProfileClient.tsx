@@ -12,6 +12,14 @@
 // «چت با پشتیبانی» اضافه شد (کامپوننت مشترک AdminSupportChatEntry) — فقط برای کاربر واردشده‌ای
 // که خودِ حساب ادمین نیست (چون ادمین چت‌های پشتیبانی را از پنل مدیریت مدیریت می‌کند، نه از این
 // دکمه‌ی عمومی).
+// **به‌روزرسانی فاز ۱۴ (قابلیت استوری):** دو افزوده‌ی مرتبط با هم:
+//   ۱) آواتار کارت هویت حساب (خودِ کاربر) حالا با UserStoryAvatar پیچیده شده — دقیقاً مثل
+//      اینستاگرام، اگر خودِ کاربر یک استوری فعال داشته باشد، دور آواتار خودش هم حلقه‌ی هایلایت
+//      دیده می‌شود و با کلیک، استوری‌های خودش باز می‌شوند (isOwnStories=true، پس دکمه‌ی حذف هم
+//      در Viewer فعال است).
+//   ۲) بلافاصله بعد از کارت هویت، کارت «افزودن استوری» (AddStorySection) اضافه شد — فقط برای
+//      کاربر واردشده؛ طبق تصمیم صریح کارفرما، محدودیت روزانه («۱ بار برای کاربر معمولی، نامحدود
+//      برای VIP») همیشه به‌طور برجسته همان‌جا نشان داده می‌شود.
 "use client";
 
 import { useState, useTransition } from "react";
@@ -21,6 +29,8 @@ import { Card } from "@/components/ui/Card";
 import { Icons } from "@/components/ui/Icons";
 import { VipBadge } from "@/components/vip/VipBadge";
 import { AdminSupportChatEntry } from "@/components/chat/AdminSupportChatEntry";
+import { UserStoryAvatar } from "@/components/stories/UserStoryAvatar";
+import { AddStorySection } from "@/components/stories/AddStorySection";
 import { switchLanguageAction, logoutAction } from "./actions";
 import { isUserVip } from "@/lib/vip/vipStatus";
 import type { getDictionary } from "@/dictionaries/getDictionary";
@@ -35,11 +45,17 @@ export function ProfileClient({
   dict,
   user,
   latestVipRequest,
+  dailyStoryCount,
+  dailyStoryLimit,
+  ownHasActiveStory,
 }: {
   lang: Locale;
   dict: Dict;
   user: SessionUser | null;
   latestVipRequest: MyVipRequest | null;
+  dailyStoryCount: number;
+  dailyStoryLimit: number;
+  ownHasActiveStory: boolean;
 }) {
   const [pendingLang, setPendingLang] = useState<Locale | null>(null);
   const [isSwitchingLang, startSwitchingLang] = useTransition();
@@ -69,9 +85,20 @@ export function ProfileClient({
       {/* کارت هویت حساب — یا اطلاعات کاربر واردشده، یا دعوت به ورود برای مهمان */}
       {user ? (
         <Card className="p-5 flex items-center gap-4">
-          <div className="w-16 h-16 shrink-0 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-            <Icons.User className="w-8 h-8" />
-          </div>
+          <UserStoryAvatar
+            userId={user.id}
+            ownerName={user.phoneNumber}
+            hasActiveStory={ownHasActiveStory}
+            isOwnStories={true}
+            size={64}
+            ariaLabel={dict.stories.ringAriaLabelTemplate.replace("{name}", dict.profile.title)}
+            loadErrorMessage={dict.stories.loadErrorMessage}
+            viewerDict={dict.stories.viewer}
+          >
+            <div className="w-full h-full bg-primary/10 text-primary flex items-center justify-center">
+              <Icons.User className="w-8 h-8" />
+            </div>
+          </UserStoryAvatar>
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-extrabold text-text-muted mb-0.5">
               {dict.profile.phoneLabel}
@@ -102,6 +129,16 @@ export function ProfileClient({
             </Button>
           </Link>
         </Card>
+      )}
+
+      {/* فاز ۱۴ — کارت «افزودن استوری»، فقط برای کاربر واردشده. */}
+      {user && (
+        <AddStorySection
+          isVip={isVip}
+          dailyUsedCount={dailyStoryCount}
+          dailyLimit={dailyStoryLimit}
+          dict={dict.stories.addSection}
+        />
       )}
 
       {/* فاز ۱۱ — کارت وضعیت VIP، فقط برای کاربر واردشده. */}

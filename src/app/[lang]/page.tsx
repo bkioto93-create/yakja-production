@@ -20,6 +20,9 @@
 // بخش «بنرهای پیش‌رونده‌ی افقی» اضافه شد (src/components/home/VipHomeBanner.tsx) — بلافاصله
 // بعد از دسترسی سریع، برای بیشترین دیده‌شدن، و همچنان کاملاً «بین دسترسی سریع و چرا یکجا؟»
 // طبق متن دقیق پرامپت.
+// **فاز ۱۴ (قابلیت استوری):** ردیف «تازه‌ترین استوری‌ها» بلافاصله بعد از بنر VIP اضافه شد
+// (src/app/[lang]/StoriesShowcase.tsx) — رجوع کنید به یادداشت کنار خودِ آن کامپوننت در JSX
+// پایین همین فایل برای دلیل چیدمان.
 import { getDictionary } from "@/dictionaries/getDictionary";
 import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
@@ -28,6 +31,7 @@ import { HomeFaq } from "./HomeFaq";
 import { HeroIllustration } from "./HeroIllustration";
 import { QuickAccessIcon } from "./QuickAccessIcon";
 import { VipHomeBanner } from "@/components/home/VipHomeBanner";
+import { StoriesShowcase } from "./StoriesShowcase";
 import {
   DriversShowcase,
   ProvidersShowcase,
@@ -39,10 +43,15 @@ import {
   getNewestProvidersForHome,
   getNewestListingsForHome,
   getNewestRealEstateForHome,
+  getLatestStoriesForHome,
 } from "@/lib/home/homeQueries";
 import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
+import { getCurrentUser } from "@/lib/auth/session";
 
 const SHOWCASE_ITEM_LIMIT = 10;
+// طبق درخواست کارفرما: «مثلاً ۶ تا یا ۱۰ تای آخر» — عدد بالای همان بازه انتخاب شد تا ردیف
+// همیشه به‌اندازه‌ی کافی پر و قابل‌اسکرول به‌نظر برسد، نه فقط ۶ آواتار در یک صفحه‌ی عریض دسکتاپ.
+const STORIES_SHOWCASE_LIMIT = 10;
 
 export default async function Home({ params }: { params: Promise<{ lang: string }> }) {
   const resolvedParams = await params;
@@ -53,14 +62,19 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   // انتخابی کاربر فیلتر شوند، نه سراسری کل افغانستان (دقیقاً مثل صفحه‌ی اصلی دیوار).
   const { province } = await getSelectedProvince();
 
-  // چهار کوئری «جدیدترین‌ها» موازی اجرا می‌شوند تا زمان لود کلی صفحه به کندترین کوئری محدود
-  // بماند، نه مجموع هر چهار کوئری.
-  const [newestDrivers, newestProviders, newestListings, newestRealEstate] = await Promise.all([
-    getNewestDriversForHome(SHOWCASE_ITEM_LIMIT, province),
-    getNewestProvidersForHome(SHOWCASE_ITEM_LIMIT, province),
-    getNewestListingsForHome(SHOWCASE_ITEM_LIMIT, province),
-    getNewestRealEstateForHome(SHOWCASE_ITEM_LIMIT, province),
-  ]);
+  // چهار کوئری «جدیدترین‌ها» + ردیف استوری، موازی اجرا می‌شوند تا زمان لود کلی صفحه به کندترین
+  // کوئری محدود بماند، نه مجموع همه‌ی کوئری‌ها. getCurrentUser هم اینجا خوانده می‌شود (نه فقط در
+  // لایوت) چون StoriesShowcase باید بداند «آیا این بیننده صاحبِ خودِ همین استوری است؟» تا دکمه‌ی
+  // حذف زودهنگام را فقط برای صاحبِ واقعی نشان بدهد.
+  const [newestDrivers, newestProviders, newestListings, newestRealEstate, latestStories, viewer] =
+    await Promise.all([
+      getNewestDriversForHome(SHOWCASE_ITEM_LIMIT, province),
+      getNewestProvidersForHome(SHOWCASE_ITEM_LIMIT, province),
+      getNewestListingsForHome(SHOWCASE_ITEM_LIMIT, province),
+      getNewestRealEstateForHome(SHOWCASE_ITEM_LIMIT, province),
+      getLatestStoriesForHome(STORIES_SHOWCASE_LIMIT),
+      getCurrentUser(),
+    ]);
 
   // تعریف کورت مرکزی پورتال یکجا برپایهِ متغیرهای متصل‌کننده!
   // imageSrc: مسیر تصویر کاوایی/کیوت سه‌بعدی (بعداً توسط کارفرما اضافه می‌شود — رجوع کنید به
@@ -179,6 +193,19 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
 
          {/* بنر VIP — فاز ۱۱، بند ۷ پرامپت VIP: بین «دسترسی سریع» و «چرا یکجا؟» */}
          <VipHomeBanner lang={lang} dict={dict.vip.homeBanner} />
+
+         {/* قابلیت استوری — ردیف «تازه‌ترین استوری‌ها»، عمداً بلافاصله بعد از بنر VIP و قبل از
+             بنرهای پیش‌رونده‌ی دیگر: چون استوری محتوای زمان‌محور و لحظه‌ای است، باید زودتر از
+             محتوای نسبتاً پایدارتر (رانندگان/متخصصین/آگهی‌ها) دیده شود — دقیقاً همان منطق چیدمانی
+             که اینستاگرام هم برای ردیف استوری‌اش (بلافاصله زیر هدر) استفاده می‌کند. */}
+         <StoriesShowcase
+           items={latestStories}
+           viewerId={viewer?.id ?? null}
+           dict={dict.home.sections.stories}
+           ringAriaLabelTemplate={dict.stories.ringAriaLabelTemplate}
+           loadErrorMessage={dict.stories.loadErrorMessage}
+           viewerDict={dict.stories.viewer}
+         />
 
          {/* بنرهای پیش‌رونده‌ی افقی — رانندگان/متخصصین/کالا/ملک تازه (درخواست صریح کارفرما) */}
          <div className="-mx-[24px] md:mx-0 space-y-8">

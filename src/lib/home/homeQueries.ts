@@ -35,6 +35,7 @@ import { supabaseAdminClient } from "@/lib/supabase/server";
 import type { VehicleTypeId } from "@/lib/transport/vehicleTypes";
 import { searchListings, type ListingSummary } from "@/lib/marketplace/queries";
 import { searchRealEstate, type RealEstateSummary } from "@/lib/realEstate/queries";
+import { fetchLatestStoriesForHome, type HomeStoryPreview } from "@/lib/stories/storyQueries";
 
 const HOME_CACHE_REVALIDATE_SECONDS = 180;
 
@@ -175,3 +176,21 @@ export const getNewestRealEstateForHome = unstable_cache(
   ["home-newest-real-estate"],
   { revalidate: HOME_CACHE_REVALIDATE_SECONDS, tags: ["home-real-estate"] }
 );
+
+// ---------------------------------------------------------------------------
+// قابلیت استوری — ردیف «تازه‌ترین استوری‌ها». منطق خواندن خام در src/lib/stories/storyQueries.ts
+// است (چون به دامنه‌ی «استوری» تعلق دارد، نه دامنه‌ی «صفحه‌ی اصلی»)؛ اینجا فقط دقیقاً هم‌الگو با
+// بقیه‌ی این فایل، کش می‌شود.
+//
+// تفاوت با چهار بخش بالا: چون استوری ذاتاً محتوای زمان‌محور/ناپایدار است (بر خلاف ثبت یک راننده/
+// آگهی تازه)، علاوه بر این کش ۳ دقیقه‌ای، بلافاصله بعد از ثبت یک استوری تازه هم همین تگ
+// («home-stories») به‌طور صریح باطل می‌شود (رجوع کنید به revalidateTag در
+// src/app/[lang]/profile/storyActions.ts) — یعنی در عمل، استوری تازه معمولاً خیلی زودتر از ۳
+// دقیقه در صفحه‌ی اصلی ظاهر می‌شود، نه این‌که کاربر واقعاً ۳ دقیقه منتظر بماند.
+export const getLatestStoriesForHome = unstable_cache(
+  fetchLatestStoriesForHome,
+  ["home-latest-stories"],
+  { revalidate: HOME_CACHE_REVALIDATE_SECONDS, tags: ["home-stories"] }
+);
+
+export type { HomeStoryPreview };
