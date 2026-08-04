@@ -126,10 +126,7 @@ export type ConversationView = {
 // یک گفتگوی مشخص را می‌خواند. کنترل دسترسی واقعی همین‌جا انجام می‌شود (نه صرفاً در UI):
 // - برای گفتگوهای عادی (کالا/ملک/راننده/متخصص): فقط دو طرفِ واقعیِ همان گفتگو اجازه‌ی دیدن دارند.
 // - برای گفتگوی «پشتیبانی» (admin_support): هر کاربری که نقش ادمین دارد (viewerIsAdmin=true)
-//   هم اجازه‌ی دیدن دارد — نه فقط همان یک حساب ثابتی که owner_id به آن اشاره می‌کند. طبق تصمیم
-//   صریح کارفرما: «همه‌ی کسانی‌که به پنل ادمین دسترسی دارند باید بتوانند چت‌های پشتیبانی را
-//   ببینند و پاسخ بدهند» — نه فقط قدیمی‌ترین حساب ادمین (owner_id ثابتِ همیشگی).
-// اگر گفتگو ناموجود/پاک‌شده بود، یا کاربر جاری هیچ‌کدام از شرط‌های بالا را نداشت، null برمی‌گردد.
+//   هم اجازه‌ی دیدن دارد — نه فقط همان یک حساب ثابتی که owner_id به آن اشاره می‌کند.
 export async function getConversationForUser(
   conversationId: string,
   userId: string,
@@ -156,11 +153,7 @@ export async function getConversationForUser(
   if (!isAuthorized) return null;
 
   const otherUserId = data.initiator_id === userId ? data.owner_id : data.initiator_id;
-  // برای گفتگوی پشتیبانی، owner_id همیشه همان حساب ادمینِ ثابتِ صندوق پشتیبانی است؛ یعنی وقتی
-  // otherUserId برابر owner_id شد، یعنی بیننده‌ی فعلی «کاربر عادی» است و طرف مقابلش ادمین است.
   const otherSideIsSupportAdmin = isAdminSupportChat && otherUserId === data.owner_id;
-  // viewerIsSupportAdmin دیگر فقط به تطابقِ دقیق با owner_id وابسته نیست: هر ادمینی که این گفتگو
-  // را باز می‌کند، از دید رابط کاربری باید «طرفِ پشتیبانی» در نظر گرفته شود.
   const viewerIsSupportAdmin = isAdminSupportChat && (data.owner_id === userId || viewerIsAdmin);
 
   const [{ data: otherUser }, contextInfo] = await Promise.all([

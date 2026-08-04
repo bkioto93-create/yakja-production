@@ -12,11 +12,27 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
+import { NotificationBell } from "@/components/chat/NotificationBell";
 import type { getDictionary } from "@/dictionaries/getDictionary";
+import type { Locale } from "@/lib/i18n/constants";
 
 type Dictionary = Awaited<ReturnType<typeof getDictionary>>;
 
-export function DesktopHeader({ lang, dict }: { lang: string; dict: Dictionary }) {
+export function DesktopHeader({
+  lang,
+  dict,
+  showNotifications,
+  isAdmin,
+  initialUnreadCount,
+}: {
+  lang: string;
+  dict: Dictionary;
+  // فاز ۱۴ — این سه پروپ فقط برای کاربر واردشده از layout پاس داده می‌شوند؛
+  // برای کاربر مهمان showNotifications=false است و زنگوله رندر نمی‌شود.
+  showNotifications: boolean;
+  isAdmin: boolean;
+  initialUnreadCount: number;
+}) {
   const pathname = usePathname();
   const segments = pathname.split("/");
   const pureModuleRoot = segments[2] || "";
@@ -62,13 +78,25 @@ export function DesktopHeader({ lang, dict }: { lang: string; dict: Dictionary }
         })}
       </nav>
 
-      <Link
-        href={`/${lang}/profile`}
-        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-text-main hover:bg-slate-50 transition-colors shrink-0 whitespace-nowrap"
-      >
-        <Icons.User className="w-4 h-4" />
-        {dict.nav.profile}
-      </Link>
+      <div className="flex items-center gap-2 shrink-0">
+        {showNotifications && (
+          <NotificationBell
+            lang={lang as Locale}
+            isAdmin={isAdmin}
+            initialCount={initialUnreadCount}
+            dict={{ ariaLabel: dict.notifications.ariaLabel }}
+            variant="header"
+          />
+        )}
+
+        <Link
+          href={`/${lang}/profile`}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-text-main hover:bg-slate-50 transition-colors whitespace-nowrap"
+        >
+          <Icons.User className="w-4 h-4" />
+          {dict.nav.profile}
+        </Link>
+      </div>
     </header>
   );
 }

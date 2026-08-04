@@ -34,6 +34,7 @@
 import { redirect } from "next/navigation";
 import { getDictionary } from "@/dictionaries/getDictionary";
 import { requireAdmin } from "@/lib/auth/session";
+import { getUnreadChatCount } from "@/lib/chat/chatNotifications";
 import { logoutAction } from "./actions";
 import { AdminNav } from "./AdminNav";
 
@@ -54,9 +55,22 @@ export default async function AdminLayout({
   const dict = await getDictionary(lang);
   const boundLogout = logoutAction.bind(null, lang);
 
+  // فاز ۱۴ — تعداد گفتگوهای خوانده‌نشده برای نشان روی زنگوله‌ی اعلانِ نوار ادمین.
+  // چون ادمین هم شامل چت‌های عادی است (اگر داشته باشد) هم صندوق مشترک پشتیبانی،
+  // isAdmin=true پاس می‌شود تا صندوق پشتیبانی هم شمرده شود.
+  const initialUnreadCount = await getUnreadChatCount({
+    userId: admin.id,
+    isAdmin: true,
+  });
+
   return (
     <div className="flex flex-col min-h-[80vh] w-full px-4 md:px-0 py-6">
-      <AdminNav lang={lang} dict={dict.admin.nav} logoutAction={boundLogout} />
+      <AdminNav
+        lang={lang}
+        dict={dict.admin.nav}
+        logoutAction={boundLogout}
+        initialUnreadCount={initialUnreadCount}
+      />
 
       {children}
     </div>

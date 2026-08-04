@@ -96,6 +96,9 @@ export default {
     "services": "خدمتونه",
     "profile": "زه"
   },
+  "notifications": {
+    "ariaLabel": "خبرتیاوې"
+  },
   "province": {
     "title": "خپل ولایت وټاکئ",
     "searchPlaceholder": "د ولایت نوم ولټوئ...",
@@ -602,7 +605,8 @@ export default {
       "vip": "د VIP غړیتوب",
       "chats": "چتونه",
       "logout": "وتل",
-      "menuLabel": "مینو"
+      "menuLabel": "مینو",
+      "notificationsAriaLabel": "خبرتیاوې"
     },
     "users": {
       "title": "د کاروونکو مدیریت",

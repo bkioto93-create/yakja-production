@@ -86,6 +86,9 @@ export default {
     "services": "خدمات",
     "profile": "من"
   },
+  "notifications": {
+    "ariaLabel": "اعلان‌ها"
+  },
   "province": {
     "title": "ولایت خود را انتخاب کنید",
     "searchPlaceholder": "جستجوی نام ولایت...",
@@ -592,7 +595,8 @@ export default {
       "vip": "اشتراک VIP",
       "chats": "چت‌ها",
       "logout": "خروج",
-      "menuLabel": "منو"
+      "menuLabel": "منو",
+      "notificationsAriaLabel": "اعلان‌ها"
     },
     "users": {
       "title": "مدیریت کاربران",

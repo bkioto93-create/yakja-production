@@ -35,6 +35,7 @@ import {
   sendTextMessageAction,
   createVoiceUploadSlotAction,
   sendVoiceMessageAction,
+  markConversationAsReadAction,
 } from "../actions";
 import type { getDictionary } from "@/dictionaries/getDictionary";
 import type { Locale } from "@/lib/i18n/constants";
@@ -87,6 +88,32 @@ export function ChatThreadClient({
 
   useEffect(() => {
     listEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // فاز ۱۴ — علامت‌گذاری این گفتگو به‌عنوان «خوانده‌شده» به‌محض باز شدن.
+  // این افکت فقط یک بار (روی mount) اجرا می‌شود؛ برای پیام‌هایی که در حین باز
+  // بودنِ صفحه از راه Realtime می‌آیند، از افکت جداگانه‌ای در پایین استفاده
+  // می‌کنیم (تا هر پیام تازه‌ی طرف مقابل هم بلافاصله «خوانده‌شده» علامت
+  // بخورد). خطای احتمالی بی‌سروصدا نادیده گرفته می‌شود چون این ویژگی راحتی
+  // است، نه بحرانی — بازخوانی بعدی هر شمارش نادرست را اصلاح می‌کند.
+  useEffect(() => {
+    void markConversationAsReadAction(conversation.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation.id]);
+
+  // فاز ۱۴ — وقتی پیام تازه‌ای از راه Realtime می‌آید و بیننده در حال دیدن
+  // این گفتگو است (یعنی همین کامپوننت mount است)، بلافاصله دوباره
+  // last_read_at را به‌روزرسانی می‌کنیم. این باعث می‌شود اگر کاربر صفحه‌ی
+  // گفتگو را باز بگذارد، شمارش خوانده‌نشده روی زنگوله بی‌دلیل بالا نرود.
+  useEffect(() => {
+    // فقط برای پیام‌های طرف مقابل (نه پیام‌های خودم که با optimistic اضافه
+    // شده‌اند). چون هر پیام تازه‌ی طرف مقابل messages را عوض می‌کند و آخرین
+    // آن‌ها معلوم می‌شود، همین trigger کافی است.
+    if (messages.length === 0) return;
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage.senderId === viewerId) return;
+    void markConversationAsReadAction(conversation.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages.length]);
 
   // اشتراک زنده‌ی Realtime — دقیقاً هم‌الگو با src/app/[lang]/transport/ActiveDriversList.tsx،

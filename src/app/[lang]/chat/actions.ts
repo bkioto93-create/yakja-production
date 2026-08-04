@@ -26,6 +26,7 @@ import { isUserVip } from "@/lib/vip/vipStatus";
 import { canUserStartNewConversation } from "@/lib/chat/chatLimits";
 import { getSupportAdminId, ADMIN_SUPPORT_CONTEXT_TYPE } from "@/lib/chat/adminSupportChat";
 import type { ChatContextType } from "@/lib/chat/chatQueries";
+import { getUnreadChatCount } from "@/lib/chat/chatNotifications";
 
 const VOICE_BUCKET = "chat-voice-messages";
 const MAX_TEXT_LENGTH = 2000;
@@ -221,9 +222,7 @@ async function getConversationMembership(
 }
 
 // فاز ۱۳ — اگر این پیام را هر کاربری با نقش ادمین در یک گفتگوی «پشتیبانی در انتظار تایید»
-// فرستاده باشد، همین پاسخ خودش یک تاییدِ ضمنی محسوب می‌شود: وضعیت به‌طور خودکار 'active' می‌شود —
-// دقیقاً هم‌معنای دکمه‌ی «تایید» در پنل مدیریت (src/app/[lang]/admin/(protected)/chats/actions.ts)،
-// فقط با یک مسیر کوتاه‌تر برای مدیری که ترجیح می‌دهد به‌جای زدن دکمه‌ی تایید، مستقیم پاسخ بدهد.
+// فرستاده باشد، همین پاسخ خودش یک تاییدِ ضمنی محسوب می‌شود: وضعیت به‌طور خودکار 'active' می‌شود.
 //
 // **رفع باگ:** قبلاً این تایید خودکار فقط وقتی اتفاق می‌افتاد که فرستنده دقیقاً همان owner_id
 // ثابت گفتگو باشد؛ حالا معیار «آیا فرستنده ادمین است؟» جایگزین آن شده — چون هر ادمینی که پاسخ
@@ -243,6 +242,23 @@ async function autoActivateIfAdminReplied(
       .update({ status: "active", responded_at: new Date().toISOString() })
       .eq("id", conversationId);
   }
+}
+
+// فاز ۱۴ — کمکی برای تعیین «کدام ستون last_read_at باید به‌روزرسانی شود» برای این
+// بیننده. سه حالت:
+//   * بیننده initiator است  → initiator_last_read_at
+//   * بیننده owner است       → owner_last_read_at
+//   * بیننده ادمین و گفتگو از نوع admin_support است ولی owner ثابت نیست →
+//     owner_last_read_at (چون همه‌ی ادمین‌ها یک صندوق مشترک دارند).
+function pickReadColumn(
+  membership: ConversationMembership,
+  userId: string,
+  viewerIsAdmin: boolean
+): "initiator_last_read_at" | "owner_last_read_at" | null {
+  if (membership.initiatorId === userId) return "initiator_last_read_at";
+  if (membership.ownerId === userId) return "owner_last_read_at";
+  if (membership.contextType === "admin_support" && viewerIsAdmin) return "owner_last_read_at";
+  return null;
 }
 
 export async function sendTextMessageAction(
@@ -271,9 +287,22 @@ export async function sendTextMessageAction(
 
   await autoActivateIfAdminReplied(membership, conversationId, user.role === "admin");
 
+  // فاز ۱۴ — همراه با به‌روزرسانی last_message_at، دو ستون تازه هم آپدیت می‌شوند:
+  //   * last_message_sender_id: تا شمارش «خوانده‌نشده» بتواند بدون کوئری اضافه‌ی روی
+  //     chat_messages تشخیص دهد آیا آخرین پیام از خودِ بیننده بود یا از طرف مقابل.
+  //   * ستون last_read_at خودِ فرستنده: چون من الان پیام فرستادم، طبیعی است که همه‌ی
+  //     پیام‌های قبلیِ گفتگو هم از دیدِ من «خوانده‌شده» باشد.
+  const readColumn = pickReadColumn(membership, user.id, user.role === "admin");
+  const now = new Date().toISOString();
+  const conversationUpdate: Record<string, unknown> = {
+    last_message_at: now,
+    last_message_sender_id: user.id,
+  };
+  if (readColumn) conversationUpdate[readColumn] = now;
+
   await supabaseAdminClient
     .from("conversations")
-    .update({ last_message_at: new Date().toISOString() })
+    .update(conversationUpdate)
     .eq("id", conversationId);
 
   revalidatePath(`/${lang}/chat/${conversationId}`);
@@ -343,11 +372,72 @@ export async function sendVoiceMessageAction(
 
   await autoActivateIfAdminReplied(membership, conversationId, user.role === "admin");
 
+  // فاز ۱۴ — همان به‌روزرسانی ترکیبیِ sendTextMessageAction (رجوع کنید به یادداشت آن‌جا).
+  const readColumn = pickReadColumn(membership, user.id, user.role === "admin");
+  const now = new Date().toISOString();
+  const conversationUpdate: Record<string, unknown> = {
+    last_message_at: now,
+    last_message_sender_id: user.id,
+  };
+  if (readColumn) conversationUpdate[readColumn] = now;
+
   await supabaseAdminClient
     .from("conversations")
-    .update({ last_message_at: new Date().toISOString() })
+    .update(conversationUpdate)
     .eq("id", conversationId);
 
   revalidatePath(`/${lang}/chat/${conversationId}`);
   return { success: true };
+}
+
+
+// ============================================================================
+//  فاز ۱۴ — اکشن‌های سیستم اعلان (Notifications)
+// ============================================================================
+
+// اکشن «علامت‌گذاری این گفتگو به‌عنوان خوانده‌شده». وقتی کاربر یک گفتگو را باز می‌کند،
+// ChatThreadClient این اکشن را صدا می‌زند؛ ستون last_read_at مناسبِ سمتِ این کاربر
+// به‌همراه لحظه‌ی جاری ست می‌شود، تا از این پس گفتگو در شمارش «خوانده‌نشده» ظاهر نشود.
+//
+// این اکشن idempotent است — چند بار صدا زدن آن هیچ عوارض جانبی‌ای ندارد. برای عملکرد
+// بهتر روی اینترنت ضعیف، پاسخ از قبل بسیار سبک است (فقط success/error برمی‌گرداند،
+// نه هیچ داده‌ی اضافه‌ای).
+export async function markConversationAsReadAction(
+  conversationId: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const user = await getCurrentUser();
+  if (!user) return { success: false, error: "unauthenticated" };
+
+  const membership = await getConversationMembership(conversationId, user.id, user.role === "admin");
+  if (!membership) return { success: false, error: "unauthorized" };
+
+  const readColumn = pickReadColumn(membership, user.id, user.role === "admin");
+  if (!readColumn) return { success: true }; // هیچ کاری لازم نیست — بی‌ضرر.
+
+  const { error } = await supabaseAdminClient
+    .from("conversations")
+    .update({ [readColumn]: new Date().toISOString() })
+    .eq("id", conversationId);
+
+  if (error) return { success: false, error: "dbError" };
+
+  return { success: true };
+}
+
+// اکشن «شمارش گفتگوهای خوانده‌نشده‌ی من». برای زنگوله‌ی اعلان روی نوار بالا استفاده
+// می‌شود — کلاینت آن را بلافاصله بعد از هر رویداد Realtime (پیام تازه در هر گفتگو‌ای
+// که این کاربر عضوش است) صدا می‌زند تا عدد روی نشان به‌روز شود، بدون این‌که کل صفحه
+// دوباره رندر شود.
+//
+// چون کاربر مهمان اصلاً هیچ گفتگویی ندارد، برای او همیشه صفر برمی‌گردد — هم‌رفتار با
+// getUnreadChatCount در chatNotifications.ts (نه یک خطا).
+export async function fetchUnreadChatCountAction(): Promise<{ count: number }> {
+  const user = await getCurrentUser();
+  if (!user) return { count: 0 };
+
+  const count = await getUnreadChatCount({
+    userId: user.id,
+    isAdmin: user.role === "admin",
+  });
+  return { count };
 }

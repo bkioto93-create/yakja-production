@@ -24,6 +24,8 @@ import { usePathname } from "next/navigation";
 import { Icons } from "@/components/ui/Icons";
 import { Spinner } from "@/components/ui/Spinner";
 import { CheckBadgeIcon, ChatBubbleLeftRightIcon } from "@heroicons/react/24/outline";
+import { NotificationBell } from "@/components/chat/NotificationBell";
+import type { Locale } from "@/lib/i18n/constants";
 
 type NavDict = {
   dashboard: string;
@@ -37,6 +39,7 @@ type NavDict = {
   chats: string;
   logout: string;
   menuLabel: string;
+  notificationsAriaLabel: string;
 };
 
 // دکمه‌ی خروج، جدا از AdminNav، چون useFormStatus فقط داخل یک فرزندِ خودِ <form> کار می‌کند نه در
@@ -65,10 +68,14 @@ export function AdminNav({
   lang,
   dict,
   logoutAction,
+  initialUnreadCount,
 }: {
   lang: string;
   dict: NavDict;
   logoutAction: () => void | Promise<void>;
+  // فاز ۱۴ — تعداد گفتگوهای خوانده‌نشده در لحظه‌ی رندر سرور. NotificationBell خودش
+  // بعد از mount این عدد را با Realtime زنده به‌روز نگه می‌دارد.
+  initialUnreadCount: number;
 }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -96,19 +103,32 @@ export function AdminNav({
     <div className="bg-white border border-slate-100 rounded-2xl mb-6 shadow-sm">
       {/* نوار فشرده‌ی موبایل: فقط زیر md دیده می‌شود */}
       <div className="flex items-center justify-between px-4 py-3 md:hidden">
-        <div className="flex items-center gap-2 font-extrabold text-text-main">
-          <current.icon className="w-5 h-5 text-primary" />
-          {current.label}
+        <div className="flex items-center gap-2 font-extrabold text-text-main min-w-0">
+          <current.icon className="w-5 h-5 text-primary shrink-0" />
+          <span className="truncate">{current.label}</span>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsOpen((prev) => !prev)}
-          aria-label={dict.menuLabel}
-          aria-expanded={isOpen}
-          className="w-11 h-11 flex items-center justify-center rounded-xl text-text-main active:bg-bg-base shrink-0"
-        >
-          {isOpen ? <Icons.X className="w-6 h-6" /> : <Icons.Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {/* فاز ۱۴ — زنگوله در نوار فشرده‌ی موبایل. برای پنل ادمین ما نمی‌خواهیم آیکون شناور
+              MobileNotificationBell (که در layout عمومی [lang]/layout.tsx رندر می‌شود) هم روی
+              پنل ادمین دیده شود، چون پنل ادمین محیط جداگانه‌ای است — به همین دلیل زنگوله را
+              مستقیم داخل خودِ AdminNav می‌گذاریم. */}
+          <NotificationBell
+            lang={lang as Locale}
+            isAdmin={true}
+            initialCount={initialUnreadCount}
+            dict={{ ariaLabel: dict.notificationsAriaLabel }}
+            variant="header"
+          />
+          <button
+            type="button"
+            onClick={() => setIsOpen((prev) => !prev)}
+            aria-label={dict.menuLabel}
+            aria-expanded={isOpen}
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-text-main active:bg-bg-base"
+          >
+            {isOpen ? <Icons.X className="w-6 h-6" /> : <Icons.Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* منوی کشویی موبایل: فقط وقتی باز است رندر می‌شود */}
@@ -159,12 +179,22 @@ export function AdminNav({
           })}
         </div>
 
-        <form action={logoutAction}>
-          <LogoutButton
-            label={dict.logout}
-            className="flex items-center gap-2 font-bold text-red-500 text-sm"
+        <div className="flex items-center gap-3 shrink-0">
+          {/* فاز ۱۴ — زنگوله در نوار افقی دسکتاپ پنل ادمین (کنار دکمه‌ی خروج) */}
+          <NotificationBell
+            lang={lang as Locale}
+            isAdmin={true}
+            initialCount={initialUnreadCount}
+            dict={{ ariaLabel: dict.notificationsAriaLabel }}
+            variant="header"
           />
-        </form>
+          <form action={logoutAction}>
+            <LogoutButton
+              label={dict.logout}
+              className="flex items-center gap-2 font-bold text-red-500 text-sm"
+            />
+          </form>
+        </div>
       </div>
     </div>
   );

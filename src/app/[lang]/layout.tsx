@@ -19,6 +19,12 @@
 // پایین‌ترین بخش محتوای هر صفحه (مثلاً دکمه‌ی آخر یک فرم) زیر نوار پنهان بماند. `pb-bottom-nav`
 // این مقدار را با `calc()` و `env(safe-area-inset-bottom)` به‌صورت پویا محاسبه می‌کند، پس روی هر
 // گوشی، دقیق و کافی است. در دسکتاپ چیزی تغییر نکرد (`md:pb-6` دست‌نخورده باقی ماند).
+// **به‌روزرسانی فاز ۱۴ (سیستم اعلان چت):** اطلاعات کاربر فعلی و «تعداد گفتگوهای خوانده‌نشده‌ی
+// او» همین‌جا (یک نقطه، نه پراکنده در هر صفحه) از سرور خوانده می‌شوند و به‌عنوان مقدار اولیه به
+// دو نقطه‌ی نمایشِ زنگوله پاس داده می‌شوند: (۱) DesktopHeader برای دسکتاپ، (۲)
+// MobileNotificationBell (زنگوله‌ی شناور گوشه‌ی بالا-چپ) برای موبایل. برای کاربر مهمان (بدون
+// نشست)، هیچ زنگوله‌ای رندر نمی‌شود چون او اصلاً گفتگویی ندارد. خودِ کامپوننت زنگوله (سمت
+// کلاینت) پس از رندر اولیه، عدد را با یک اشتراک Supabase Realtime زنده به‌روز نگه می‌دارد.
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { getDictionary } from "@/dictionaries/getDictionary";
@@ -32,6 +38,10 @@ import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PWA_INSTALL_COOKIE_NAME } from "@/lib/pwaInstall/constants";
 import { ProvinceBar } from "@/components/layout/ProvinceBar";
 import { getSelectedProvince } from "@/lib/province/getSelectedProvince";
+import { getCurrentUser } from "@/lib/auth/session";
+import { getUnreadChatCount } from "@/lib/chat/chatNotifications";
+import { MobileNotificationBell } from "@/components/layout/MobileNotificationBell";
+import type { Locale } from "@/lib/i18n/constants";
 
 export async function generateMetadata({
   params,
@@ -82,6 +92,21 @@ export default async function LangLayout({
   // ProvinceBar مودال انتخاب را خودش در اولین بازدید باز می‌کند.
   const { province: selectedProvince, hasChosen: hasChosenProvince } = await getSelectedProvince();
 
+  // فاز ۱۴ — اطلاعات مورد نیاز زنگوله‌ی اعلان. هر دو رابط (DesktopHeader و
+  // MobileNotificationBell) از این مقادیر سرور-به‌کلاینت رندر می‌شوند تا از
+  // چشمک‌زدنِ اولیه (flash) روی نشان جلوگیری شود؛ سپس خودِ کامپوننت زنگوله
+  // با یک اشتراک Realtime، عدد را زنده به‌روز نگه می‌دارد. برای کاربر مهمان
+  // (user=null) هیچ زنگوله‌ای رندر نمی‌شود — چون گفتگویی هم ندارد.
+  const currentUser = await getCurrentUser();
+  const initialUnreadCount = currentUser
+    ? await getUnreadChatCount({
+        userId: currentUser.id,
+        isAdmin: currentUser.role === "admin",
+      })
+    : 0;
+  const isAdmin = currentUser?.role === "admin";
+  const showNotifications = !!currentUser;
+
   return (
     <ToastProvider>
       <LangHtmlSync lang={resolvedParams.lang} />
@@ -92,7 +117,21 @@ export default async function LangLayout({
         hasChosenInitially={hasChosenProvince}
         dict={dict.province}
       />
-      <DesktopHeader lang={resolvedParams.lang} dict={dict} />
+      <DesktopHeader
+        lang={resolvedParams.lang}
+        dict={dict}
+        showNotifications={showNotifications}
+        isAdmin={isAdmin}
+        initialUnreadCount={initialUnreadCount}
+      />
+      {showNotifications && (
+        <MobileNotificationBell
+          lang={resolvedParams.lang as Locale}
+          isAdmin={isAdmin}
+          initialCount={initialUnreadCount}
+          dict={{ ariaLabel: dict.notifications.ariaLabel }}
+        />
+      )}
       {/* جدا کردن فضاسازی پایینی برای BottomNav در موبایل با `pb-bottom-nav` (پویا و آگاه از
           Safe Area، تسک ۶ فاز ۰۸)؛ در دسکتاپ چون BottomNav مخفی است، فقط یک فاصله‌ی معمولی
           (`md:pb-6`) کافی است. */}
