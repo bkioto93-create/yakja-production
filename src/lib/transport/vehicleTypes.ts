@@ -4,8 +4,12 @@
 // ساختار/شناسه/آیکون هر نوع وسیله را مشخص می‌کند؛ برچسب متنی هرگز اینجا هاردکد نمی‌شود (طبق
 // الزام قطعی ۲) و همیشه باید در کامپوننت مصرف‌کننده، از طریق dict.transport.vehicleTypes خوانده
 // شود. مقدار id دقیقاً همان مقداری خواهد بود که در تسک ۲ (تکمیل فیلدهای جدول drivers) در ستون
-// drivers.vehicle_type — با یک CHECK constraint هم‌سو با همین لیست — ذخیره می‌شود؛ فهرست کامل و
-// بدون‌حذف طبق بند ۶.۲ سند راهبردی: تاکسی، زرنج، ریکشا، تراکتور، وانت، کامیون، سایر.
+// drivers.vehicle_type — با یک CHECK constraint هم‌سو با همین لیست — ذخیره می‌شود.
+//
+// **به‌روزرسانی (درخواست صریح کارفرما):** نوع «وانت» (pickup) به‌طور کامل از اپ حذف شد، چون در
+// افغانستان این نوع وسیله رایج نیست. فهرست فعلی: تاکسی، زرنج، ریکشا، تراکتور، کامیون، سایر.
+// توجه: CHECK constraint ستون drivers.vehicle_type هم باید هم‌زمان به‌روز شود — فایل مهاجرت
+// SQL همراه همین تغییر ارائه شده است.
 import { Icons } from "@/components/ui/Icons";
 
 export const VEHICLE_TYPES = [
@@ -13,7 +17,6 @@ export const VEHICLE_TYPES = [
   { id: "zaranj", dictKey: "zaranj", icon: Icons.VehicleZaranj },
   { id: "rickshaw", dictKey: "rickshaw", icon: Icons.VehicleRickshaw },
   { id: "tractor", dictKey: "tractor", icon: Icons.VehicleTractor },
-  { id: "pickup", dictKey: "pickup", icon: Icons.VehiclePickup },
   // برای «کامیون» عمداً آیکون تازه ساخته نشد؛ همان Icons.Truck موجود (که هم‌اکنون در
   // ناوبری/داشبورد برای کل ماژول حمل‌ونقل هم استفاده می‌شود) اینجا مستقیماً بازاستفاده شد.
   { id: "truck", dictKey: "truck", icon: Icons.Truck },

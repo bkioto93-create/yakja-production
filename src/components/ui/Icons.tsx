@@ -233,7 +233,9 @@ export const Icons = {
   // ناوبری/داشبورد برای کل ماژول حمل‌ونقل استفاده می‌شود) در src/lib/transport/vehicleTypes.ts
   // مستقیماً برای نوع «کامیون» هم استفاده می‌شود. به همین ترتیب، برای «سایر» از همان
   // Icons.CategoryOther (فاز ۰۲) استفاده شد تا نماد «سایر» در کل اپ یکدست بماند. پس اینجا فقط
-  // ۵ آیکون واقعاً تازه لازم بود: تاکسی، زرنج، ریکشا، تراکتور، وانت.
+  // ۴ آیکون واقعاً تازه لازم بود: تاکسی، زرنج، ریکشا، تراکتور.
+  // **به‌روزرسانی (درخواست کارفرما):** آیکون «وانت» (VehiclePickup) به‌طور کامل حذف شد، چون این
+  // نوع وسیله از کل اپ برداشته شد (در افغانستان رایج نیست).
   VehicleTaxi: (props: React.SVGProps<SVGSVGElement>) => (
     <svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" {...props}>
       <rect x="9" y="3.5" width="6" height="3" rx="0.5"></rect>
@@ -270,15 +272,6 @@ export const Icons = {
       <path d="M11.5 9V6h2.5"></path>
     </svg>
   ),
-  VehiclePickup: (props: React.SVGProps<SVGSVGElement>) => (
-    <svg fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" {...props}>
-      <path d="M2 16.5V12a1 1 0 0 1 1-1h5.2l2.6-3.5h3.2a1 1 0 0 1 1 1V12h3a2 2 0 0 1 2 2v2.5"></path>
-      <path d="M2 16.5h19"></path>
-      <circle cx="6.5" cy="18.5" r="1.7"></circle>
-      <circle cx="17.5" cy="18.5" r="1.7"></circle>
-    </svg>
-  ),
-
   // --- افزوده‌شده در تسک ۳ فاز ۰۴ — آیکون‌های اختصاصی ۹ تخصص خدماتی (پایه‌ی بند ۶.۳) که در
   // کتابخانه‌ی «انتخاب از آیکون‌های آماده» بخش مدیریت تخصص‌های خدماتی پنل ادمین استفاده می‌شوند.
   // مقدار هر کلید، دقیقاً همان icon_key است که در ستون service_categories.icon_key ذخیره شده

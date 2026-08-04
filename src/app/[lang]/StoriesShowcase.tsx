@@ -20,8 +20,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
+import { Icons } from "@/components/ui/Icons";
 import { StoryRing } from "@/components/stories/StoryRing";
 import { StoryViewer, type StoryViewerDict } from "@/components/stories/StoryViewer";
 import { getUserStoriesAction } from "@/app/[lang]/profile/storyActions";
@@ -32,12 +34,15 @@ export type StoriesShowcaseDict = {
   title: string;
   subtitle: string;
   ownerFallbackName: string;
+  viewAll: string;
+  viewAllAriaLabel: string;
 };
 
 export function StoriesShowcase({
   items,
   viewerId,
   dict,
+  lang,
   ringAriaLabelTemplate,
   loadErrorMessage,
   viewerDict,
@@ -45,6 +50,8 @@ export function StoriesShowcase({
   items: HomeStoryPreview[];
   viewerId: string | null;
   dict: StoriesShowcaseDict;
+  // برای ساخت لینک «همه استوری‌ها» — مسیر همیشه زبان‌دار است (/fa/stories یا /ps/stories).
+  lang: string;
   ringAriaLabelTemplate: string;
   loadErrorMessage: string;
   viewerDict: StoryViewerDict;
@@ -162,47 +169,78 @@ export function StoriesShowcase({
         <p className="text-sm text-text-muted">{dict.subtitle}</p>
       </div>
 
-      <div className="flex gap-4 overflow-x-auto px-4 md:px-0 pb-1 snap-x snap-mandatory [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {items.map((story, index) => {
-          const displayName = story.ownerName?.trim() ? story.ownerName : dict.ownerFallbackName;
-          return (
-            <div
-              key={story.storyId}
-              className="flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start"
-            >
-              <StoryRing
-                hasActiveStory={true}
-                onClick={() => handleOpen(index)}
-                size={64}
-                ariaLabel={ringAriaLabelTemplate.replace("{name}", displayName)}
-              >
-                <div className="w-full h-full flex items-center justify-center bg-primary/10 overflow-hidden">
-                  {story.mediaType === "image" ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={story.mediaUrl}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <video
-                      src={story.mediaUrl}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-full object-cover"
-                    />
-                  )}
+      {/* **بازطراحی (درخواست کارفرما: «یک بک‌گراند نوارطور قشنگ که مشخص باشد این قسمت اسکرول
+          افقی می‌خورد... یک مقدار هایلایت‌تر شود»):** خودِ ریل حالا یک نوارِ مجزا با پس‌زمینه‌ی
+          گرادیانی، حاشیه‌ی نرم و گوشه‌های گرد است، پس از بقیه‌ی صفحه جدا و «هایلایت» دیده می‌شود.
+          دو نشانه‌ی بصریِ اسکرول هم اضافه شد: یک محوشدگیِ گرادیانی در لبه‌ی چپ (که می‌گوید محتوا
+          ادامه دارد) و دکمه‌ی «همه استوری‌ها» در انتهای ریل. */}
+      <div className="relative">
+        <div className="rounded-[26px] border border-slate-100 bg-gradient-to-l from-primary/[0.07] via-fuchsia-500/[0.05] to-transparent p-3 md:p-4 mx-4 md:mx-0">
+          <div className="flex gap-4 overflow-x-auto pb-1 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {items.map((story, index) => {
+              const displayName = story.ownerName?.trim()
+                ? story.ownerName
+                : dict.ownerFallbackName;
+              return (
+                <div
+                  key={story.storyId}
+                  className="flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start"
+                >
+                  <StoryRing
+                    hasActiveStory={true}
+                    onClick={() => handleOpen(index)}
+                    size={64}
+                    ariaLabel={ringAriaLabelTemplate.replace("{name}", displayName)}
+                  >
+                    <div className="w-full h-full flex items-center justify-center bg-primary/10 overflow-hidden">
+                      {story.mediaType === "image" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={story.mediaUrl}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <video
+                          src={story.mediaUrl}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                  </StoryRing>
+                  <span className="text-[11px] font-bold text-text-main text-center truncate w-full">
+                    {displayName}
+                  </span>
                 </div>
-              </StoryRing>
-              <span className="text-[11px] font-bold text-text-main text-center truncate w-full">
-                {displayName}
+              );
+            })}
+
+            {/* دکمه‌ی «همه استوری‌ها» — دقیقاً در انتهای ریل (درخواست صریح کارفرما)، با همان
+                اندازه‌ی حلقه‌ها تا ردیف کاملاً هم‌تراز بماند. */}
+            <Link
+              href={`/${lang}/stories`}
+              aria-label={dict.viewAllAriaLabel}
+              className="group flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start outline-none"
+            >
+              <span className="w-16 h-16 rounded-full border-2 border-dashed border-primary/40 bg-white flex items-center justify-center text-primary group-active:scale-95 md:group-hover:border-primary md:group-hover:bg-primary/5 transition-all">
+                {/* فلشِ «جلو» در چیدمان RTL — هم‌رویه با بقیه‌ی اپ (ArrowRight + rotate-180) */}
+                <Icons.ArrowRight className="w-6 h-6 rotate-180 md:group-hover:-translate-x-0.5 transition-transform" />
               </span>
-            </div>
-          );
-        })}
+              <span className="text-[11px] font-extrabold text-primary text-center leading-tight w-full">
+                {dict.viewAll}
+              </span>
+            </Link>
+          </div>
+        </div>
+
+        {/* محوشدگیِ لبه‌ی چپ — نشانه‌ی بصریِ «هنوز محتوا هست، اسکرول کن». pointer-events-none تا
+            جلوی لمس/کلیکِ حلقه‌های زیرش را نگیرد. */}
+        <div className="pointer-events-none absolute inset-y-3 left-4 md:left-0 w-12 rounded-l-[26px] bg-gradient-to-l from-transparent to-white/80" />
       </div>
 
       {/* یک اسپینر کوچک تمام‌صفحه فقط برای لحظه‌ی اول بازکردن (پیش از آماده‌شدنِ اولین Viewer) —

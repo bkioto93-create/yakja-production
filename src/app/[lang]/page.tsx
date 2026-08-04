@@ -91,11 +91,13 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   // imageSrc: مسیر تصویر کاوایی/کیوت سه‌بعدی (بعداً توسط کارفرما اضافه می‌شود — رجوع کنید به
   // فایل راهنما برای پرامپت‌ها و مسیر دقیق). تا وقتی فایل موجود نیست، QuickAccessIcon خودکار به
   // آیکون کلاسیک (iconName) برمی‌گردد.
+  // هر دسته علاوه بر رنگ متن/پس‌زمینه، یک گرادیانِ ملایم و یک رنگِ هاله (glow) هم دارد — برای
+  // کارت‌های بازطراحی‌شده‌ی «دسترسی عاجل» که دیگر یک مربع تخت نیستند.
   const categories = [
-    { id: 'listings', href: `/${lang}/listings`, title: dict.dashboard.categories.listings, iconName: "Box" as const, imageSrc: "/icons/quick-listings.png", textColor: "text-blue-500", bgColor: "bg-blue-100/60" },
-    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, iconName: "Truck" as const, imageSrc: "/icons/quick-transport.png", textColor: "text-accent", bgColor: "bg-accent/10" },
-    { id: 'services', href: `/${lang}/services`, title: dict.dashboard.categories.services, iconName: "Wrench" as const, imageSrc: "/icons/quick-services.png", textColor: "text-emerald-500", bgColor: "bg-emerald-100/60" },
-    { id: 'real-estate', href: `/${lang}/real-estate`, title: dict.dashboard.categories.realEstate, iconName: "Home" as const, imageSrc: "/icons/quick-realestate.png", textColor: "text-purple-500", bgColor: "bg-purple-100/60" },
+    { id: 'listings', href: `/${lang}/listings`, title: dict.dashboard.categories.listings, iconName: "Box" as const, imageSrc: "/icons/quick-listings.png", textColor: "text-blue-500", bgColor: "bg-blue-100/60", gradient: "from-blue-100 to-blue-50/40", glow: "bg-blue-400/20", ring: "md:group-hover:ring-blue-200" },
+    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, iconName: "Truck" as const, imageSrc: "/icons/quick-transport.png", textColor: "text-accent", bgColor: "bg-accent/10", gradient: "from-accent/20 to-accent/5", glow: "bg-accent/25", ring: "md:group-hover:ring-accent/30" },
+    { id: 'services', href: `/${lang}/services`, title: dict.dashboard.categories.services, iconName: "Wrench" as const, imageSrc: "/icons/quick-services.png", textColor: "text-emerald-500", bgColor: "bg-emerald-100/60", gradient: "from-emerald-100 to-emerald-50/40", glow: "bg-emerald-400/20", ring: "md:group-hover:ring-emerald-200" },
+    { id: 'real-estate', href: `/${lang}/real-estate`, title: dict.dashboard.categories.realEstate, iconName: "Home" as const, imageSrc: "/icons/quick-realestate.png", textColor: "text-purple-500", bgColor: "bg-purple-100/60", gradient: "from-purple-100 to-purple-50/40", glow: "bg-purple-400/20", ring: "md:group-hover:ring-purple-200" },
   ];
 
   const trustBadges = [
@@ -177,6 +179,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
            items={latestStories}
            viewerId={viewer?.id ?? null}
            dict={dict.home.sections.stories}
+           lang={lang}
            ringAriaLabelTemplate={dict.stories.ringAriaLabelTemplate}
            loadErrorMessage={dict.stories.loadErrorMessage}
            viewerDict={dict.stories.viewer}
@@ -188,23 +191,41 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
               {dict.dashboard.quickAccess}
            </h2>
 
+           {/* **بازطراحی کامل کارت‌های دسترسی (درخواست کارفرما):**
+               رفع باگ مرکزیت — دو علت واقعی داشت و هر دو برطرف شد:
+                 ۱) کادرِ آیکون عرضِ ثابتِ پیکسلی داشت (`w-[150px]`)، ولی سلولِ گرید با عریض‌ترشدن
+                    صفحه بزرگ‌تر می‌شد؛ به‌علاوه `translate-x-[4%]` داخل QuickAccessIcon تصویر را
+                    همیشه به یک سمت هُل می‌داد و این جابه‌جایی با بزرگ‌ترشدن تصویر بیشتر می‌شد.
+                    حالا کادر آیکون نسبی است (`w-[76%]` با سقفِ منطقی) و مربعِ کامل
+                    (`aspect-square`) — یعنی در هر عرضی، دقیقاً وسط می‌ماند و متناسب بزرگ می‌شود.
+                 ۲) برچسبِ متن هم‌زمان کلاس‌های ناسازگارِ `flex flex-wrap align-middle inline`
+                    داشت. `flex` بقیه را خنثی می‌کرد و چون چیدمانِ پیش‌فرضِ یک فلکس‌باکس
+                    `justify-start` است، متن به‌جای وسط‌چین‌شدن به لبه‌ی شروع (در RTL: سمت راست)
+                    می‌چسبید. حالا یک بلوکِ ساده‌ی `text-center` است.
+               ارتقای بصری: گرادیانِ اختصاصی هر دسته، هاله‌ی نوریِ محو پشت آیکون، حلقه‌ی نازک
+               دورِ کارت هنگام هاور، و بالاآمدنِ نرمِ کارت — هم‌خانواده با تم پرمیومِ بنر جدید. */}
            <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] md:gap-6">
               {categories.map((item) => (
                 <Link
                   href={item.href}
                   key={item.id}
-                  className="block outline-none select-none active:scale-95 md:hover:-translate-y-1 transition-transform origin-center ease-out w-full max-w-[200px] mx-auto md:max-w-none md:mx-0"
+                  className="group block outline-none select-none w-full max-w-[220px] mx-auto md:max-w-none"
                 >
-                   <div className="bg-white border-[1px] border-slate-100/70 rounded-[28px] shadow-[0_4px_24px_rgba(0,0,0,0.02)] md:hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] h-[250px] md:h-[270px] p-[16px] flex flex-col items-center justify-center text-center gap-y-4 relative w-full aspect-auto transition-shadow">
-                      {/* رفع باگ (۲۰۲۶-۰۷-۲۶): اندازه‌ی آیکون (باکس + پدینگ) دقیقاً ۲ برابر شد */}
-                      <div className={`w-[150px] h-[150px] md:w-[164px] md:h-[164px] shrink-0 rounded-[44px] flex items-center justify-center shadow-inner overflow-hidden ${item.bgColor} ${item.textColor} origin-bottom mx-auto drop-shadow-sm p-6`}>
+                   <div className={`relative w-full h-[230px] md:h-[260px] flex flex-col items-center justify-center gap-4 p-4 rounded-[28px] bg-white border border-slate-100/80 ring-1 ring-transparent ${item.ring} shadow-[0_4px_24px_rgba(0,0,0,0.03)] md:group-hover:shadow-[0_14px_36px_rgba(0,0,0,0.09)] md:group-hover:-translate-y-1.5 active:scale-[0.97] transition-all duration-300 ease-out overflow-hidden`}>
+
+                      {/* هاله‌ی نوریِ محو پشت آیکون — عمق می‌دهد بدون این‌که شلوغ شود */}
+                      <div className={`absolute top-6 left-1/2 -translate-x-1/2 w-[70%] aspect-square rounded-full blur-2xl ${item.glow} opacity-60 md:group-hover:opacity-90 transition-opacity duration-300 pointer-events-none`} />
+
+                      {/* کادر آیکون — نسبی و مربع، پس همیشه دقیقاً در مرکز کارت می‌ماند */}
+                      <div className={`relative z-10 w-[76%] max-w-[150px] aspect-square shrink-0 rounded-[36px] bg-gradient-to-br ${item.gradient} ${item.textColor} flex items-center justify-center p-[14%] shadow-inner md:group-hover:scale-[1.06] transition-transform duration-300 ease-out`}>
                          <QuickAccessIcon
                            src={item.imageSrc}
                            fallbackIconName={item.iconName}
-                           fallbackClassName="w-[72px] h-[72px] md:w-[80px] md:h-[80px] stroke-[2.2px] shrink-0"
+                           fallbackClassName="w-full h-full stroke-[2.2px]"
                          />
                       </div>
-                      <span className="text-[13px] md:text-sm font-bold text-slate-800 leading-[18px] max-w-full px-[5px] overflow-hidden overflow-ellipsis break-words flex flex-wrap align-middle inline">
+
+                      <span className="relative z-10 block w-full px-1 text-center text-[13px] md:text-sm font-bold text-slate-800 leading-[18px] break-words md:group-hover:text-slate-900 transition-colors">
                          {item.title}
                       </span>
                    </div>
@@ -229,6 +250,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                title={dict.dashboard.categories.transport}
                description={dict.home.banners.transport}
                imageSrc="/banners/transport-banner.webp"
+               ctaLabel={dict.home.banners.ctaLabel}
              />
            </div>
            <DriversShowcase
@@ -246,6 +268,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                title={dict.dashboard.categories.services}
                description={dict.home.banners.services}
                imageSrc="/banners/services-banner.webp"
+               ctaLabel={dict.home.banners.ctaLabel}
              />
            </div>
            <ProvidersShowcase
@@ -262,6 +285,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                title={dict.dashboard.categories.listings}
                description={dict.home.banners.listings}
                imageSrc="/banners/marketplace-banner.webp"
+               ctaLabel={dict.home.banners.ctaLabel}
              />
            </div>
            <ListingsShowcase
@@ -279,6 +303,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                title={dict.dashboard.categories.realEstate}
                description={dict.home.banners.realEstate}
                imageSrc="/banners/real-estate-banner.webp"
+               ctaLabel={dict.home.banners.ctaLabel}
              />
            </div>
            <RealEstateShowcase

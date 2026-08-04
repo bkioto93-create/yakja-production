@@ -130,6 +130,93 @@ async function fetchLatestStoriesForHome(limit: number): Promise<HomeStoryPrevie
   }));
 }
 
+// ---------------------------------------------------------------------------
+// صفحه‌ی «همه استوری‌ها» — خواندنِ صفحه‌به‌صفحه (Cursor Pagination).
+//
+// چرا صفحه‌به‌صفحه و نه یک‌جا: طبق بند صریح کارفرما درباره‌ی اینترنت ضعیف در افغانستان، هرگز
+// نباید همه‌ی استوری‌ها با هم لود شوند. این تابع هر بار فقط یک دسته‌ی کوچک برمی‌گرداند و کاربر
+// با اسکرول‌کردن (یا زدن دکمه‌ی «نمایش بیشتر») دسته‌ی بعدی را می‌گیرد.
+//
+// چرا Cursor و نه offset: با offset (`.range(20,39)`) اگر بین دو درخواست یک استوری منقضی شود،
+// کل پنجره یک ردیف می‌لغزد و کاربر یک استوری را از دست می‌دهد یا دوباره می‌بیند. Cursor بر پایه‌ی
+// created_at این مشکل را ندارد چون همیشه می‌گوید «از این لحظه به قبل».
+//
+// یکتاسازی بر اساس owner_id در همین دسته انجام می‌شود (هم‌الگو با تابع صفحه‌ی اصلی). چون
+// یکتاسازیِ بین‌دسته‌ای اینجا ممکن نیست (سرور نمی‌داند کلاینت قبلاً چه دیده)، خودِ کلاینت هم
+// هنگام چسباندن دسته‌ی تازه یک‌بار دیگر بر اساس ownerId یکتاسازی می‌کند — رجوع کنید به
+// src/app/[lang]/stories/AllStoriesClient.tsx.
+export type StoriesPage = {
+  items: HomeStoryPreview[];
+  // مقداری که برای گرفتن دسته‌ی بعدی باید دوباره پاس داده شود. null یعنی دیگر چیزی نمانده.
+  nextCursor: string | null;
+};
+
+export async function fetchStoriesPage(
+  limit: number,
+  cursor: string | null
+): Promise<StoriesPage> {
+  const nowIso = new Date().toISOString();
+  // مثل تابع صفحه‌ی اصلی، عمداً بیشتر از حد نیاز خوانده می‌شود چون بعد از یکتاسازی بر اساس
+  // صاحب استوری، تعداد ردیف‌های مفید کمتر از تعداد ردیف‌های خام است.
+  const fetchBatchSize = Math.max(limit * 6, 60);
+
+  let query = supabaseAdminClient
+    .from("stories")
+    .select("id, owner_id, media_type, media_path, created_at")
+    .gt("expires_at", nowIso)
+    .order("created_at", { ascending: false })
+    .limit(fetchBatchSize);
+
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data, error } = await query;
+  if (error || !data || data.length === 0) {
+    return { items: [], nextCursor: null };
+  }
+
+  const seenOwners = new Set<string>();
+  const latestPerOwner: typeof data = [];
+  let lastConsumedCreatedAt: string | null = null;
+
+  for (const row of data) {
+    lastConsumedCreatedAt = row.created_at as string;
+    const ownerId = row.owner_id as string;
+    if (seenOwners.has(ownerId)) continue;
+    seenOwners.add(ownerId);
+    latestPerOwner.push(row);
+    if (latestPerOwner.length >= limit) break;
+  }
+
+  if (latestPerOwner.length === 0) {
+    return { items: [], nextCursor: null };
+  }
+
+  const ownerIds = latestPerOwner.map((row) => row.owner_id as string);
+  const { data: owners } = await supabaseAdminClient
+    .from("users")
+    .select("id, name")
+    .in("id", ownerIds);
+  const ownerById = new Map((owners ?? []).map((o) => [o.id as string, o]));
+
+  const items: HomeStoryPreview[] = latestPerOwner.map((row) => ({
+    storyId: row.id as string,
+    ownerId: row.owner_id as string,
+    ownerName: ownerById.get(row.owner_id as string)?.name ?? null,
+    mediaType: row.media_type as StoryMediaType,
+    mediaUrl: getStoryMediaUrl(row.media_path as string),
+    createdAt: row.created_at as string,
+  }));
+
+  // اگر دسته‌ی خام کوچک‌تر از سقفِ درخواستی بود، یعنی به انتهای واقعی جدول رسیده‌ایم و دیگر
+  // صفحه‌ی بعدی وجود ندارد.
+  const reachedEnd = data.length < fetchBatchSize;
+  const nextCursor = reachedEnd ? null : lastConsumedCreatedAt;
+
+  return { items, nextCursor };
+}
+
 // بدون کش در همین فایل — کش (unstable_cache، ۳ دقیقه‌ای) دقیقاً هم‌الگو با بقیه‌ی بخش‌های صفحه‌ی
 // اصلی در src/lib/home/homeQueries.ts اعمال می‌شود، نه اینجا؛ این فایل فقط لایه‌ی خواندن خام است.
 export { fetchLatestStoriesForHome };
