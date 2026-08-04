@@ -3,6 +3,12 @@
 // saveDriverProfileAction (src/app/[lang]/transport/driver/actions.ts، تسک ۴ فاز ۰۳) و
 // getMyDriverProfile (src/lib/transport/driverQueries.ts، همان تسک) از قبل دارد و تست شده.
 //
+// ⚠️ اصلاحیه: این فایل قبلاً یک فیلد imagePaths: string[] به saveDriverProfileAction می‌فرستاد.
+// طبق بازطراحی «دو عکس اختصاصی» (خودِ راننده + وسیله‌ی نقلیه)، ستون عمومی images با دو ستون
+// معنادار جایگزین شد و saveDriverProfileAction دیگر imagePaths را قبول نمی‌کند — به‌جایش
+// personalPhotoPath (الزامی) و vehiclePhotoPath (اختیاری) می‌خواهد، دقیقاً هم‌الگو با
+// DriverProfileClient.tsx (فرم وب). این Route هم برای هم‌راستایی با actions.ts به‌روزرسانی شد.
+//
 // دقیقاً هم‌الگو با سه Route فاز M02 (marketplace/listings، marketplace/my-listings،
 // marketplace/upload-slots): صفر منطق تجاری تازه — فقط دو تابع موجود مستقیم صدا زده می‌شوند.
 // getCurrentUser() (داخل هر دو تابع، و هم داخل خودِ این فایل برای GET) هدر
@@ -24,19 +30,18 @@
 //   GET /api/mobile/v1/profile (فاز M01)، سمت موبایل در دسترس است (useAuth().user.phoneNumber) —
 //   نیازی به ارسال دوباره‌ی همان مقدار از این Route نبود.
 //
-// POST / PATCH — بدنه: { vehicleType, province, vehicleDetails, contactPhone, imagePaths: string[] }
-//   imagePaths دقیقاً همان مسیرهای خامِ Storage (خروجی POST .../transport/driver/upload-slots)
-//   است، نه URL کامل — عیناً همان قرارداد marketplace/listings (فاز M02).
-//
-// ⚠️ رفع باگ دیپلوی (فاز ۱۰ — قابلیت ولایت): بعد از افزودن فیلد الزامی province به
-// saveDriverProfileAction، بیلد Vercel شکست، چون این Route موبایل هنوز آن را نمی‌فرستاد. راه‌حل:
-// یک فیلد province هم از بدنه‌ی درخواست خوانده و مستقیماً به اکشن پاس داده می‌شود — اعتبارسنجی
-// خودِ مقدار (isValidProvince) از قبل داخل خودِ اکشن انجام می‌شود.
+// POST / PATCH — بدنه:
+//   { vehicleType, province, vehicleDetails, contactPhone,
+//     personalPhotoPath: string, vehiclePhotoPath?: string | null, videoPath?: string | null }
+//   personalPhotoPath و vehiclePhotoPath دقیقاً همان مسیرهای خامِ Storage (خروجی POST
+//   .../transport/driver/upload-slots با photoType متناظر) هستند، نه URL کامل.
+//   personalPhotoPath الزامی است (خود اکشن هم دوباره همین را چک می‌کند)؛ vehiclePhotoPath و
+//   videoPath اختیاری‌اند و در نبودشان باید null فرستاده شوند (نه رشته‌ی خالی).
 //
 //   خروجی موفق: { success: true }
-//   خروجی ناموفق: { success: false, error } — کدها دقیقاً همان‌هایی که
-//   dict.transport.driverProfile.errors موبایل از قبل پوشش می‌دهد: unauthenticated،
-//   invalidVehicleType، invalidProvince، invalidPhone، invalidImageCount، invalidImageData، dbError.
+//   خروجی ناموفق: { success: false, error } — کدهای ممکن: unauthenticated، invalidVehicleType،
+//   invalidProvince، invalidPhone، personalPhotoRequired، invalidImageData، notVip،
+//   invalidVideoData، dbError.
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -48,8 +53,10 @@ const ERROR_STATUS: Record<string, number> = {
   invalidVehicleType: 400,
   invalidProvince: 400,
   invalidPhone: 400,
-  invalidImageCount: 400,
+  personalPhotoRequired: 400,
   invalidImageData: 400,
+  notVip: 403,
+  invalidVideoData: 400,
   dbError: 500,
 };
 
@@ -78,7 +85,9 @@ async function handleSave(request: Request) {
     province: typeof b.province === "string" ? b.province : "",
     vehicleDetails: typeof b.vehicleDetails === "string" ? b.vehicleDetails : "",
     contactPhone: typeof b.contactPhone === "string" ? b.contactPhone : "",
-    imagePaths: Array.isArray(b.imagePaths) ? (b.imagePaths as string[]) : [],
+    personalPhotoPath: typeof b.personalPhotoPath === "string" ? b.personalPhotoPath : "",
+    vehiclePhotoPath: typeof b.vehiclePhotoPath === "string" ? b.vehiclePhotoPath : null,
+    videoPath: typeof b.videoPath === "string" ? b.videoPath : null,
   });
 
   if (!result.success) {
