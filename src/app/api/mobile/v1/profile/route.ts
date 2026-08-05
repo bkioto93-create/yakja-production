@@ -6,6 +6,20 @@
 // طبق همان اصل بنیادین تسک‌های ۲ و ۳ همین فاز (بند ۵ سند راهبردی موبایل): این Route Handler
 // هیچ منطق تجاری تازه‌ای نمی‌نویسد.
 //
+// **🔴 رفع باگ واقعی (کشف‌شده در هم‌سازیِ فاز VIP موبایل):** فایل `context/AuthContext.tsx`ی
+// پروژه‌ی موبایل، از همان فاز M01، صراحتاً یک یادداشتِ هشدار داشت: «شکل دقیق JSON این Route در
+// این اسنپ‌شات موبایل در دسترس نبود؛ فرض شد `{ id, phoneNumber, name, role, language }`، لطفاً
+// پیش از تست نهایی با کد واقعی این فایل مقایسه شود.» آن فرض هرگز تایید نشده بود — و غلط از آب
+// درآمد: نسخه‌ی قبلیِ همین فایل اصلاً فیلد `id` را برنمی‌گرداند (فقط phoneNumber/name/role/
+// language). نتیجه‌ی عملی: در کل اپ موبایل، `user?.id` همیشه `undefined` بود — از جمله در
+// StoryViewer (تشخیصِ «آیا این استوری مالِ خودم است؟» برای نمایش دکمه‌ی حذف)، که همین امروز به
+// همین دلیل برای هیچ‌کس کار نمی‌کرد. رفع شد: `id` اکنون در پاسخ GET وجود دارد.
+//
+// **افزوده‌شده (هم‌زمان، فاز VIP موبایل):** `vipExpiresAt` هم به همین پاسخ اضافه شد — دقیقاً
+// همان ستونِ خامِ `users.vip_expires_at` که `isUserVip()` (src/lib/vip/vipStatus.ts، و اکنون
+// نسخه‌ی کپی‌شده‌ی مشابهش در پروژه‌ی موبایل) برای محاسبه‌ی وضعیتِ VIP نیاز دارد. بدون این فیلد،
+// موبایل هیچ راهی برای دانستنِ «آیا این کاربر VIP است؟» نداشت.
+//
 // - GET: دقیقاً همان getCurrentUser() که خودِ صفحه‌ی وب برای گرفتن کاربر فعلی صدا می‌زند؛ اینجا
 //   فقط خروجی‌اش به JSON تبدیل می‌شود. کاربر مهمان (بدون نشست معتبر) خطا نیست — دقیقاً هم‌رفتار
 //   با وب که برای کاربر مهمان هم به‌جای خطا، کارت دعوت به ورود نشان می‌دهد؛ اینجا هم `user: null`
@@ -14,31 +28,17 @@
 // - PATCH: دقیقاً همان به‌روزرسانیِ ستون users.language که switchLanguageAction وب انجام می‌دهد —
 //   اما به‌جای فراخوانی مستقیم خودِ switchLanguageAction (که در کنار همین کار، cookies().set و
 //   redirect() مخصوص مرورگر را هم اجرا می‌کند و در یک Route Handler/اپ موبایل بی‌معناست)، تابع
-//   مشترکِ تازه‌استخراج‌شده‌ی updateUserLanguage مستقیم صدا زده می‌شود (همان تغییر افزایشی تسک ۴
-//   داخل src/app/[lang]/profile/actions.ts).
-//
-// **⚠️ رفع یافته‌ی ممیزی تسک ۶ همین فاز:** نسخه‌ی اولیه‌ی این فایل (تسک ۴) برای کاربر مهمان از
-// PATCH کد ۴۰۱ (`unauthorized`) برمی‌گرداند. بررسی دقیق‌تر نشان داد این با رفتار واقعی
-// switchLanguageAction وب هم‌خوان نیست: آن تابع اصلاً هیچ‌وقت به‌خاطر نبودِ نشست خطا نمی‌دهد —
-// برای کاربر مهمان هم زبان را عوض می‌کند (فقط بخشِ «هم‌گام‌سازی با ستون users.language» را رد
-// می‌کند، چون دیتابیس رکوردی برای کاربر مهمان ندارد). طبق تسک ۶ («هر Route جدید از همان بررسی
-// که Server Action معادلش استفاده می‌کرد عبور کند») این مسیر اصلاح شد تا دقیقاً همین رفتارِ
-// تحمل‌گر (Tolerant) را تکرار کند: دیگر هیچ حالتی از PATCH با ۴۰۱ برنمی‌گردد؛ اگر نشست معتبر
-// بود، updateUserLanguage صدا زده می‌شود، وگرنه به‌سادگی رد می‌شود — در هر دو حالت پاسخ موفق است.
-// (در عمل، اپِ موبایل چون سوییچ زبانِ محلی‌اش کاملاً مستقل و بدون نیاز به ورود کار می‌کند، اصلاً
-// این Route را برای کاربر مهمان صدا نمی‌زند؛ این اصلاح فقط برای هم‌خوانیِ کامل و دقیق با معنای
-// واقعیِ Server Action معادلِ وب است، نه یک نیاز واقعی از سمت رابط کاربری.)
+//   مشترکِ تازه‌استخراج‌شده‌ی updateUserLanguage مستقیم صدا زده می‌شود.
 //
 // GET — بدون بدنه‌ی ورودی.
 //   خروجی برای کاربر واردشده:
-//     { success: true, user: { phoneNumber, name, role, language } }
+//     { success: true, user: { id, phoneNumber, name, role, language, vipExpiresAt } }
 //   خروجی برای کاربر مهمان:
 //     { success: true, user: null }
 //
 // PATCH — بدنه: { "language": "fa" | "ps" }
 //   خروجی موفق (چه کاربر واردشده، چه مهمان): { success: true, language }
-//   خروجی ناموفق: { success: false, error: "invalidLocale" } با کد ۴۰۰ — تنها حالتِ خطا (مقدار
-//   زبان نامعتبر یا غایب)؛ هیچ حالت ۴۰۱ای وجود ندارد (طبق رفع یافته‌ی بالا).
+//   خروجی ناموفق: { success: false, error: "invalidLocale" } با کد ۴۰۰.
 import "server-only";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -55,10 +55,12 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     user: {
+      id: user.id,
       phoneNumber: user.phoneNumber,
       name: user.name,
       role: user.role,
       language: user.language,
+      vipExpiresAt: user.vipExpiresAt,
     },
   });
 }
@@ -80,8 +82,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: false, error: "invalidLocale" }, { status: 400 });
   }
 
-  // هم‌الگو با switchLanguageAction وب: اگر نشست معتبر بود، دیتابیس هم‌گام می‌شود؛ اگر نبود
-  // (کاربر مهمان)، به‌سادگی رد می‌شود — نه یک خطا. رفع یافته‌ی ممیزی تسک ۶ (بالا).
   const user = await getCurrentUser();
   if (user) {
     await updateUserLanguage(user.id, languageInput);

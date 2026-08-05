@@ -17,6 +17,12 @@
 //    تایید عضویت، contextType/status گفتگو را هم برمی‌گرداند — تا بتوانند بعد از ارسال موفقِ
 //    پیام، در صورت لزوم، «تاییدِ خودکار» گفتگوی پشتیبانی را هم انجام دهند (رجوع کنید به
 //    autoActivateIfAdminReplied پایین همین فایل).
+// **به‌روزرسانی (قابلیت Push Notification):** sendTextMessageAction و sendVoiceMessageAction
+// حالا بعد از ثبتِ موفقِ پیام، یک اعلانِ Push هم برای طرفِ مقابلِ گفتگو ارسال می‌کنند (نه برای
+// خودِ فرستنده). ارسال کاملاً «بهترین‌تلاش» (best-effort) است — sendPushNotification هرگز
+// throw نمی‌کند (رجوع کنید به src/lib/push/sendPushNotification.ts)، پس اگر کاربر هیچ دستگاهی
+// با اعلانِ فعال ثبت نکرده باشد یا خودِ سرویسِ Push خطا بدهد، ارسالِ خودِ پیام هرگز تحتِ‌تأثیر
+// قرار نمی‌گیرد.
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -27,6 +33,7 @@ import { canUserStartNewConversation } from "@/lib/chat/chatLimits";
 import { getSupportAdminId, ADMIN_SUPPORT_CONTEXT_TYPE } from "@/lib/chat/adminSupportChat";
 import type { ChatContextType } from "@/lib/chat/chatQueries";
 import { getUnreadChatCount } from "@/lib/chat/chatNotifications";
+import { sendPushNotification } from "@/lib/push/sendPushNotification";
 
 const VOICE_BUCKET = "chat-voice-messages";
 const MAX_TEXT_LENGTH = 2000;
@@ -305,6 +312,15 @@ export async function sendTextMessageAction(
     .update(conversationUpdate)
     .eq("id", conversationId);
 
+  // **افزوده‌شده (Push Notification):** گیرنده همیشه «طرفِ دیگرِ» گفتگوست، هرگز خودِ فرستنده.
+  const textRecipientId =
+    membership.initiatorId === user.id ? membership.ownerId : membership.initiatorId;
+  await sendPushNotification(textRecipientId, {
+    title: user.name ?? "یکجا",
+    body: trimmed.length > 100 ? `${trimmed.slice(0, 100)}…` : trimmed,
+    data: { type: "chat_message", conversationId },
+  });
+
   revalidatePath(`/${lang}/chat/${conversationId}`);
   return { success: true };
 }
@@ -385,6 +401,16 @@ export async function sendVoiceMessageAction(
     .from("conversations")
     .update(conversationUpdate)
     .eq("id", conversationId);
+
+  // **افزوده‌شده (Push Notification):** همان منطقِ sendTextMessageAction، فقط با متنِ ثابتِ
+  // پیامِ صوتی به‌جای محتوای واقعی (که برای این نوع پیام اصلاً متنی وجود ندارد).
+  const voiceRecipientId =
+    membership.initiatorId === user.id ? membership.ownerId : membership.initiatorId;
+  await sendPushNotification(voiceRecipientId, {
+    title: user.name ?? "یکجا",
+    body: "🎙 پیام صوتی",
+    data: { type: "chat_message", conversationId },
+  });
 
   revalidatePath(`/${lang}/chat/${conversationId}`);
   return { success: true };

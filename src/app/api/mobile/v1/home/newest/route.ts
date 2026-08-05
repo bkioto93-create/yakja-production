@@ -16,28 +16,34 @@
 // با unstable_cache سه‌دقیقه‌ای کش شده‌اند، طبق کامنت کارفرما «همیشه بحث کش برای لود سریع در
 // اینترنت ضعیف» — این کش رایگان برای موبایل هم اعمال می‌شود) با هم صدا زده می‌شوند.
 //
+// **به‌روزرسانی (هم‌سازی موبایل با وب — قابلیت استوری):** طبق همان استدلال بالا («تازه‌ترین
+// استوری‌ها» هم به Join با users برای نام مالک نیاز دارد، پس Anon Key مستقیم کافی نیست)، سومین
+// منبع به همین Promise.all اضافه شد: getLatestStoriesForHome موجود (src/lib/home/homeQueries.ts
+// → src/lib/stories/storyQueries.ts، همان تابعی که ردیف «تازه‌ترین استوری‌ها»ی خودِ صفحه‌ی
+// اصلیِ وب هم استفاده می‌کند). عمداً به همین یک Route اضافه شد، نه یک Route جداگانه‌ی
+// `/home/stories` — چون بند ۵.۳ سند راهبردی موبایل صریحاً «کاهش تعداد درخواست‌های شبکه برای
+// اینترنت ضعیف» را اولویت می‌داند؛ این‌طور صفحه‌ی اصلیِ موبایل هم‌چنان با یک تماس شبکه‌ی واحد هر
+// پنج بخش (راننده/متخصص/کالا/ملک/استوری) را می‌گیرد، نه شش. خروجی mediaUrl از قبل کامل است
+// (getLatestStoriesForHome خودش getStoryMediaUrl را داخلی صدا می‌زند)، پس سمت موبایل به هیچ
+// تبدیل مسیر خامی نیاز ندارد — برخلاف drivers/providers که images هنوز مسیر خامِ Storage است.
+//
 // **بدون نیاز به احراز هویت** — دقیقاً مثل GET /api/mobile/v1/users/[id] (فاز M06)؛ این داده‌ی
 // صفحه‌ی اصلی برای بازدیدکننده‌ی مهمان هم نمایش داده می‌شود.
 //
-// Query param: ?limit=10 (اختیاری؛ پیش‌فرض ۱۰، سقف ۲۰ — دقیقاً همان سقفی که خودِ اکشن‌های وب هم
-// برای بنرهای مشابه استفاده می‌کنند؛ محافظت در برابر درخواست بیش‌ازحد از سمت کلاینت).
-//
-// رفع باگ دیپلوی (فاز ۱۰ — قابلیت ولایت): بعد از افزودن فیلتر ولایتی به صفحه‌ی اصلی وب،
-// getNewestDriversForHome/getNewestProvidersForHome یک آرگومان دومِ الزامی (province) گرفتند و
-// بیلد Vercel شکست («Expected 2 arguments, but got 1»)، چون این Route موبایل هنوز فقط با ۱
-// آرگومان صدایشان می‌زد. راه‌حل: یک ?province=kabul اختیاری هم اینجا پذیرفته می‌شود (اگر اپ
-// موبایل هنوز آن را نمی‌فرستد، مقدار پیش‌فرض null یعنی «همه‌ی افغانستان» است — دقیقاً همان رفتار
-// قبل از فاز ۱۰، بدون هیچ تغییر رفتاری برای نسخه‌ی فعلی اپ موبایل)؛ اعتبارسنجی‌اش هم دقیقاً
-// هم‌الگو با تمام Server Actionهای وب (isValidProvince).
-// Query param: ?province=kabul (اختیاری؛ پیش‌فرض بدون فیلتر = همه‌ی افغانستان)
-// خروجی: { drivers: HomeDriverPreview[], providers: HomeProviderPreview[] }
-// (images همان مسیرهای خامِ Storage است، نه URL کامل — تبدیل سمت موبایل، در lib/home/api.ts،
-// دقیقاً هم‌الگو با بقیه‌ی ماژول‌ها.)
+// Query param: ?limit=10 (اختیاری؛ پیش‌فرض ۱۰، سقف ۲۰) — برای راننده/متخصص.
+// Query param: ?storiesLimit=10 (اختیاری؛ پیش‌فرض ۱۰، سقف ۲۰) — جدا از limit بالا، چون
+// STORIES_SHOWCASE_LIMIT در وب هم عدد جداگانه‌ای دارد (رجوع کنید به src/app/[lang]/page.tsx).
+// Query param: ?province=kabul (اختیاری؛ پیش‌فرض بدون فیلتر = همه‌ی افغانستان) — فقط روی
+// راننده/متخصص اثر دارد؛ استوری‌ها سراسری‌اند (بدون فیلتر ولایتی، دقیقاً مثل ردیف استوریِ وب).
+// خروجی: { drivers: HomeDriverPreview[], providers: HomeProviderPreview[], stories: HomeStoryPreview[] }
+// (images راننده/متخصص همان مسیرهای خامِ Storage است، نه URL کامل — تبدیل سمت موبایل، در
+// lib/home/api.ts، دقیقاً هم‌الگو با بقیه‌ی ماژول‌ها. mediaUrl استوری‌ها، طبق بالا، از قبل کامل است.)
 import "server-only";
 import { NextResponse } from "next/server";
 import {
   getNewestDriversForHome,
   getNewestProvidersForHome,
+  getLatestStoriesForHome,
 } from "@/lib/home/homeQueries";
 import { isValidProvince } from "@/lib/provinces";
 
@@ -46,13 +52,18 @@ export async function GET(request: Request) {
   const rawLimit = Number(searchParams.get("limit"));
   const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 20) : 10;
 
+  const rawStoriesLimit = Number(searchParams.get("storiesLimit"));
+  const storiesLimit =
+    Number.isFinite(rawStoriesLimit) && rawStoriesLimit > 0 ? Math.min(rawStoriesLimit, 20) : 10;
+
   const rawProvince = searchParams.get("province");
   const province = rawProvince && isValidProvince(rawProvince) ? rawProvince : null;
 
-  const [drivers, providers] = await Promise.all([
+  const [drivers, providers, stories] = await Promise.all([
     getNewestDriversForHome(limit, province),
     getNewestProvidersForHome(limit, province),
+    getLatestStoriesForHome(storiesLimit),
   ]);
 
-  return NextResponse.json({ drivers, providers });
+  return NextResponse.json({ drivers, providers, stories });
 }
