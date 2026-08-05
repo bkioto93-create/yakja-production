@@ -164,16 +164,33 @@ export function StoriesShowcase({
 
   return (
     <section>
+      {/* **اصلاح جایگاه «همه استوری‌ها» (طبق تصویر مرجعِ کارفرما):** پیش از این یک کارتِ
+          دایره‌ایِ خط‌چین در انتهای ریلِ افقی بود. طبق تصویر، جای درستش کنارِ عنوانِ بخش است —
+          عنوان («استوری‌ها») سمت راست و لینکِ «‹ همه استوری‌ها» سمت چپِ همان ردیف، با رنگِ
+          خاکستریِ ملایم (نه رنگِ اصلیِ برند) و فلشی کوچک. ریلِ افقیِ زیرش فقط خودِ حلقه‌های
+          استوری را نشان می‌دهد. */}
       <div className="px-4 md:px-0 mb-3">
-        <h2 className="font-extrabold text-lg text-text-main">{dict.title}</h2>
-        <p className="text-sm text-text-muted">{dict.subtitle}</p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="font-extrabold text-lg text-text-main">{dict.title}</h2>
+          <Link
+            href={`/${lang}/stories`}
+            aria-label={dict.viewAllAriaLabel}
+            className="group flex items-center gap-1 shrink-0 text-sm font-semibold text-text-muted md:hover:text-primary active:opacity-70 transition-colors outline-none"
+          >
+            <span>{dict.viewAll}</span>
+            {/* فلشِ «جلو» در چیدمان RTL — هم‌رویه با بقیه‌ی اپ (ArrowRight + rotate-180) */}
+            <Icons.ArrowRight className="w-3.5 h-3.5 rotate-180 md:group-hover:-translate-x-0.5 transition-transform" />
+          </Link>
+        </div>
+        <p className="text-sm text-text-muted mt-0.5">{dict.subtitle}</p>
       </div>
 
       {/* **بازطراحی (درخواست کارفرما: «یک بک‌گراند نوارطور قشنگ که مشخص باشد این قسمت اسکرول
           افقی می‌خورد... یک مقدار هایلایت‌تر شود»):** خودِ ریل حالا یک نوارِ مجزا با پس‌زمینه‌ی
           گرادیانی، حاشیه‌ی نرم و گوشه‌های گرد است، پس از بقیه‌ی صفحه جدا و «هایلایت» دیده می‌شود.
-          دو نشانه‌ی بصریِ اسکرول هم اضافه شد: یک محوشدگیِ گرادیانی در لبه‌ی چپ (که می‌گوید محتوا
-          ادامه دارد) و دکمه‌ی «همه استوری‌ها» در انتهای ریل. */}
+          یک محوشدگیِ گرادیانی هم در لبه‌ی چپ اضافه شد که می‌گوید محتوا ادامه دارد و باید اسکرول
+          کرد. (لینکِ «همه استوری‌ها» دیگر اینجا نیست — طبق تصویر مرجع، به هدرِ بالای بخش منتقل
+          شد؛ چند خط بالاتر را ببینید.) */}
       <div className="relative">
         <div className="rounded-[26px] border border-slate-100 bg-gradient-to-l from-primary/[0.07] via-fuchsia-500/[0.05] to-transparent p-3 md:p-4 mx-4 md:mx-0">
           <div className="flex gap-4 overflow-x-auto pb-1 snap-x [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -219,22 +236,6 @@ export function StoriesShowcase({
                 </div>
               );
             })}
-
-            {/* دکمه‌ی «همه استوری‌ها» — دقیقاً در انتهای ریل (درخواست صریح کارفرما)، با همان
-                اندازه‌ی حلقه‌ها تا ردیف کاملاً هم‌تراز بماند. */}
-            <Link
-              href={`/${lang}/stories`}
-              aria-label={dict.viewAllAriaLabel}
-              className="group flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start outline-none"
-            >
-              <span className="w-16 h-16 rounded-full border-2 border-dashed border-primary/40 bg-white flex items-center justify-center text-primary group-active:scale-95 md:group-hover:border-primary md:group-hover:bg-primary/5 transition-all">
-                {/* فلشِ «جلو» در چیدمان RTL — هم‌رویه با بقیه‌ی اپ (ArrowRight + rotate-180) */}
-                <Icons.ArrowRight className="w-6 h-6 rotate-180 md:group-hover:-translate-x-0.5 transition-transform" />
-              </span>
-              <span className="text-[11px] font-extrabold text-primary text-center leading-tight w-full">
-                {dict.viewAll}
-              </span>
-            </Link>
           </div>
         </div>
 
