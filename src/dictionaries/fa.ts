@@ -51,7 +51,10 @@ export default {
         "subtitle": "نگاهی به تازه‌ترین لحظات کاربران یکجا",
         "ownerFallbackName": "کاربر یکجا",
         "viewAll": "همه استوری‌ها",
-        "viewAllAriaLabel": "دیدن همه استوری‌ها"
+        "viewAllAriaLabel": "دیدن همه استوری‌ها",
+        "emptyTitle": "هنوز کسی استوری نگذاشته",
+        "emptyDesc": "اولین‌نفری باش که یک عکس یا ویدئوی کوتاه به‌اشتراک می‌گذاری.",
+        "emptyCta": "افزودن استوری"
       }
     },
     "features": {

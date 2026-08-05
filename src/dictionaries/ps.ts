@@ -61,7 +61,10 @@ export default {
         "subtitle": "د یکجا کاروونکو تازه شیبو ته یو نظر",
         "ownerFallbackName": "د یکجا غړی",
         "viewAll": "ټول سټوري",
-        "viewAllAriaLabel": "ټول سټوري لیدل"
+        "viewAllAriaLabel": "ټول سټوري لیدل",
+        "emptyTitle": "لا تر اوسه هیچا سټوري نه ده ایښې",
+        "emptyDesc": "لومړی کس شه چې یو عکس یا لنډ ویډیو شریکوي.",
+        "emptyCta": "سټوري اضافه کول"
       }
     },
     "features": {

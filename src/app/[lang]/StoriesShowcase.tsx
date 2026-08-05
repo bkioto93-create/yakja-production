@@ -36,6 +36,9 @@ export type StoriesShowcaseDict = {
   ownerFallbackName: string;
   viewAll: string;
   viewAllAriaLabel: string;
+  emptyTitle: string;
+  emptyDesc: string;
+  emptyCta: string;
 };
 
 export function StoriesShowcase({
@@ -152,12 +155,44 @@ export function StoriesShowcase({
   }
 
   if (items.length === 0) {
-    // برخلاف بقیه‌ی بخش‌های صفحه‌ی اصلی (که حتی وقتی خالی‌اند یک کارت «هنوز چیزی ثبت نشده»
-    // نشان می‌دهند)، وقتی هیچ استوری فعالی در کل پلتفرم نیست، این بخش عمداً کاملاً از صفحه حذف
-    // می‌شود، نه یک کارت خالی — چون استوری یک ویژگیِ «وقتی هست خیلی جذاب است، وقتی نیست جای
-    // خالی‌اش آزاردهنده نیست» است؛ کارتِ «هنوز استوری‌ای نیست» درست بالای هدر برند صفحه‌ی اصلی
-    // حسِ بدی از خلوت‌بودن پلتفرم القا می‌کرد.
-    return null;
+    // **بازبینیِ این تصمیم (طبق پرسش کارفرما «چرا استوری‌ها دیده نمی‌شود؟»):** پیش از این، وقتی
+    // هیچ استوری فعالی وجود نداشت، کل بخش کاملاً از صفحه حذف می‌شد (return null) — دقیقاً همین
+    // چیزی که باعث شد بخش استوری از صفحه‌ی اصلی ناپدید شود. آن رفتار، رفتاری واقعی و خواسته‌شده
+    // بود، نه یک باگ: استوری‌ها ۲۴ ساعت پس از انتشار منقضی می‌شوند (مثل اینستاگرام)، و ظاهراً در
+    // این بازه هیچ کاربری استوری تازه‌ای نگذاشته بود.
+    //
+    // اما برای یک اپِ تازه‌راه‌اندازی‌شده که هنوز محتوای کاربرها کم است، «ناپدیدشدنِ کامل» انتخاب
+    // درستی نیست — نه‌فقط چون کارفرما فکر می‌کند باگ است، بلکه چون این دقیقاً لحظه‌ای است که اپ
+    // باید کاربر را به ساختنِ اولین محتوا دعوت کند (مسئله‌ی معروفِ «شروع سرد» در پلتفرم‌های
+    // محتوامحور). به همین دلیل این بخش حالا به‌جای ناپدیدشدن، یک کارتِ دعوت‌کننده نشان می‌دهد:
+    // «هنوز کسی استوری نگذاشته — اولین‌نفر باش» + دکمه‌ای که مستقیم به صفحه‌ی افزودن استوری
+    // می‌رود (src/app/[lang]/profile، همان‌جایی که AddStorySection قرار دارد). آن صفحه از قبل
+    // برای کاربر مهمان هم باز می‌ماند (فقط با یک کارت دعوت به ورود)، پس نیازی به بررسیِ جداگانه‌ی
+    // ورود/عدم‌ورود اینجا نیست.
+    return (
+      <section>
+        <div className="px-4 md:px-0 mb-3">
+          <h2 className="font-extrabold text-lg text-text-main">{dict.title}</h2>
+          <p className="text-sm text-text-muted mt-0.5">{dict.subtitle}</p>
+        </div>
+
+        <div className="mx-4 md:mx-0 rounded-[26px] border border-dashed border-primary/25 bg-gradient-to-l from-primary/[0.06] via-fuchsia-500/[0.04] to-transparent px-4 py-5 md:px-6 md:py-6 flex items-center gap-3 md:gap-4">
+          <span className="shrink-0 w-12 h-12 md:w-14 md:h-14 rounded-full border-2 border-dashed border-primary/40 bg-white flex items-center justify-center text-primary">
+            <Icons.Plus className="w-5 h-5 md:w-6 md:h-6" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-extrabold text-sm text-text-main">{dict.emptyTitle}</p>
+            <p className="text-xs text-text-muted mt-0.5 leading-relaxed">{dict.emptyDesc}</p>
+          </div>
+          <Link
+            href={`/${lang}/profile`}
+            className="shrink-0 rounded-full bg-primary text-white text-xs md:text-sm font-extrabold px-4 h-10 flex items-center active:scale-95 md:hover:opacity-90 transition-all"
+          >
+            {dict.emptyCta}
+          </Link>
+        </div>
+      </section>
+    );
   }
 
   const openItem = openIndex !== null ? items[openIndex] : null;
