@@ -41,6 +41,7 @@ import { HomeFaq } from "./HomeFaq";
 import { HeroIllustration } from "./HeroIllustration";
 import { QuickAccessIcon } from "./QuickAccessIcon";
 import { VipHomeBanner } from "@/components/home/VipHomeBanner";
+import { VipPitchSection } from "@/components/home/VipPitchSection";
 import { StoriesShowcase } from "./StoriesShowcase";
 import { CategoryBanner } from "@/components/home/CategoryBanner";
 import {
@@ -236,6 +237,19 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
 
          {/* بنر VIP — فاز ۱۱، بند ۷ پرامپت VIP: بین «دسترسی سریع» و «چرا یکجا؟» */}
          <VipHomeBanner lang={lang} dict={dict.vip.homeBanner} />
+
+         {/* بخشِ ترغیبیِ «چرا VIP نتیجه‌ی بهتری می‌آورد؟» — طبق تاکید صریح کارفرما، علاوه بر
+             صفحه‌ی جزئیاتِ VIP (src/app/[lang]/vip/page.tsx)، همین توضیح باید در صفحه‌ی اصلی هم
+             (جایی که بیشترین بازدید را دارد) دیده شود، نه فقط جایی که کاربر از قبل تصمیم به
+             کلیک روی «بیشتر بدانید» گرفته. دقیقاً زیر بنر VIP قرار گرفت تا همان لحظه‌ای که
+             کاربر بنر را می‌بیند، بلافاصله دلیلِ «چرا» را هم ببیند. کامپوننتِ مشترک، رجوع کنید
+             به src/components/home/VipPitchSection.tsx (همان بخش، عیناً، در خودِ صفحه‌ی VIP هم
+             هست). */}
+         <VipPitchSection
+           dict={dict.vip.pitch}
+           ctaHref={`/${lang}/vip`}
+           ctaLabel={dict.vip.upsell.button}
+         />
 
          {/* بنرهای پیش‌رونده‌ی افقی — رانندگان/متخصصین/کالا/ملک تازه (درخواست صریح کارفرما)،
              هرکدام با یک بنر اسپلیت معرفی‌کننده‌ی همان دسته بالای خودش (درخواست تازه‌ی کارفرما).
