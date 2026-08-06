@@ -16,6 +16,12 @@
 // عکس‌های واقعی دیده شد. رفع شد با حذف آن style اضافه (فقط className تعیین‌کننده‌ی اندازه باقی
 // ماند) + افزودن overflow-hidden به هر سه لایه‌ی تودرتو (نه فقط لایه‌ی آخر) به‌عنوان یک محافظ
 // دوم، تا حتی اگر در آینده باز چنین ناسازگاری‌ای رخ داد، هرگز از مرز دایره‌ی خودش بیرون نزند.
+//
+// **افزوده‌شده (سنجاق‌شدنِ استوریِ مدیریت):** یک variant تازه («official») + یک badge اختیاری
+// اضافه شد تا استوریِ حساب رسمی مدیریت یکجا، همان‌جا در ردیف، از استوریِ کاربرهای عادی بصراً
+// متمایز باشد — بدون این‌که این کامپوننت هیچ منطق تجاری‌ای درباره‌ی «کیست ادمین» بداند؛ تصمیم
+// «این استوری رسمی است یا نه» همیشه بیرون از این فایل (StoriesShowcase.tsx و مشابه) گرفته
+// می‌شود، اینجا فقط رنگ/نشان متفاوت رندر می‌شود.
 "use client";
 
 import type { ReactNode } from "react";
@@ -26,17 +32,29 @@ export function StoryRing({
   size = 64,
   children,
   ariaLabel,
+  variant = "default",
+  badge,
 }: {
   hasActiveStory: boolean;
   onClick?: () => void;
   size?: number;
   children: ReactNode;
   ariaLabel?: string;
+  // "official" فقط برای سنجاق‌شدنِ استوریِ حساب رسمی مدیریت یکجا استفاده می‌شود — گرادیانی
+  // متمایز از حلقه‌ی معمولی (طلایی/زمردی به‌جای کهربایی/صورتی/بنفش).
+  variant?: "default" | "official";
+  // یک نشانِ کوچکِ اختیاری (مثلاً تیکِ آبی) که گوشه‌ی پایین‌راستِ حلقه رندر می‌شود.
+  badge?: ReactNode;
 }) {
   // ضخامت حلقه‌ی گرادیانی و فاصله‌ی سفید بین حلقه و آواتار، هردو نسبت به اندازه‌ی کلی محاسبه
   // می‌شوند تا در اندازه‌های مختلف (کوچک/بزرگ) همیشه تناسب بصری درستی داشته باشد.
   const ringThickness = Math.max(2, Math.round(size * 0.045));
   const gapThickness = Math.max(2, Math.round(size * 0.035));
+
+  const ringGradientClassName =
+    variant === "official"
+      ? "bg-gradient-to-tr from-amber-400 via-emerald-500 to-teal-600"
+      : "bg-gradient-to-tr from-amber-400 via-pink-500 to-fuchsia-600";
 
   // آواتار داخلی دیگر هیچ اندازه‌ی درون‌خطی مستقل ندارد — همیشه دقیقاً همان فضایی را پر می‌کند
   // که والدش (لایه‌ی فاصله‌ی سفید، یا مستقیم اندازه‌ی کامل وقتی حلقه نیست) در اختیارش می‌گذارد.
@@ -46,7 +64,7 @@ export function StoryRing({
 
   const content = hasActiveStory ? (
     <div
-      className="rounded-full overflow-hidden bg-gradient-to-tr from-amber-400 via-pink-500 to-fuchsia-600"
+      className={`rounded-full overflow-hidden ${ringGradientClassName}`}
       style={{ width: size, height: size, padding: ringThickness }}
     >
       <div
@@ -62,17 +80,28 @@ export function StoryRing({
     </div>
   );
 
-  if (!onClick) return content;
+  // بدنه‌ی مشترکِ «حلقه + نشانِ گوشه‌ی اختیاری» — چه دکمه باشد چه نباشد.
+  const contentWithBadge = badge ? (
+    <div className="relative" style={{ width: size, height: size }}>
+      {content}
+      <div className="absolute -bottom-0.5 -left-0.5 pointer-events-none">{badge}</div>
+    </div>
+  ) : (
+    content
+  );
+
+  if (!onClick) return contentWithBadge;
 
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      className="rounded-full overflow-hidden active:scale-95 transition-transform shrink-0"
+      className="relative active:scale-95 transition-transform shrink-0"
       style={{ width: size, height: size }}
     >
       {content}
+      {badge && <div className="absolute -bottom-0.5 -left-0.5 pointer-events-none">{badge}</div>}
     </button>
   );
 }

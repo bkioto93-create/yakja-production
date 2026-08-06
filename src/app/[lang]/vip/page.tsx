@@ -93,6 +93,49 @@ export default async function VipPage({
         </Card>
       </div>
 
+      {/* بخش ترغیبی «چرا VIP نتیجه‌ی بهتری می‌آورد؟» — طبق درخواست صریح کارفرما: توضیح این‌که
+          عضویت VIP یعنی مشتری بیشتر، دیده‌شدن بیشتر و فروش سریع‌تر. عمداً هر سه مورد به همان
+          امتیازهای واقعیِ بالا (آگهی/چت نامحدود، ویدئو، نشان VIP) وصل شده‌اند، نه یک وعده‌ی
+          انتزاعی؛ به همین دلیل هیچ ادعای اضافه‌ای (مثل «اولویت در نتایج جستجو») که در کد واقعی
+          پیاده‌سازی نشده، اینجا گفته نمی‌شود. */}
+      <div className="rounded-[26px] border border-amber-100 bg-gradient-to-b from-amber-50/70 to-white p-4 md:p-5 flex flex-col gap-4">
+        <h2 className="font-extrabold text-text-main text-sm text-center">
+          {vipDict.pitch.title}
+        </h2>
+
+        <div className="flex flex-col gap-3">
+          {vipDict.pitch.items.map((item, index) => {
+            const PitchIcon = [Icons.Users, Icons.Search, Icons.CheckCircle][index] ?? Icons.CheckCircle;
+            return (
+              <div key={item.title} className="flex items-start gap-3">
+                <div className="w-9 h-9 shrink-0 rounded-xl bg-amber-500 text-white flex items-center justify-center">
+                  <PitchIcon className="w-4 h-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-bold text-text-main text-sm">{item.title}</span>
+                  <span className="text-xs text-text-muted leading-relaxed">{item.desc}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* یادآوریِ مخصوصِ بخش املاک — طبق درخواست صریح کارفرما. */}
+        <div className="rounded-2xl bg-white border border-amber-100 p-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 shrink-0 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+            <Icons.Home className="w-4 h-4" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-text-main text-xs">
+              {vipDict.pitch.realEstateNoteLabel}
+            </span>
+            <span className="text-xs text-text-muted leading-relaxed mt-0.5">
+              {vipDict.pitch.realEstateNote}
+            </span>
+          </div>
+        </div>
+      </div>
+
       <Card className="p-5 flex flex-col items-center text-center gap-1 bg-gradient-to-b from-amber-50 to-white border-amber-100">
         <span className="text-xs font-bold text-text-muted">{vipDict.priceLabel}</span>
         <div className="flex items-baseline gap-1.5">

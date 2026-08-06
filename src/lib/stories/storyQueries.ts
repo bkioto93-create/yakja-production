@@ -14,9 +14,18 @@
 //
 //   ۳) getLatestStoriesForHome: ردیف «تازه‌ترین استوری‌ها»ی صفحه‌ی اصلی — یک استوری (آخرین) به
 //      ازای هر کاربر یکتا، جدیدترین کاربرها اول.
+//
+// **سنجاق‌شدنِ استوریِ مدیریت (به‌روزرسانی):** طبق درخواست صریح کارفرما، اگر «حساب رسمی
+// مدیریت یکجا» (رجوع کنید به src/lib/admin/officialAccount.ts) همین حالا یک استوری فعال داشته
+// باشد، همیشه — در ردیف صفحه‌ی اصلی (fetchLatestStoriesForHome) و در صفحه‌ی «همه استوری‌ها»
+// (fetchStoriesPage، فقط در اولین صفحه/cursor=null) — به‌عنوان اولین آیتم برگردانده می‌شود،
+// جدا از نوبتِ عادیِ «جدیدترین اول». هر آیتمِ خروجی حالا یک پرچمِ isOfficial هم دارد تا لایه‌ی
+// نمایش (StoriesShowcase.tsx / AllStoriesClient.tsx) بتواند حلقه/جداکننده‌ی متفاوتی برایش
+// نشان دهد.
 import "server-only";
 import { supabaseAdminClient } from "@/lib/supabase/server";
 import { getStoryMediaUrl } from "@/lib/stories/images";
+import { getOfficialAdminId } from "@/lib/admin/officialAccount";
 
 export type StoryMediaType = "image" | "video";
 
@@ -78,9 +87,44 @@ export type HomeStoryPreview = {
   mediaType: StoryMediaType;
   mediaUrl: string;
   createdAt: string;
+  // true فقط برای استوریِ سنجاق‌شده‌ی «حساب رسمی مدیریت یکجا» — رجوع کنید به توضیح بالای فایل.
+  isOfficial: boolean;
 };
 
-// «تازه‌ترین استوری‌ها»ی صفحه‌ی اصلی — یک استوری (آخرین) به ازای هر کاربر یکتا.
+// آخرین استوریِ فعالِ «حساب رسمی مدیریت یکجا» (اگر باشد) — به همراه اسم فعلیِ همان حساب.
+// جدا از fetchLatestBatch پایین نگه داشته شد چون این یکی همیشه دقیقاً یک صاحب (adminId) دارد،
+// نه یک دسته‌ی چندصاحبی، و چون نیازی به یکتاسازیِ owner_id ندارد.
+async function fetchOfficialStoryPreview(adminId: string): Promise<HomeStoryPreview | null> {
+  const nowIso = new Date().toISOString();
+
+  const [{ data: storyRow }, { data: ownerRow }] = await Promise.all([
+    supabaseAdminClient
+      .from("stories")
+      .select("id, media_type, media_path, created_at")
+      .eq("owner_id", adminId)
+      .gt("expires_at", nowIso)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabaseAdminClient.from("users").select("name").eq("id", adminId).maybeSingle(),
+  ]);
+
+  if (!storyRow) return null;
+
+  return {
+    storyId: storyRow.id as string,
+    ownerId: adminId,
+    ownerName: (ownerRow?.name as string | null) ?? null,
+    mediaType: storyRow.media_type as StoryMediaType,
+    mediaUrl: getStoryMediaUrl(storyRow.media_path as string),
+    createdAt: storyRow.created_at as string,
+    isOfficial: true,
+  };
+}
+
+// «تازه‌ترین استوری‌ها» — یک استوری (آخرین) به ازای هر کاربر یکتا، جدا از تصمیمِ سنجاق‌کردنِ
+// استوریِ رسمی که پیرامون این تابع گرفته می‌شود. excludeOwnerIds برای جلوگیری از دوباره‌آمدنِ
+// صاحبی است که از قبل جداگانه (مثلاً به‌عنوان استوریِ رسمیِ سنجاق‌شده) در خروجی قرار گرفته.
 //
 // چرا یک کوئری Postgres با DISTINCT ON به‌جای این پیاده‌سازی نوشته نشد: supabase-js از
 // DISTINCT ON پشتیبانی مستقیم ندارد (نیازمند یک تابع RPC مجزا می‌شد). در عوض، یک دسته‌ی نسبتاً
@@ -88,7 +132,12 @@ export type HomeStoryPreview = {
 // در حافظه‌ی Node انجام می‌شود — در مقیاس فعلی پروژه (چند ده/صد استوری هم‌زمان فعال) این
 // سبک‌تر و ساده‌تر از نگهداری یک تابع Postgres اضافه است؛ اگر مقیاس پروژه بعداً خیلی بزرگ‌تر
 // شد، این تابع کاندید اول برای تبدیل به یک RPC است.
-async function fetchLatestStoriesForHome(limit: number): Promise<HomeStoryPreview[]> {
+async function fetchLatestBatch(
+  limit: number,
+  excludeOwnerIds: Set<string>
+): Promise<HomeStoryPreview[]> {
+  if (limit <= 0) return [];
+
   const nowIso = new Date().toISOString();
   const fetchBatchSize = Math.max(limit * 8, 80);
 
@@ -101,7 +150,9 @@ async function fetchLatestStoriesForHome(limit: number): Promise<HomeStoryPrevie
 
   if (error || !data || data.length === 0) return [];
 
-  const seenOwners = new Set<string>();
+  // seenOwners از قبل با excludeOwnerIds پر می‌شود — یعنی صاحب‌های مستثنا هم دقیقاً مثل «قبلاً
+  // دیده‌شده» رفتار می‌کنند و بدون هیچ منطق جداگانه، به‌طور طبیعی از خروجی این دسته کنار می‌مانند.
+  const seenOwners = new Set<string>(excludeOwnerIds);
   const latestPerOwner: typeof data = [];
   for (const row of data) {
     const ownerId = row.owner_id as string;
@@ -127,7 +178,19 @@ async function fetchLatestStoriesForHome(limit: number): Promise<HomeStoryPrevie
     mediaType: row.media_type as StoryMediaType,
     mediaUrl: getStoryMediaUrl(row.media_path as string),
     createdAt: row.created_at as string,
+    isOfficial: false,
   }));
+}
+
+async function fetchLatestStoriesForHome(limit: number): Promise<HomeStoryPreview[]> {
+  const adminId = await getOfficialAdminId();
+  const officialStory = adminId ? await fetchOfficialStoryPreview(adminId) : null;
+
+  const remainingLimit = officialStory ? Math.max(limit - 1, 0) : limit;
+  const excludeOwnerIds = officialStory ? new Set([officialStory.ownerId]) : new Set<string>();
+  const rest = await fetchLatestBatch(remainingLimit, excludeOwnerIds);
+
+  return officialStory ? [officialStory, ...rest] : rest;
 }
 
 // ---------------------------------------------------------------------------
@@ -155,6 +218,19 @@ export async function fetchStoriesPage(
   limit: number,
   cursor: string | null
 ): Promise<StoriesPage> {
+  // استوریِ رسمی فقط در همان اولین صفحه (cursor===null) سنجاق می‌شود — نه در هر صفحه‌ی
+  // بعدی، چون «سنجاق در صدر» یک مفهومِ یک‌بارِ کلِ فهرست است، نه چیزی که هر صفحه باید تکرار
+  // کند. اگر همین صاحب دوباره (طبق نوبتِ عادیِ created_at) در یکی از صفحات بعدی هم ظاهر شود،
+  // یکتاسازیِ سمت کلاینت (AllStoriesClient.tsx، بر اساس ownerId بین کل صفحات) به‌طور طبیعی
+  // جلوی تکراری‌شدنش را می‌گیرد؛ پس نیازی به منطق مستثناسازیِ اضافه در صفحات بعدی نیست.
+  let officialStory: HomeStoryPreview | null = null;
+  if (cursor === null) {
+    const adminId = await getOfficialAdminId();
+    officialStory = adminId ? await fetchOfficialStoryPreview(adminId) : null;
+  }
+
+  const remainingLimit = officialStory ? Math.max(limit - 1, 0) : limit;
+
   const nowIso = new Date().toISOString();
   // مثل تابع صفحه‌ی اصلی، عمداً بیشتر از حد نیاز خوانده می‌شود چون بعد از یکتاسازی بر اساس
   // صاحب استوری، تعداد ردیف‌های مفید کمتر از تعداد ردیف‌های خام است.
@@ -173,24 +249,38 @@ export async function fetchStoriesPage(
 
   const { data, error } = await query;
   if (error || !data || data.length === 0) {
-    return { items: [], nextCursor: null };
+    return officialStory
+      ? { items: [officialStory], nextCursor: null }
+      : { items: [], nextCursor: null };
   }
 
-  const seenOwners = new Set<string>();
+  const seenOwners = new Set<string>(officialStory ? [officialStory.ownerId] : []);
   const latestPerOwner: typeof data = [];
   let lastConsumedCreatedAt: string | null = null;
 
-  for (const row of data) {
-    lastConsumedCreatedAt = row.created_at as string;
-    const ownerId = row.owner_id as string;
-    if (seenOwners.has(ownerId)) continue;
-    seenOwners.add(ownerId);
-    latestPerOwner.push(row);
-    if (latestPerOwner.length >= limit) break;
+  // remainingLimit فقط وقتی صفر می‌شود که صفحه‌بندی با اندازه‌ی صفحه‌ی ۱ صدا زده شده باشد و
+  // استوریِ رسمی هم پین شده باشد — چیزی که در عمل هرگز رخ نمی‌دهد (STORIES_PAGE_SIZE=۱۲)، اما
+  // برای درستیِ کامل، در آن حالت این حلقه اصلاً چیزی مصرف نمی‌کند.
+  if (remainingLimit > 0) {
+    for (const row of data) {
+      lastConsumedCreatedAt = row.created_at as string;
+      const ownerId = row.owner_id as string;
+      if (seenOwners.has(ownerId)) continue;
+      seenOwners.add(ownerId);
+      latestPerOwner.push(row);
+      if (latestPerOwner.length >= remainingLimit) break;
+    }
   }
 
+  // اگر دسته‌ی خام کوچک‌تر از سقفِ درخواستی بود، یعنی به انتهای واقعی جدول رسیده‌ایم و دیگر
+  // صفحه‌ی بعدی وجود ندارد.
+  const reachedEnd = data.length < fetchBatchSize;
+  const nextCursor = reachedEnd ? null : lastConsumedCreatedAt;
+
   if (latestPerOwner.length === 0) {
-    return { items: [], nextCursor: null };
+    return officialStory
+      ? { items: [officialStory], nextCursor }
+      : { items: [], nextCursor };
   }
 
   const ownerIds = latestPerOwner.map((row) => row.owner_id as string);
@@ -200,19 +290,17 @@ export async function fetchStoriesPage(
     .in("id", ownerIds);
   const ownerById = new Map((owners ?? []).map((o) => [o.id as string, o]));
 
-  const items: HomeStoryPreview[] = latestPerOwner.map((row) => ({
+  const rest: HomeStoryPreview[] = latestPerOwner.map((row) => ({
     storyId: row.id as string,
     ownerId: row.owner_id as string,
     ownerName: ownerById.get(row.owner_id as string)?.name ?? null,
     mediaType: row.media_type as StoryMediaType,
     mediaUrl: getStoryMediaUrl(row.media_path as string),
     createdAt: row.created_at as string,
+    isOfficial: false,
   }));
 
-  // اگر دسته‌ی خام کوچک‌تر از سقفِ درخواستی بود، یعنی به انتهای واقعی جدول رسیده‌ایم و دیگر
-  // صفحه‌ی بعدی وجود ندارد.
-  const reachedEnd = data.length < fetchBatchSize;
-  const nextCursor = reachedEnd ? null : lastConsumedCreatedAt;
+  const items = officialStory ? [officialStory, ...rest] : rest;
 
   return { items, nextCursor };
 }

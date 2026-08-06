@@ -234,40 +234,57 @@ export function StoriesShowcase({
                 ? story.ownerName
                 : dict.ownerFallbackName;
               return (
-                <div
-                  key={story.storyId}
-                  className="flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start"
-                >
-                  <StoryRing
-                    hasActiveStory={true}
-                    onClick={() => handleOpen(index)}
-                    size={64}
-                    ariaLabel={ringAriaLabelTemplate.replace("{name}", displayName)}
-                  >
-                    <div className="w-full h-full flex items-center justify-center bg-primary/10 overflow-hidden">
-                      {story.mediaType === "image" ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={story.mediaUrl}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <video
-                          src={story.mediaUrl}
-                          muted
-                          playsInline
-                          preload="metadata"
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  </StoryRing>
-                  <span className="text-[11px] font-bold text-text-main text-center truncate w-full">
-                    {displayName}
-                  </span>
+                <div key={story.storyId} className="flex items-center gap-4 shrink-0">
+                  <div className="flex flex-col items-center gap-1.5 w-[76px] shrink-0 snap-start">
+                    <StoryRing
+                      hasActiveStory={true}
+                      onClick={() => handleOpen(index)}
+                      size={64}
+                      ariaLabel={ringAriaLabelTemplate.replace("{name}", displayName)}
+                      variant={story.isOfficial ? "official" : "default"}
+                      badge={
+                        story.isOfficial ? (
+                          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white ring-2 ring-white">
+                            <Icons.CheckCircle className="w-3 h-3" />
+                          </span>
+                        ) : undefined
+                      }
+                    >
+                      <div className="w-full h-full flex items-center justify-center bg-primary/10 overflow-hidden">
+                        {story.mediaType === "image" ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={story.mediaUrl}
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={story.mediaUrl}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                    </StoryRing>
+                    <span className="text-[11px] font-bold text-text-main text-center truncate w-full">
+                      {displayName}
+                    </span>
+                  </div>
+
+                  {/* جداکننده‌ی خاصِ استوریِ رسمی — فقط دقیقاً بعد از استوریِ سنجاق‌شده‌ی
+                      مدیریت رندر می‌شود (همیشه اولین آیتم، اگر وجود داشته باشد)، تا واضح باشد
+                      این یکی از بقیه‌ی ردیف جداست و متعلق به خودِ مدیریت یکجاست. */}
+                  {story.isOfficial && index === 0 && items.length > 1 && (
+                    <div
+                      aria-hidden="true"
+                      className="self-stretch w-px my-2 rounded-full bg-gradient-to-b from-transparent via-slate-300 to-transparent"
+                    />
+                  )}
                 </div>
               );
             })}

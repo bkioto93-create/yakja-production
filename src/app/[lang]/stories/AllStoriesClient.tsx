@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
+import { Icons } from "@/components/ui/Icons";
 import { StoryRing } from "@/components/stories/StoryRing";
 import { StoryViewer, type StoryViewerDict } from "@/components/stories/StoryViewer";
 import { getUserStoriesAction } from "@/app/[lang]/profile/storyActions";
@@ -205,37 +206,58 @@ export function AllStoriesClient({
         {items.map((story, index) => {
           const displayName = story.ownerName?.trim() ? story.ownerName : ownerFallbackName;
           return (
-            <div key={story.storyId} className="flex flex-col items-center gap-2 min-w-0">
-              <StoryRing
-                hasActiveStory={true}
-                onClick={() => handleOpen(index)}
-                size={78}
-                ariaLabel={ringAriaLabelTemplate.replace("{name}", displayName)}
-              >
-                <div className="w-full h-full flex items-center justify-center bg-primary/10 overflow-hidden">
-                  {story.mediaType === "image" ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={story.mediaUrl}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <video
-                      src={story.mediaUrl}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      className="w-full h-full object-cover"
-                    />
-                  )}
-                </div>
-              </StoryRing>
-              <span className="text-[11px] font-bold text-text-main text-center truncate w-full px-0.5">
-                {displayName}
-              </span>
+            <div key={story.storyId} className="contents">
+              <div className="flex flex-col items-center gap-2 min-w-0">
+                <StoryRing
+                  hasActiveStory={true}
+                  onClick={() => handleOpen(index)}
+                  size={78}
+                  ariaLabel={ringAriaLabelTemplate.replace("{name}", displayName)}
+                  variant={story.isOfficial ? "official" : "default"}
+                  badge={
+                    story.isOfficial ? (
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full bg-emerald-500 text-white ring-2 ring-white">
+                        <Icons.CheckCircle className="w-3 h-3" />
+                      </span>
+                    ) : undefined
+                  }
+                >
+                  <div className="w-full h-full flex items-center justify-center bg-primary/10 overflow-hidden">
+                    {story.mediaType === "image" ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={story.mediaUrl}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        src={story.mediaUrl}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                </StoryRing>
+                <span className="text-[11px] font-bold text-text-main text-center truncate w-full px-0.5">
+                  {displayName}
+                </span>
+              </div>
+
+              {/* جداکننده‌ی خاصِ استوریِ رسمی — چون این صفحه شبکه‌ای (Grid) است نه ریلِ افقی،
+                  جداکننده هم یک خطِ افقیِ کاملاً عرض‌گیر است (col-span-full) که خودش را در یک
+                  ردیفِ مستقلِ Grid جا می‌کند؛ دقیقاً بعد از استوریِ سنجاق‌شده‌ی مدیریت (که طبق
+                  storyQueries.ts همیشه اولین آیتم است، اگر وجود داشته باشد). */}
+              {story.isOfficial && index === 0 && items.length > 1 && (
+                <div
+                  aria-hidden="true"
+                  className="col-span-full h-px my-1 rounded-full bg-gradient-to-l from-transparent via-slate-200 to-transparent"
+                />
+              )}
             </div>
           );
         })}
