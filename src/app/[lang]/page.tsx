@@ -100,13 +100,13 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   // imageSrc: مسیر تصویر کاوایی/کیوت سه‌بعدی (بعداً توسط کارفرما اضافه می‌شود — رجوع کنید به
   // فایل راهنما برای پرامپت‌ها و مسیر دقیق). تا وقتی فایل موجود نیست، QuickAccessIcon خودکار به
   // آیکون کلاسیک (iconName) برمی‌گردد.
-  // هر دسته علاوه بر رنگ متن/پس‌زمینه، یک گرادیانِ ملایم و یک رنگِ هاله (glow) هم دارد — برای
-  // کارت‌های بازطراحی‌شده‌ی «دسترسی عاجل» که دیگر یک مربع تخت نیستند.
+  // **طراحی جدید و اختصاصی:** مقادیر bgColor به استایل‌های پاستلی و ملایم (برای ایجاد شکل نرمِ مربعی-دایره‌ای) 
+  // تغییر داده شد تا دقیقاً با آیکون‌های ۳ بعدی هماهنگ باشد.
   const categories = [
-    { id: 'listings', href: `/${lang}/listings`, title: dict.dashboard.categories.listings, iconName: "Box" as const, imageSrc: "/icons/quick-listings.png", textColor: "text-blue-500", bgColor: "bg-blue-100/60", gradient: "from-blue-100 to-blue-50/40", glow: "bg-blue-400/20", ring: "md:group-hover:ring-blue-200" },
-    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, iconName: "Truck" as const, imageSrc: "/icons/quick-transport.png", textColor: "text-accent", bgColor: "bg-accent/10", gradient: "from-accent/20 to-accent/5", glow: "bg-accent/25", ring: "md:group-hover:ring-accent/30" },
-    { id: 'services', href: `/${lang}/services`, title: dict.dashboard.categories.services, iconName: "Wrench" as const, imageSrc: "/icons/quick-services.png", textColor: "text-emerald-500", bgColor: "bg-emerald-100/60", gradient: "from-emerald-100 to-emerald-50/40", glow: "bg-emerald-400/20", ring: "md:group-hover:ring-emerald-200" },
-    { id: 'real-estate', href: `/${lang}/real-estate`, title: dict.dashboard.categories.realEstate, iconName: "Home" as const, imageSrc: "/icons/quick-realestate.png", textColor: "text-purple-500", bgColor: "bg-purple-100/60", gradient: "from-purple-100 to-purple-50/40", glow: "bg-purple-400/20", ring: "md:group-hover:ring-purple-200" },
+    { id: 'listings', href: `/${lang}/listings`, title: dict.dashboard.categories.listings, iconName: "Box" as const, imageSrc: "/icons/quick-listings.png", textColor: "text-blue-500", bgColor: "bg-blue-50/80", ring: "md:group-hover:ring-blue-200" },
+    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, iconName: "Truck" as const, imageSrc: "/icons/quick-transport.png", textColor: "text-orange-500", bgColor: "bg-orange-50/80", ring: "md:group-hover:ring-orange-200" },
+    { id: 'services', href: `/${lang}/services`, title: dict.dashboard.categories.services, iconName: "Wrench" as const, imageSrc: "/icons/quick-services.png", textColor: "text-emerald-500", bgColor: "bg-emerald-50/80", ring: "md:group-hover:ring-emerald-200" },
+    { id: 'real-estate', href: `/${lang}/real-estate`, title: dict.dashboard.categories.realEstate, iconName: "Home" as const, imageSrc: "/icons/quick-realestate.png", textColor: "text-purple-500", bgColor: "bg-purple-50/80", ring: "md:group-hover:ring-purple-200" },
   ];
 
   const trustBadges = [
@@ -194,54 +194,41 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
            viewerDict={dict.stories.viewer}
          />
 
-         {/* دسترسی سریع به چهار ماژول — 🛠️ بازخوردِ کارفرما: «فقط همین بخش تیره باشه، نه کل
-             اپ» — پس این تنها جایی‌ست که هدر/فوتر/نوارِ پایین به آن دست نزدند: یک پنلِ تیره‌ی
-             مستقل (bg-hero-dark، هم‌رنگِ دقیقِ بنرِ اصلی) با دو هاله‌ی نوریِ محو، که همان
-             کارت‌های سفیدِ ماژول (بدون هیچ تغییری در خودشان) رویش شناورند — دقیقاً معادلِ همین
-             تغییر در app/(tabs)/index.tsx پروژه‌ی موبایل. */}
-         <div className="relative isolate overflow-hidden rounded-[32px] bg-hero-dark p-5 md:p-8 space-y-4">
-           <div className="absolute -top-16 -left-10 w-[180px] h-[180px] bg-primary/25 rounded-full blur-[70px] pointer-events-none" />
-           <div className="absolute -bottom-14 -right-10 w-[160px] h-[160px] bg-blue-600/15 rounded-full blur-[70px] pointer-events-none" />
+         {/* دسترسی سریع به چهار ماژول — 🛠️ بازطراحی مطابق با رفرنس تصویری کارفرما: 
+             استفاده از تم تیره برای کانتینر (#0B1121)، کادرهای سفید با گوشه‌های کاملاً گرد،
+             و پس‌زمینه رنگیِ محو (squircle) پشت آیکون‌ها برای ایجاد حس کاوایی و سه‌بعدی. */}
+         <div className="relative isolate overflow-hidden rounded-[32px] bg-[#0B1121] p-5 md:p-8 space-y-5 md:space-y-6 shadow-xl border border-white/5">
+           
+           {/* هاله‌های نوری پس‌زمینه برای حفظ عمق فضا */}
+           <div className="absolute -top-16 -left-10 w-[200px] h-[200px] bg-primary/20 rounded-full blur-[80px] pointer-events-none" />
+           <div className="absolute -bottom-14 -right-10 w-[180px] h-[180px] bg-blue-500/15 rounded-full blur-[80px] pointer-events-none" />
 
-           <h2 className="relative z-10 text-[17px] md:text-lg font-bold text-on-dark inline-block border-r-4 border-accent pr-[10px] mt-2 mb-[12px] opacity-90 block">
-              {dict.dashboard.quickAccess}
-           </h2>
+           <div className="relative z-10 flex items-center mt-1 mb-2">
+             <h2 className="text-[17px] md:text-xl font-extrabold text-white inline-block border-r-[4px] border-accent pr-3 opacity-95">
+                {dict.dashboard.quickAccess}
+             </h2>
+           </div>
 
-           {/* **بازطراحی کامل کارت‌های دسترسی (درخواست کارفرما):**
-               رفع باگ مرکزیت — دو علت واقعی داشت و هر دو برطرف شد:
-                 ۱) کادرِ آیکون عرضِ ثابتِ پیکسلی داشت (`w-[150px]`)، ولی سلولِ گرید با عریض‌ترشدن
-                    صفحه بزرگ‌تر می‌شد؛ به‌علاوه `translate-x-[4%]` داخل QuickAccessIcon تصویر را
-                    همیشه به یک سمت هُل می‌داد و این جابه‌جایی با بزرگ‌ترشدن تصویر بیشتر می‌شد.
-                    حالا کادر آیکون نسبی است (`w-[76%]` با سقفِ منطقی) و مربعِ کامل
-                    (`aspect-square`) — یعنی در هر عرضی، دقیقاً وسط می‌ماند و متناسب بزرگ می‌شود.
-                 ۲) برچسبِ متن هم‌زمان کلاس‌های ناسازگارِ `flex flex-wrap align-middle inline`
-                    داشت. `flex` بقیه را خنثی می‌کرد و چون چیدمانِ پیش‌فرضِ یک فلکس‌باکس
-                    `justify-start` است، متن به‌جای وسط‌چین‌شدن به لبه‌ی شروع (در RTL: سمت راست)
-                    می‌چسبید. حالا یک بلوکِ ساده‌ی `text-center` است.
-               ارتقای بصری: گرادیانِ اختصاصی هر دسته، هاله‌ی نوریِ محو پشت آیکون، حلقه‌ی نازک
-               دورِ کارت هنگام هاور، و بالاآمدنِ نرمِ کارت — هم‌خانواده با تم پرمیومِ بنر جدید. */}
-           <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-[16px] md:gap-6">
+           <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-[14px] md:gap-6">
               {categories.map((item) => (
                 <Link
                   href={item.href}
                   key={item.id}
                   className="group block outline-none select-none w-full max-w-[220px] mx-auto md:max-w-none"
                 >
-                   <div className={`relative w-full h-[230px] md:h-[260px] flex flex-col items-center justify-center gap-4 p-4 rounded-[28px] bg-white border border-slate-100/80 ring-1 ring-transparent ${item.ring} shadow-[0_4px_24px_rgba(0,0,0,0.03)] md:group-hover:shadow-[0_14px_36px_rgba(0,0,0,0.09)] md:group-hover:-translate-y-1.5 active:scale-[0.97] transition-all duration-300 ease-out overflow-hidden`}>
+                   {/* کارت مینیمال سفید با ارتفاع متناسب */}
+                   <div className={`relative w-full flex flex-col items-center justify-center gap-3 md:gap-4 p-5 md:p-6 rounded-[28px] bg-white ring-1 ring-transparent ${item.ring} shadow-md md:hover:shadow-xl md:hover:-translate-y-1.5 active:scale-[0.97] transition-all duration-300 ease-out overflow-hidden`}>
 
-                      {/* هاله‌ی نوریِ محو پشت آیکون — عمق می‌دهد بدون این‌که شلوغ شود */}
-                      <div className={`absolute top-6 left-1/2 -translate-x-1/2 w-[70%] aspect-square rounded-full blur-2xl ${item.glow} opacity-60 md:group-hover:opacity-90 transition-opacity duration-300 pointer-events-none`} />
-
-                      {/* کادر آیکون — نسبی و مربع، پس همیشه دقیقاً در مرکز کارت می‌ماند */}
-                      <div className={`relative z-10 w-[76%] max-w-[150px] aspect-square shrink-0 rounded-[36px] bg-gradient-to-br ${item.gradient} ${item.textColor} flex items-center justify-center p-[14%] shadow-inner md:group-hover:scale-[1.06] transition-transform duration-300 ease-out`}>
+                      {/* کادر نرم آیکون (Squircle پاستلی رنگ) */}
+                      <div className={`relative z-10 w-[80%] max-w-[110px] aspect-square shrink-0 rounded-[35%] ${item.bgColor} flex items-center justify-center p-[18%] md:group-hover:scale-[1.06] transition-transform duration-300 ease-out`}>
                          <QuickAccessIcon
                            src={item.imageSrc}
                            fallbackIconName={item.iconName}
-                           fallbackClassName="w-full h-full stroke-[2.2px]"
+                           fallbackClassName={`w-full h-full stroke-[2px] ${item.textColor}`}
                          />
                       </div>
 
-                      <span className="relative z-10 block w-full px-1 text-center text-[13px] md:text-sm font-bold text-slate-800 leading-[18px] break-words md:group-hover:text-slate-900 transition-colors">
+                      <span className="relative z-10 block w-full px-1 text-center text-[13px] md:text-[15px] font-extrabold text-slate-800 leading-snug break-words md:group-hover:text-slate-950 transition-colors mt-1 md:mt-2">
                          {item.title}
                       </span>
                    </div>
