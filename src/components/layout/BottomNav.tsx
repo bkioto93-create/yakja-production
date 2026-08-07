@@ -1,12 +1,4 @@
 // مسیر فایل: src/components/layout/BottomNav.tsx
-//
-// 🛠️ بازطراحیِ کامل (تعمیقِ رنگِ بنر در سراسر اپ — دستور صریحِ کارفرما): پس‌زمینه از bg-white/95
-// به bg-hero-dark/95 تغییر کرد — دقیقاً همان رنگِ بنرِ اصلی (#0B1121) — تا این نوار هم بخشی از
-// همان «قابِ تیره‌ی یکپارچه»ی دورِ محتوای اپ باشد (معادل مستقیمِ همین تغییر در
-// app/(tabs)/_layout.tsx پروژه‌ی موبایل). چون هر ۵ رنگِ حالتِ غیرفعال از قبل رنگ‌های واقعی بودند
-// (نه خاکستریِ خنثی)، روی زمینه‌ی تیره هم قابل‌تشخیص می‌مانند؛ فقط شفافیتشان کمی بالا برده شد
-// (مثلاً /40 → /60) چون زمینه‌ی تیره برخلاف زمینه‌ی روشن، به‌خودیِ‌خود کنتراست کمتری به رنگ‌های
-// کم‌شفافیت می‌دهد.
 // کلاینت‌کامپوننتی فوق‌العاده حساس که هویت مسیریاب پنهان را روی تمام لایه‌ها برای کُلاینت‌های 2G تزریق می‌کند
 // **تغییر یک‌خطی**: نقطه‌ی مخفی‌شدن از sm:hidden به md:hidden عوض شد تا دقیقاً هم‌زمان با
 // نمایان‌شدن DesktopHeader (که hidden md:flex است) عمل کند و هیچ بازه‌ای (مثلاً تبلت ۶۴۰-۷۶۷px)
@@ -74,15 +66,15 @@ export function BottomNav({
   const pureModuleRoot = segments[2] || "";
 
   const navItems = [
-    { id: "home", href: `/${currentLang}`, IconOutline: HomeOutline, IconSolid: HomeSolid, label: labels.home, pattern: "", activeText: "text-primary", activeBg: "bg-primary/15", inactiveText: "text-primary/60" },
-    { id: "listings", href: `/${currentLang}/listings`, IconOutline: ArchiveBoxOutline, IconSolid: ArchiveBoxSolid, label: labels.listings, pattern: "listings", activeText: "text-blue-500", activeBg: "bg-blue-500/15", inactiveText: "text-blue-400/70" },
-    { id: "transport", href: `/${currentLang}/transport`, IconOutline: TruckOutline, IconSolid: TruckSolid, label: labels.transport, pattern: "transport", activeText: "text-accent", activeBg: "bg-accent/15", inactiveText: "text-accent/60" },
-    { id: "services", href: `/${currentLang}/services`, IconOutline: WrenchOutline, IconSolid: WrenchSolid, label: labels.services, pattern: "services", activeText: "text-emerald-500", activeBg: "bg-emerald-500/15", inactiveText: "text-emerald-400/70" },
-    { id: "profile", href: `/${currentLang}/profile`, IconOutline: UserOutline, IconSolid: UserSolid, label: labels.profile, pattern: "profile", activeText: "text-purple-500", activeBg: "bg-purple-500/15", inactiveText: "text-purple-400/70" },
+    { id: "home", href: `/${currentLang}`, IconOutline: HomeOutline, IconSolid: HomeSolid, label: labels.home, pattern: "", activeText: "text-primary", activeBg: "bg-primary/10", inactiveText: "text-primary/40" },
+    { id: "listings", href: `/${currentLang}/listings`, IconOutline: ArchiveBoxOutline, IconSolid: ArchiveBoxSolid, label: labels.listings, pattern: "listings", activeText: "text-blue-500", activeBg: "bg-blue-500/10", inactiveText: "text-blue-400/50" },
+    { id: "transport", href: `/${currentLang}/transport`, IconOutline: TruckOutline, IconSolid: TruckSolid, label: labels.transport, pattern: "transport", activeText: "text-accent", activeBg: "bg-accent/10", inactiveText: "text-accent/40" },
+    { id: "services", href: `/${currentLang}/services`, IconOutline: WrenchOutline, IconSolid: WrenchSolid, label: labels.services, pattern: "services", activeText: "text-emerald-500", activeBg: "bg-emerald-500/10", inactiveText: "text-emerald-400/50" },
+    { id: "profile", href: `/${currentLang}/profile`, IconOutline: UserOutline, IconSolid: UserSolid, label: labels.profile, pattern: "profile", activeText: "text-purple-500", activeBg: "bg-purple-500/10", inactiveText: "text-purple-400/50" },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-hero-dark/95 backdrop-blur border-t border-on-dark-border pb-safe md:hidden block shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.5)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur border-t border-slate-100 pb-safe md:hidden block shadow-[0_-5px_20px_-15px_rgba(0,0,0,0.15)]">
       <div className="flex items-center justify-between h-[65px] px-2 w-full">
         {navItems.map((item) => {
           const isActive = pureModuleRoot === item.pattern;

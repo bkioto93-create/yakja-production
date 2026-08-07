@@ -194,9 +194,16 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
            viewerDict={dict.stories.viewer}
          />
 
-         {/* دسترسی سریع به چهار ماژول */}
-         <div className="space-y-4">
-           <h2 className="text-[17px] md:text-lg font-bold text-text-main inline-block border-r-4 border-accent pr-[10px] mt-2 mb-[12px] opacity-90 block">
+         {/* دسترسی سریع به چهار ماژول — 🛠️ بازخوردِ کارفرما: «فقط همین بخش تیره باشه، نه کل
+             اپ» — پس این تنها جایی‌ست که هدر/فوتر/نوارِ پایین به آن دست نزدند: یک پنلِ تیره‌ی
+             مستقل (bg-hero-dark، هم‌رنگِ دقیقِ بنرِ اصلی) با دو هاله‌ی نوریِ محو، که همان
+             کارت‌های سفیدِ ماژول (بدون هیچ تغییری در خودشان) رویش شناورند — دقیقاً معادلِ همین
+             تغییر در app/(tabs)/index.tsx پروژه‌ی موبایل. */}
+         <div className="relative isolate overflow-hidden rounded-[32px] bg-hero-dark p-5 md:p-8 space-y-4">
+           <div className="absolute -top-16 -left-10 w-[180px] h-[180px] bg-primary/25 rounded-full blur-[70px] pointer-events-none" />
+           <div className="absolute -bottom-14 -right-10 w-[160px] h-[160px] bg-blue-600/15 rounded-full blur-[70px] pointer-events-none" />
+
+           <h2 className="relative z-10 text-[17px] md:text-lg font-bold text-on-dark inline-block border-r-4 border-accent pr-[10px] mt-2 mb-[12px] opacity-90 block">
               {dict.dashboard.quickAccess}
            </h2>
 
@@ -213,7 +220,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                     می‌چسبید. حالا یک بلوکِ ساده‌ی `text-center` است.
                ارتقای بصری: گرادیانِ اختصاصی هر دسته، هاله‌ی نوریِ محو پشت آیکون، حلقه‌ی نازک
                دورِ کارت هنگام هاور، و بالاآمدنِ نرمِ کارت — هم‌خانواده با تم پرمیومِ بنر جدید. */}
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] md:gap-6">
+           <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-[16px] md:gap-6">
               {categories.map((item) => (
                 <Link
                   href={item.href}
