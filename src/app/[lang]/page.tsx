@@ -45,6 +45,7 @@ import Link from "next/link";
 import { Footer } from "@/components/layout/Footer";
 import { HomeFeatures } from "./HomeFeatures";
 import { HomeFaq } from "./HomeFaq";
+import { HomeAbout } from "./HomeAbout";
 import { HeroIllustration } from "./HeroIllustration";
 import { QuickAccessIcon } from "./QuickAccessIcon";
 import { VipHomeBanner } from "@/components/home/VipHomeBanner";
@@ -348,6 +349,13 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
          {/* پرسش‌های پرتکرار */}
          <div className="-mx-[24px] md:mx-0">
            <HomeFaq dict={dict.home.faq} />
+         </div>
+
+         {/* «یکجا چیست؟» — 🆕 پایین‌ترین بخش محتوای صفحه‌ی اصلی، قبل از فوتر (طبق دستور صریح
+             کارفرما): توضیح کامل و SEO-friendly این‌که یکجا دقیقاً چه اپلیکیشنی است و چه
+             خدماتی ارائه می‌دهد — رجوع کنید به کامنت بالای HomeAbout.tsx برای دلیل کامل. */}
+         <div className="-mx-[24px] md:mx-0">
+           <HomeAbout dict={dict.home.about} />
          </div>
       </div>
 
