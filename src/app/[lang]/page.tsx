@@ -194,16 +194,13 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
            viewerDict={dict.stories.viewer}
          />
 
-         {/* دسترسی سریع به چهار ماژول — 🛠️ بازخوردِ کارفرما: «فقط همین بخش تیره باشه، نه کل
-             اپ» — پس این تنها جایی‌ست که هدر/فوتر/نوارِ پایین به آن دست نزدند: یک پنلِ تیره‌ی
-             مستقل (bg-hero-dark، هم‌رنگِ دقیقِ بنرِ اصلی) با دو هاله‌ی نوریِ محو، که همان
-             کارت‌های سفیدِ ماژول (بدون هیچ تغییری در خودشان) رویش شناورند — دقیقاً معادلِ همین
-             تغییر در app/(tabs)/index.tsx پروژه‌ی موبایل. */}
-         <div className="relative isolate overflow-hidden rounded-[32px] bg-hero-dark p-5 md:p-8 space-y-4">
-           <div className="absolute -top-16 -left-10 w-[180px] h-[180px] bg-primary/25 rounded-full blur-[70px] pointer-events-none" />
-           <div className="absolute -bottom-14 -right-10 w-[160px] h-[160px] bg-blue-600/15 rounded-full blur-[70px] pointer-events-none" />
-
-           <h2 className="relative z-10 text-[17px] md:text-lg font-bold text-on-dark inline-block border-r-4 border-accent pr-[10px] mt-2 mb-[12px] opacity-90 block">
+         {/* دسترسی سریع به چهار ماژول — 🛠️ بازطراحیِ دوم (بازخوردِ کارفرما، بعد از دیدنِ نسخه‌ی
+             اول در Expo Go): «پنلِ بیرونی رو سفید کن، خودِ کارت‌ها رو تیره کن» — دقیقاً برعکسِ
+             چیدمانِ قبلی. پس این پنل دیگر bg-hero-dark و هاله‌های نوری ندارد — رنگِ تیره حالا
+             فقط داخلِ خودِ کارت‌هاست (پایین‌تر). تیترِ «دسترسی عاجل» هم به رنگِ متنِ اصلیِ صفحه
+             برگشت. */}
+         <div className="space-y-4">
+           <h2 className="text-[17px] md:text-lg font-bold text-text-main inline-block border-r-4 border-accent pr-[10px] mt-2 mb-[12px] opacity-90 block">
               {dict.dashboard.quickAccess}
            </h2>
 
@@ -220,20 +217,26 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                     می‌چسبید. حالا یک بلوکِ ساده‌ی `text-center` است.
                ارتقای بصری: گرادیانِ اختصاصی هر دسته، هاله‌ی نوریِ محو پشت آیکون، حلقه‌ی نازک
                دورِ کارت هنگام هاور، و بالاآمدنِ نرمِ کارت — هم‌خانواده با تم پرمیومِ بنر جدید. */}
-           <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-[16px] md:gap-6">
+           {/* 🛠️ بازطراحیِ دوم (بازخوردِ کارفرما): دو تغییر روی خودِ کارت‌ها —
+               ۱) h-[230px]/h-[260px] (ارتفاعِ ثابت، مستقل از عرض → شکلِ کشیده) به aspect-square
+                  تغییر کرد؛ کارت حالا همیشه دقیقاً مربع است، هر عرضی که سلولِ گرید داشته باشد.
+               ۲) bg-white → bg-hero-dark، border-slate-100/80 → border-on-dark-border، رنگِ متنِ
+                  عنوان از text-slate-800 (تیره، برای زمینه‌ی روشن) به text-on-dark (سفید، برای
+                  زمینه‌ی تیره) — دقیقاً معادلِ همین تغییر در components/ModuleCard.tsx موبایل. */}
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-[16px] md:gap-6">
               {categories.map((item) => (
                 <Link
                   href={item.href}
                   key={item.id}
                   className="group block outline-none select-none w-full max-w-[220px] mx-auto md:max-w-none"
                 >
-                   <div className={`relative w-full h-[230px] md:h-[260px] flex flex-col items-center justify-center gap-4 p-4 rounded-[28px] bg-white border border-slate-100/80 ring-1 ring-transparent ${item.ring} shadow-[0_4px_24px_rgba(0,0,0,0.03)] md:group-hover:shadow-[0_14px_36px_rgba(0,0,0,0.09)] md:group-hover:-translate-y-1.5 active:scale-[0.97] transition-all duration-300 ease-out overflow-hidden`}>
+                   <div className={`relative w-full aspect-square flex flex-col items-center justify-center gap-3 p-4 rounded-[28px] bg-hero-dark border border-on-dark-border ring-1 ring-transparent ${item.ring} shadow-[0_6px_28px_rgba(0,0,0,0.25)] md:group-hover:shadow-[0_16px_40px_rgba(0,0,0,0.35)] md:group-hover:-translate-y-1.5 active:scale-[0.97] transition-all duration-300 ease-out overflow-hidden`}>
 
                       {/* هاله‌ی نوریِ محو پشت آیکون — عمق می‌دهد بدون این‌که شلوغ شود */}
                       <div className={`absolute top-6 left-1/2 -translate-x-1/2 w-[70%] aspect-square rounded-full blur-2xl ${item.glow} opacity-60 md:group-hover:opacity-90 transition-opacity duration-300 pointer-events-none`} />
 
                       {/* کادر آیکون — نسبی و مربع، پس همیشه دقیقاً در مرکز کارت می‌ماند */}
-                      <div className={`relative z-10 w-[76%] max-w-[150px] aspect-square shrink-0 rounded-[36px] bg-gradient-to-br ${item.gradient} ${item.textColor} flex items-center justify-center p-[14%] shadow-inner md:group-hover:scale-[1.06] transition-transform duration-300 ease-out`}>
+                      <div className={`relative z-10 w-[68%] max-w-[130px] aspect-square shrink-0 rounded-[32px] bg-gradient-to-br ${item.gradient} ${item.textColor} flex items-center justify-center p-[14%] shadow-inner md:group-hover:scale-[1.06] transition-transform duration-300 ease-out`}>
                          <QuickAccessIcon
                            src={item.imageSrc}
                            fallbackIconName={item.iconName}
@@ -241,7 +244,7 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
                          />
                       </div>
 
-                      <span className="relative z-10 block w-full px-1 text-center text-[13px] md:text-sm font-bold text-slate-800 leading-[18px] break-words md:group-hover:text-slate-900 transition-colors">
+                      <span className="relative z-10 block w-full px-1 text-center text-[13px] md:text-sm font-bold text-on-dark leading-[18px] break-words transition-colors">
                          {item.title}
                       </span>
                    </div>
