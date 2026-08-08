@@ -102,9 +102,19 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
   // آیکون کلاسیک (iconName) برمی‌گردد.
   // هر دسته علاوه بر رنگ متن/پس‌زمینه، یک گرادیانِ ملایم و یک رنگِ هاله (glow) هم دارد — برای
   // کارت‌های بازطراحی‌شده‌ی «دسترسی عاجل» که دیگر یک مربع تخت نیستند.
+  //
+  // **رفع باگ (بازخورد کارفرما — «آیکون درخواست راننده و بار روی بک‌گراند قهوه‌ای دیده نمی‌شود»):**
+  // سه دسته‌ی دیگر (کالا/خدمات/املاک) از یک رنگِ پاستلِ روشنِ *کاملاً پُر* استفاده می‌کنند
+  // (مثلاً from-blue-100 to-blue-50/40 — این ۱۰۰ و ۵۰ نامِ رنگ‌اند، نه درصدِ شفافیت). اما «حمل‌ونقل»
+  // قبلاً from-accent/20 to-accent/5 بود — اینجا عدد بعد از / واقعاً درصدِ شفافیتِ رنگِ accent
+  // (نارنجیِ برند) است، یعنی این کاشی اصلاً رنگِ خودش را نداشت؛ فقط یک لایه‌ی نارنجیِ ۵ تا ۲۰٪
+  // شفاف روی کارتِ تیره‌ی پشتش (bg-hero-dark) بود — و چون پشتش تیره است، نتیجه یک قهوه‌ای/نارنجیِ
+  // کدر و کم‌کنتراست می‌شود، نه یک تُنِ روشنِ واقعی. راه‌حل: دقیقاً هم‌الگو با سه‌تای دیگر، حالا از
+  // یک زردِ کهربایی (amber) *کاملاً پُر و روشن* استفاده می‌کند — نه شفافیتِ رنگِ accent روی زمینه‌ی
+  // تیره. bg-hero-dardِ کارتِ بیرونی دست‌نخورده ماند؛ فقط رنگِ خودِ کاشیِ آیکون عوض شد.
   const categories = [
     { id: 'listings', href: `/${lang}/listings`, title: dict.dashboard.categories.listings, iconName: "Box" as const, imageSrc: "/icons/quick-listings.png", textColor: "text-blue-500", bgColor: "bg-blue-100/60", gradient: "from-blue-100 to-blue-50/40", glow: "bg-blue-400/20", ring: "md:group-hover:ring-blue-200" },
-    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, iconName: "Truck" as const, imageSrc: "/icons/quick-transport.png", textColor: "text-accent", bgColor: "bg-accent/10", gradient: "from-accent/20 to-accent/5", glow: "bg-accent/25", ring: "md:group-hover:ring-accent/30" },
+    { id: 'transport', href: `/${lang}/transport`, title: dict.dashboard.categories.transport, iconName: "Truck" as const, imageSrc: "/icons/quick-transport.png", textColor: "text-amber-600", bgColor: "bg-amber-100/60", gradient: "from-amber-100 to-amber-50/40", glow: "bg-amber-400/20", ring: "md:group-hover:ring-amber-200" },
     { id: 'services', href: `/${lang}/services`, title: dict.dashboard.categories.services, iconName: "Wrench" as const, imageSrc: "/icons/quick-services.png", textColor: "text-emerald-500", bgColor: "bg-emerald-100/60", gradient: "from-emerald-100 to-emerald-50/40", glow: "bg-emerald-400/20", ring: "md:group-hover:ring-emerald-200" },
     { id: 'real-estate', href: `/${lang}/real-estate`, title: dict.dashboard.categories.realEstate, iconName: "Home" as const, imageSrc: "/icons/quick-realestate.png", textColor: "text-purple-500", bgColor: "bg-purple-100/60", gradient: "from-purple-100 to-purple-50/40", glow: "bg-purple-400/20", ring: "md:group-hover:ring-purple-200" },
   ];
