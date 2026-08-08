@@ -11,6 +11,14 @@
 // بی‌فایده اگر از قبل به سقف رسیده) و هم دوباره در createStoryAction (بررسی نهایی و
 // غیرقابل‌دورزدن، درست قبل از insert) انجام می‌شود؛ دقیقاً همان الگوی دو-لایه‌ای که برای ویدئوی
 // آگهی VIP در فاز ۱۱ استفاده شد.
+//
+// **به‌روزرسانی (سقفِ VIP برای ویدئوی استوری):** طبق تصمیم تازه‌ی کارفرما، سقفِ مجازِ مدت‌زمانِ
+// ویدئوی استوری دیگر یک عددِ ثابتِ یکسان برای همه نیست: کاربرِ معمولی هم‌چنان ۱۵ ثانیه، کاربرِ
+// VIP تا ۳۰ ثانیه. عددِ ثابتِ محلیِ قبلی (MAX_VIDEO_DURATION_SECONDS) از این فایل حذف شد؛ به‌جایش
+// از همان منبعِ حقیقتِ مشترکی خوانده می‌شود که سمتِ مرورگر هم استفاده می‌کند
+// (src/lib/stories/storyVideoLimits.ts) — دفاع در عمقِ سمتِ سرور هنوز کاملاً برقرار است: حتی اگر
+// کلاینت مقدارِ بزرگ‌تری بفرستد، اینجا با VIP واقعیِ کاربر (خوانده‌شده از دیتابیس، نه از ورودیِ
+// کلاینت) دوباره اعتبارسنجی می‌شود.
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
@@ -18,6 +26,7 @@ import { supabaseAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/session";
 import { isUserVip } from "@/lib/vip/vipStatus";
 import { canUserPostStoryToday } from "@/lib/stories/storyLimits";
+import { getStoryVideoMaxDurationSeconds } from "@/lib/stories/storyVideoLimits";
 import { getActiveStoriesForUser, type ActiveStory } from "@/lib/stories/storyQueries";
 
 // اکشن سبک برای فراخوانی از کامپوننت کلاینتِ UserStoryAvatar: وقتی کاربر روی یک حلقه‌ی
@@ -29,12 +38,9 @@ export async function getUserStoriesAction(userId: string): Promise<ActiveStory[
 }
 
 const STORIES_BUCKET = "stories";
-// دفاع در عمق سمت سرور: حتی اگر کلاینت به‌هر دلیل مقدار بزرگ‌تری بفرستد (مثلاً یک کلاینت
-// دستکاری‌شده)، هیچ استوری‌ای بیش از این مدت پذیرفته نمی‌شود — این عدد باید همیشه با
-// STORY_VIDEO_MAX_DURATION_SECONDS در src/lib/stories/storyMediaProcessor.ts هماهنگ بماند.
-const MAX_VIDEO_DURATION_SECONDS = 15;
-// کمی تلورانس (نیم‌ثانیه) برای گرد‌شدن‌های اعشاری بی‌ضرر سمت کلاینت.
-const MAX_VIDEO_DURATION_WITH_TOLERANCE = MAX_VIDEO_DURATION_SECONDS + 0.5;
+// کمی تلورانس (نیم‌ثانیه) برای گرد‌شدن‌های اعشاری بی‌ضرر سمت کلاینت — روی سقفِ VIP-محورِ همان
+// کاربر اعمال می‌شود، نه یک عددِ ثابتِ واحد.
+const VIDEO_DURATION_TOLERANCE_SECONDS = 0.5;
 
 export type SignedUploadSlot = { path: string; token: string };
 
@@ -113,7 +119,11 @@ export async function createStoryAction(input: {
   let durationSeconds: number | null = null;
   if (input.mediaType === "video") {
     const raw = input.durationSeconds ?? 0;
-    if (!Number.isFinite(raw) || raw <= 0 || raw > MAX_VIDEO_DURATION_WITH_TOLERANCE) {
+    // سقفِ مدت‌زمانِ مجاز بر اساسِ VIP واقعیِ همین کاربر (خوانده‌شده از دیتابیس بالا) — نه هر
+    // مقداری که کلاینت ادعا کند؛ دقیقاً همان تک‌منبع‌حقیقتی که سمتِ مرورگر هم استفاده می‌کند.
+    const maxVideoDurationSeconds = getStoryVideoMaxDurationSeconds(isVip);
+    const maxWithTolerance = maxVideoDurationSeconds + VIDEO_DURATION_TOLERANCE_SECONDS;
+    if (!Number.isFinite(raw) || raw <= 0 || raw > maxWithTolerance) {
       try {
         await supabaseAdminClient.storage.from(STORIES_BUCKET).remove([input.mediaPath]);
       } catch {
@@ -123,7 +133,7 @@ export async function createStoryAction(input: {
     }
     // اگر کمی از سقف بیشتر بود (فقط به‌خاطر گرد‌شدن اعشاری مجاز)، به‌جای رد کردن، به سقف واقعی
     // محدود می‌شود.
-    durationSeconds = Math.min(raw, MAX_VIDEO_DURATION_SECONDS);
+    durationSeconds = Math.min(raw, maxVideoDurationSeconds);
   }
 
   const width = Number.isFinite(input.width) && (input.width as number) > 0 ? input.width : null;

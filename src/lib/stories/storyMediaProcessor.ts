@@ -10,11 +10,22 @@
 // عکس همچنان دقیقاً هم‌الگو با src/lib/marketplace/imageCompression.ts (کاهش پلکانی کیفیت JPEG)
 // مستقیم همین‌جا پیاده‌سازی شده — چون فقط چند خط است و منطق مشترکی با ویدئو ندارد.
 //
+// **به‌روزرسانی (سقفِ VIP برای ویدئوی استوری):** طبق تصمیم صریح کارفرما، کاربرِ VIP حالا
+// می‌تواند تا ۳۰ ثانیه (به‌جای ۱۵ ثانیه) ویدئوی استوری بگذارد. سقفِ ثابتِ قبلی
+// (STORY_VIDEO_MAX_DURATION_SECONDS) از این فایل حذف و به یک منبعِ حقیقتِ مشترک منتقل شد
+// (src/lib/stories/storyVideoLimits.ts، قابل‌استفاده هم اینجا هم سمتِ سرور در
+// storyActions.ts) — تابعِ getStoryVideoMaxDurationSeconds(isVip) حالا سقفِ درست را برمی‌گرداند.
+// حجمِ هدفِ فشرده‌سازی (targetMaxBytes) هم دیگر یک عددِ ثابت نیست؛ بر اساسِ همان نرخِ قبلیِ
+// «هر ثانیه چقدر حجم» محاسبه می‌شود، تا ویدئوی ۳۰ثانیه‌ایِ VIP هم کیفیتِ مشابهِ ویدئوی ۱۵ثانیه‌ای
+// را حفظ کند (نه این‌که با همان سقفِ حجمِ قبلی در نصفِ نرخِ بیت فشرده شود).
+//
 // این فایل فقط سمت مرورگر اجرا می‌شود — هرگز داخل Server Action یا هر فایل سروری import نشود.
 "use client";
 
 import { compressVideoFile, isVideoCompressionSupported } from "@/lib/media/videoCompression";
+import { getStoryVideoMaxDurationSeconds } from "@/lib/stories/storyVideoLimits";
 export { isVideoCompressionSupported };
+export { getStoryVideoMaxDurationSeconds };
 
 // ---------------------------------------------------------------------------
 // عکس — دقیقاً هم‌الگو با src/lib/marketplace/imageCompression.ts (کاهش پلکانی کیفیت JPEG)،
@@ -109,26 +120,34 @@ export async function compressStoryImage(file: File): Promise<CompressedStoryMed
 
 // ---------------------------------------------------------------------------
 // ویدئو — پارامترهای مخصوص استوری، پاس داده‌شده به موتور مشترک
-// (src/lib/media/videoCompression.ts). همه‌ی این اعداد در یک‌جا نگه داشته شده‌اند تا اگر کارفرما
-// بعداً خواست «کیفیت بهتر با حجم بیشتر» یا برعکس، تغییرش ساده و یک‌جا باشد.
+// (src/lib/media/videoCompression.ts). سقفِ مدت‌زمان دیگر یک عددِ ثابت نیست؛ از
+// storyVideoLimits.ts خوانده می‌شود (۱۵ ثانیه کاربر معمولی، ۳۰ ثانیه کاربر VIP).
 // ---------------------------------------------------------------------------
-export const STORY_VIDEO_MAX_DURATION_SECONDS = 15;
 const VIDEO_MAX_DIMENSION_PX = 720;
-const VIDEO_TARGET_MAX_BYTES = 3 * 1024 * 1024; // ۳ مگابایت هدف
+// نرخِ حجمِ هدف «به‌ازای هر ثانیه» — همان نرخِ قبلیِ ثابتِ پروژه (۳ مگابایت برای ۱۵ ثانیه)، فقط
+// حالا به یک نرخِ ثانیه‌ای تبدیل شده تا با هر سقفِ مدت‌زمانی (۱۵ یا ۳۰ ثانیه) به‌درستی مقیاس شود؛
+// یعنی ویدئوی ۳۰ثانیه‌ایِ VIP هدفِ حجمِ حدوداً ۶ مگابایتی می‌گیرد، نه همان ۳ مگابایتِ قبلی که در
+// نصفِ نرخِ بیتِ سابق فشرده و کیفیتش افت می‌کرد.
+const VIDEO_TARGET_BYTES_PER_SECOND = (3 * 1024 * 1024) / 15;
 
 // فشرده‌سازی ویدئوی استوری: فقط یک پوسته‌ی نازک دور compressVideoFile مشترک، با پارامترهای
-// مخصوص استوری (حداکثر ۱۵ ثانیه، حداکثر ۷۲۰px، هدف حجم ۳ مگابایت). اگر ویدئوی منبع طولانی‌تر از
-// ۱۵ ثانیه بود، فقط همان چند ثانیه‌ی اول استفاده می‌شود؛ UI باید این را پیشاپیش به کاربر بگوید.
+// مخصوص استوری (سقفِ مدت‌زمانِ متناسب با VIP بودنِ کاربر، حداکثر ۷۲۰px، هدفِ حجمِ متناسب با همان
+// سقفِ مدت‌زمان). اگر ویدئوی منبع طولانی‌تر از سقف بود، فقط همان چند ثانیه‌ی اول استفاده
+// می‌شود؛ UI باید این را پیشاپیش به کاربر بگوید.
 export async function compressStoryVideo(
   file: File,
+  isVip: boolean,
   onProgress?: (ratio: number) => void
 ): Promise<CompressedStoryMedia> {
+  const maxDurationSeconds = getStoryVideoMaxDurationSeconds(isVip);
+  const targetMaxBytes = Math.round(VIDEO_TARGET_BYTES_PER_SECOND * maxDurationSeconds);
+
   const result = await compressVideoFile(
     file,
     {
-      maxDurationSeconds: STORY_VIDEO_MAX_DURATION_SECONDS,
+      maxDurationSeconds,
       maxDimensionPx: VIDEO_MAX_DIMENSION_PX,
-      targetMaxBytes: VIDEO_TARGET_MAX_BYTES,
+      targetMaxBytes,
     },
     onProgress
   );
@@ -147,17 +166,19 @@ export async function compressStoryVideo(
 
 // ---------------------------------------------------------------------------
 // نقطه‌ی ورود واحد — تشخیص نوع فایل و فراخوانی تابع مناسب. کامپوننت UI فقط همین یک تابع را صدا
-// می‌زند، نیازی به دانستن این‌که عکس/ویدئو داخلاً چطور پردازش می‌شوند نیست.
+// می‌زند، نیازی به دانستن این‌که عکس/ویدئو داخلاً چطور پردازش می‌شوند نیست. پارامترِ isVip فقط
+// برای ویدئو معنا دارد (تعیینِ سقفِ مدت‌زمان)؛ برای عکس نادیده گرفته می‌شود.
 // ---------------------------------------------------------------------------
 export async function processStoryMedia(
   file: File,
+  isVip: boolean,
   onProgress?: (ratio: number) => void
 ): Promise<CompressedStoryMedia> {
   if (file.type.startsWith("image/")) {
     return compressStoryImage(file);
   }
   if (file.type.startsWith("video/")) {
-    return compressStoryVideo(file, onProgress);
+    return compressStoryVideo(file, isVip, onProgress);
   }
   throw new Error("unsupportedFileType");
 }

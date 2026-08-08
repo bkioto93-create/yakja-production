@@ -8,6 +8,10 @@
 // (آگهی/چت نامحدود، ویدئو، نشان VIP)، نه یک وعده‌ی انتزاعی؛ عمداً هیچ ادعای اضافه‌ای (مثل
 // «اولویت در نتایج جستجو») که در کد واقعی پیاده‌سازی نشده، اینجا گفته نمی‌شود.
 //
+// **به‌روزرسانی (شفافیتِ مزیتِ استوریِ VIP):** یک آیتمِ چهارم («استوری‌ات کامل‌تر دیده می‌شود»)
+// اضافه شد — طبق همان اصلِ بالا، به یک قابلیتِ واقعیِ تازه (سقفِ ۳۰ثانیه‌ایِ ویدئوی استوری برای
+// VIP، در برابرِ ۱۵ ثانیه‌ی کاربر معمولی) وصل است، نه یک وعده‌ی انتزاعی.
+//
 // ctaHref/ctaLabel اختیاری‌اند: صفحه‌ی VIP (که خودِ کاربر همین‌جاست) این‌ها را پاس نمی‌دهد؛
 // صفحه‌ی اصلی پاس می‌دهد تا یک دکمه‌ی «عضویت VIP» زیر کارت باشد و مسیر بعدی کاربر مشخص باشد.
 import Link from "next/link";
@@ -35,7 +39,8 @@ export function VipPitchSection({
 
       <div className="flex flex-col gap-3">
         {dict.items.map((item, index) => {
-          const PitchIcon = [Icons.Users, Icons.Search, Icons.CheckCircle][index] ?? Icons.CheckCircle;
+          const PitchIcon =
+            [Icons.Users, Icons.Search, Icons.CheckCircle, Icons.Clock][index] ?? Icons.CheckCircle;
           return (
             <div key={item.title} className="flex items-start gap-3">
               <div className="w-9 h-9 shrink-0 rounded-xl bg-amber-500 text-white flex items-center justify-center">

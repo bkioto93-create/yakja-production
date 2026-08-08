@@ -5,6 +5,12 @@
 //
 // طبق تصمیم صریح کارفرما، محدودیت روزانه («کاربر معمولی روزی ۱ بار، VIP نامحدود») همیشه به‌طور
 // برجسته کنار دکمه نمایش داده می‌شود — نه یک قانون پنهان که کاربر فقط بعد از خطا بفهمدش.
+//
+// **به‌روزرسانی (سقفِ VIP برای ویدئوی استوری):** طبق تصمیم تازه‌ی کارفرما، کاربرِ VIP حالا
+// می‌تواند تا ۳۰ ثانیه (به‌جای ۱۵ ثانیه) ویدئوی استوری بگذارد. چون این کامپوننت از قبل isVip را
+// به‌عنوان prop دریافت می‌کند (برای نمایشِ نوارِ سهمیه‌ی روزانه)، همان مقدار حالا به
+// processStoryMedia هم پاس داده می‌شود؛ سقفِ نمایش‌داده‌شده در یادداشتِ زیرِ دکمه هم دیگر
+// همیشه ۱۵ نیست، بلکه با getStoryVideoMaxDurationSeconds(isVip) محاسبه می‌شود.
 "use client";
 
 import { useRef, useState, type ChangeEvent } from "react";
@@ -17,8 +23,8 @@ import { supabaseBrowserClient } from "@/lib/supabase/client";
 import {
   processStoryMedia,
   isVideoCompressionSupported,
-  STORY_VIDEO_MAX_DURATION_SECONDS,
 } from "@/lib/stories/storyMediaProcessor";
+import { getStoryVideoMaxDurationSeconds } from "@/lib/stories/storyVideoLimits";
 import {
   createSignedStoryUploadSlotAction,
   createStoryAction,
@@ -78,6 +84,7 @@ export function AddStorySection({
 
   const hasReachedLimit = !isVip && dailyUsedCount >= dailyLimit;
   const canPickVideo = isVideoCompressionSupported();
+  const videoMaxDurationSeconds = getStoryVideoMaxDurationSeconds(isVip);
 
   function errorText(code: string): string {
     return dict.errors[code as keyof typeof dict.errors] ?? dict.errors.generic;
@@ -100,7 +107,7 @@ export function AddStorySection({
     setProgress(0);
 
     try {
-      const compressed = await processStoryMedia(file, (ratio) => setProgress(ratio));
+      const compressed = await processStoryMedia(file, isVip, (ratio) => setProgress(ratio));
 
       setStage("uploading");
       const slotResult = await createSignedStoryUploadSlotAction({
@@ -206,7 +213,7 @@ export function AddStorySection({
             <p className="text-[11px] text-text-muted text-center">
               {dict.videoTrimNoticeTemplate.replace(
                 "{seconds}",
-                String(STORY_VIDEO_MAX_DURATION_SECONDS)
+                String(videoMaxDurationSeconds)
               )}
             </p>
           )}

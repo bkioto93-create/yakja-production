@@ -63,7 +63,9 @@ export default async function VipPage({
         <p className="text-sm text-text-muted max-w-sm">{vipDict.pageSubtitle}</p>
       </div>
 
-      {/* سه امتیاز VIP — دقیقاً همان سه‌تا طبق بند ۱ پرامپت */}
+      {/* چهار امتیاز VIP — سه‌تای اصلیِ طبق بند ۱ پرامپت، به‌علاوه‌ی مزیتِ تازه‌ی «استوریِ
+          اختصاصی‌تر» (طبق تصمیم صریح کارفرما: این تغییر نباید بی‌سروصدا انجام شود، باید همین‌جا
+          هم به‌روشنی به کاربر گفته شود). */}
       <div className="grid grid-cols-1 gap-3">
         <Card className="p-4 flex items-center gap-3">
           <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
@@ -90,6 +92,15 @@ export default async function VipPage({
           <div className="flex flex-col">
             <span className="font-bold text-text-main text-sm">{vipDict.benefits.chatTitle}</span>
             <span className="text-xs text-text-muted">{vipDict.benefits.chatDesc}</span>
+          </div>
+        </Card>
+        <Card className="p-4 flex items-center gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <Icons.Clock className="w-5 h-5" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-text-main text-sm">{vipDict.benefits.storyTitle}</span>
+            <span className="text-xs text-text-muted">{vipDict.benefits.storyDesc}</span>
           </div>
         </Card>
       </div>

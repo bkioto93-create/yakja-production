@@ -3,6 +3,10 @@
 // src/app/[lang]/page.tsx (گرادیان، گوشه‌های گرد، دایره‌های تزئینی محو در پس‌زمینه)، اما با
 // گرادیان طلایی/کهربایی به‌جای آبی primary — تا از نظر بصری از هیرو اصلی متمایز باشد و حس
 // «ویژه/پرمیوم» بدهد. هم در موبایل (چیدمان عمودی) هم در دسکتاپ (چیدمان افقی اسپلیت) تست‌شده.
+//
+// **به‌روزرسانی (شفافیتِ مزیتِ استوریِ VIP):** طبق تصمیم صریح کارفرما — «نباید این تغییر را
+// بدون اطلاع‌رسانی انجام دهیم» — یک ردیفِ چهارمِ مزیت اضافه شد: استوریِ اختصاصی تا ۳۰ ثانیه
+// (دو برابرِ سقفِ ۱۵ ثانیه‌ایِ کاربر معمولی).
 import Link from "next/link";
 import { Icons } from "@/components/ui/Icons";
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
@@ -13,6 +17,7 @@ type VipHomeBannerDict = {
   videoLabel: string;
   postsLabel: string;
   chatLabel: string;
+  storyLabel: string;
   button: string;
 };
 
@@ -21,6 +26,7 @@ export function VipHomeBanner({ lang, dict }: { lang: string; dict: VipHomeBanne
     { label: dict.videoLabel, icon: Icons.Camera },
     { label: dict.postsLabel, icon: Icons.Box },
     { label: dict.chatLabel, icon: Icons.MessageSquare },
+    { label: dict.storyLabel, icon: Icons.Clock },
   ];
 
   return (
