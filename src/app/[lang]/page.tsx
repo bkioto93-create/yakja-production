@@ -247,11 +247,18 @@ export default async function Home({ params }: { params: Promise<{ lang: string 
 
                       {/* کادر آیکون — نسبی و مربع، پس همیشه دقیقاً در مرکز کارت می‌ماند */}
                       <div className={`relative z-10 w-[68%] max-w-[130px] aspect-square shrink-0 rounded-[32px] bg-gradient-to-br ${item.gradient} ${item.textColor} flex items-center justify-center p-[14%] shadow-inner md:group-hover:scale-[1.06] transition-transform duration-300 ease-out`}>
-                         <QuickAccessIcon
-                           src={item.imageSrc}
-                           fallbackIconName={item.iconName}
-                           fallbackClassName="w-full h-full stroke-[2.2px]"
-                         />
+                         {/* **بزرگ‌ترشدنِ خودِ آیکون (درخواست کارفرما — «فقط خودِ آبجکتِ آیکون، بک‌گراندها
+                             اصلاً نه»):** این یک لایه‌ی جدا، فقط دور آیکون است؛ کادرِ رنگیِ بالا (پس‌زمینه‌ی
+                             کاشی) حتی یک کلاس هم عوض نشده. scale-150 یک transform بصریِ محض است — به هیچ
+                             عنوان روی ابعادِ واقعیِ کادرِ والد یا چیدمانِ اطرافش اثر نمی‌گذارد، فقط خودِ
+                             محتوای این لایه را ۱٫۵ برابر بزرگ‌تر رسم می‌کند. */}
+                         <div className="w-full h-full scale-150">
+                            <QuickAccessIcon
+                              src={item.imageSrc}
+                              fallbackIconName={item.iconName}
+                              fallbackClassName="w-full h-full stroke-[2.2px]"
+                            />
+                         </div>
                       </div>
 
                       <span className="relative z-10 block w-full px-1 text-center text-[13px] md:text-sm font-bold text-on-dark leading-[18px] break-words transition-colors">
